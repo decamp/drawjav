@@ -23,7 +23,7 @@ public class RealtimeDriverTest {
     
     
     public static void main( String[] args ) throws Exception {
-        testMultiSynced();
+        testMulti();
     }
     
     
@@ -229,15 +229,16 @@ public class RealtimeDriverTest {
         final OneThreadMultiDriver driver = OneThreadMultiDriver.newInstance( playCont );
         driver.addSource( decoder1 );
         driver.addSource( decoder2 );
-        final VideoTexture tex = new VideoTexture();
+        final VideoTexture tex1 = new VideoTexture();
+        final VideoTexture tex2 = new VideoTexture();
         
         driver.openVideoStream( decoder1.stream( JavConstants.AVMEDIA_TYPE_VIDEO, 0 ), 
                                 new PictureFormat(-1, -1, JavConstants.PIX_FMT_BGRA, new Rational(1, 1) ), 
-                                tex );
+                                tex1 );
         
         driver.openVideoStream( decoder2.stream( JavConstants.AVMEDIA_TYPE_VIDEO, 0 ),
                                 new PictureFormat( -1, -1, JavConstants.PIX_FMT_BGRA, new Rational( 1, 1 ) ),
-                                tex );
+                                tex2 );
         
         //sh = decoder.firstStream(JavConstants.AVMEDIA_TYPE_AUDIO);
         //AudioLinePlayer player = new AudioLinePlayer(sh.audioFormat(), playCont.masterClock());
@@ -268,7 +269,8 @@ public class RealtimeDriverTest {
                 gl.glClear(GL_COLOR_BUFFER_BIT);
                 
                 gl.glColor4d(1,1,1,1);
-                tex.pushDraw(gl);
+                
+                tex1.pushDraw( gl );
                 gl.glBegin(GL_QUADS);
                 
                 gl.glTexCoord2d(0, 1);
@@ -278,13 +280,31 @@ public class RealtimeDriverTest {
                 gl.glVertex2d(1, 0);
                 
                 gl.glTexCoord2d(1, 0);
+                gl.glVertex2d(1, 0.5);
+                
+                gl.glTexCoord2d(0, 0);
+                gl.glVertex2d(0, 0.5);
+                
+                gl.glEnd();
+                tex1.popDraw(gl);
+                
+                tex2.pushDraw( gl );
+                gl.glBegin(GL_QUADS);
+                
+                gl.glTexCoord2d(0, 1);
+                gl.glVertex2d(0, 0.5);
+                
+                gl.glTexCoord2d(1, 1);
+                gl.glVertex2d(1, 0.5);
+                
+                gl.glTexCoord2d(1, 0);
                 gl.glVertex2d(1, 1);
                 
                 gl.glTexCoord2d(0, 0);
                 gl.glVertex2d(0, 1);
                 
                 gl.glEnd();
-                tex.popDraw(gl);
+                tex2.popDraw(gl);
             }
             
             public void displayChanged(GLAutoDrawable arg0, boolean arg1, boolean arg2) {}

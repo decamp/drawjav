@@ -9,7 +9,7 @@ import cogmac.clocks.*;
 /**
  * @author decamp
  */
-public class OneThreadMultiDriver implements StreamDriver {
+public class OneThreadMultiDriver implements MultiSourceDriver {
     
     
     public static OneThreadMultiDriver newInstance( PlayController playCont ) {
@@ -106,6 +106,11 @@ public class OneThreadMultiDriver implements StreamDriver {
     }
     
     
+    public boolean removeSource( Source source ) {
+        return false;
+    }
+    
+    
     public synchronized StreamHandle openVideoStream( StreamHandle stream,
                                                       PictureFormat outputFormat,
                                                       Sink<? super VideoPacket> sink )
@@ -117,7 +122,7 @@ public class OneThreadMultiDriver implements StreamDriver {
         }
 
         Sink syncSink = mSyncer.openStream( sink );
-        StreamHandle ret = source.mDriver.openVideoStream( stream, outputFormat, sink );
+        StreamHandle ret = source.mDriver.openVideoStream( stream, outputFormat, syncSink );
         if( ret == null ) {
             syncSink.close();
             return null;
@@ -181,6 +186,7 @@ public class OneThreadMultiDriver implements StreamDriver {
                             s.mEof = false;
                             s.mNextMicros = Long.MIN_VALUE;
                             s.mDriver.seek( mSeekMicros );
+                            s.mDriver.clear();
                         }
                         continue;
                     }
