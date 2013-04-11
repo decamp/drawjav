@@ -8,11 +8,11 @@ import javax.media.opengl.*;
 import javax.swing.JFrame;
 
 import cogmac.clocks.PlayController;
+import cogmac.drawjav.*;
+import cogmac.drawjav.audio.AudioLinePlayer;
+import cogmac.drawjav.video.VideoTexture;
 import cogmac.jav.JavConstants;
 import cogmac.jav.util.Rational;
-import cogmac.javdraw.*;
-import cogmac.javdraw.audio.AudioLinePlayer;
-import cogmac.javdraw.video.VideoTexture;
 
 import com.sun.opengl.util.Animator;
 
