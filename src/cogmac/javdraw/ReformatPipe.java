@@ -27,8 +27,8 @@ public class ReformatPipe implements StreamFormatter, Sink<Packet> {
     
     private final Map<StreamHandle,OneToManyFormatter> mSourceMap = new HashMap<StreamHandle,OneToManyFormatter>();
     
-    private Sink mCaster    = null;
-    private boolean mClosed = false;
+    private final SinkCaster mCaster = new SinkCaster();
+    private boolean mClosed    = false;
     
     private int mVideoPoolCap = 16;
     private int mAudioPoolCap = 32;
@@ -171,26 +171,27 @@ public class ReformatPipe implements StreamFormatter, Sink<Packet> {
     
     
     public void close() {
-        Sink caster = null;
         
         synchronized( this ) {
             if( mClosed ) {
                 return;
             }
             mClosed = true;
-            
-            caster = mCaster;
-            mCaster = null;
             mSourceMap.clear();
         }
         
         try {
-            caster.close();
+            mCaster.close();
         }catch( IOException ex ) {
             sLog.log( Level.WARNING, "Failed to close stream.", ex );
         }
     }
 
+    
+    public boolean isOpen() {
+        return !mClosed;
+    }
+    
     
     public synchronized Sink directSink( StreamHandle stream ) {
         //TODO: This should return a wrapper around the stream that intercepts "close()" calls.
@@ -272,14 +273,14 @@ public class ReformatPipe implements StreamFormatter, Sink<Packet> {
     
     private synchronized void addDest( StreamHandle key, OneToManyFormatter pipe ) {
         mSourceMap.put( key, pipe );
-        mCaster = SinkCaster.add( mCaster, pipe );
+        mCaster.removeSink( pipe );
     }
 
     
     private synchronized void removeDest( StreamHandle key ) {
         OneToManyFormatter pipe = mSourceMap.remove( key );
         if( pipe != null ) {
-            mCaster = SinkCaster.remove( mCaster, pipe );
+            mCaster.addSink( pipe );
         }
     }
     

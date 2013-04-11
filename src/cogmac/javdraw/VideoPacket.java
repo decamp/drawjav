@@ -57,8 +57,8 @@ public class VideoPacket extends JavFrame implements Packet {
     
     
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    private VideoPacket(long pointer, RefPool<? super VideoPacket> pool) {
-        super(pointer, (RefPool)pool);
+    private VideoPacket( long pointer, RefPool<? super VideoPacket> pool ) {
+        super( pointer, (RefPool)pool );
     }
 
     
@@ -88,7 +88,7 @@ public class VideoPacket extends JavFrame implements Packet {
      * 
      * @param pictureFormat
      */
-    public void pictureFormat(PictureFormat pictureFormat) {
+    public void pictureFormat( PictureFormat pictureFormat ) {
         mPictureFormat = pictureFormat;
     }
     

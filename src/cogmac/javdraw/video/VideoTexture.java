@@ -61,6 +61,11 @@ public class VideoTexture extends DrawNodeAdapter implements Sink<VideoPacket> {
     
     
     public void close() {}
+
+    
+    public boolean isOpen() {
+        return true;
+    }
     
     
     

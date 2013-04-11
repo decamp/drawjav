@@ -30,7 +30,7 @@ public class OneToManyFormatter implements Sink<Packet> {
     
     private int mVideoPoolCap;
     private int mAudioPoolCap;
-    private Sink mCaster = null;
+    private SinkCaster<Packet> mCaster = null;
     private boolean mClosed = false;
     
     
@@ -74,7 +74,7 @@ public class OneToManyFormatter implements Sink<Packet> {
             return true;
         }
         
-        return formatNode.mCaster.hasSinkOtherThan( sink );
+        return formatNode.mCaster.containsSinkOtherThan( sink );
     }
     
     
@@ -113,6 +113,11 @@ public class OneToManyFormatter implements Sink<Packet> {
         if( caster != null ) {
             caster.close();
         }
+    }
+    
+    
+    public boolean isOpen() {
+        return !mClosed;
     }
     
     
@@ -179,7 +184,7 @@ public class OneToManyFormatter implements Sink<Packet> {
             
             closeSink = formatNode.mCaster.removeSink( sink );
             
-            if( !formatNode.mCaster.hasSink() ) {
+            if( !formatNode.mCaster.containsSink() ) {
                 closeFormat = true;
                 removeFormatNode( sinkNode.mKey, formatNode );
             }
@@ -206,7 +211,6 @@ public class OneToManyFormatter implements Sink<Packet> {
     
     
     
-    
     private synchronized StreamHandle openStream( int type, 
                                                   Object sourceFormat,
                                                   Object destFormat,
@@ -223,7 +227,7 @@ public class OneToManyFormatter implements Sink<Packet> {
             formatNode = mNodeMap.get( destFormat );
             
             if( formatNode == null ) {
-                CasterPipe caster = new CasterPipe();
+                SinkCaster caster = new SinkCaster();
                 
                 if( type == JavConstants.AVMEDIA_TYPE_VIDEO ) {
                     VideoResamplerPipe conv = new VideoResamplerPipe( caster, 
@@ -267,13 +271,13 @@ public class OneToManyFormatter implements Sink<Packet> {
     
     
     private synchronized void addNode( Object key, FormatNode node ) {
-        mCaster = SinkCaster.add( mCaster, node.mSink );
+        mCaster.addSink( node.mSink );
         mNodeMap.put( key, node );
     }
     
     
     private synchronized void removeFormatNode( Object key, FormatNode node ) {
-        mCaster = SinkCaster.remove( mCaster, node.mSink );
+        mCaster.removeSink( node.mSink );
         mNodeMap.remove( key );
     }
     
@@ -284,12 +288,12 @@ public class OneToManyFormatter implements Sink<Packet> {
         
         final Object mDestFormat;
         final Sink<T> mSink;
-        final CasterPipe<T> mCaster;
+        final SinkCaster<T> mCaster;
         
         
         FormatNode( Object destFormat,
                     Sink<T> sink, 
-                    CasterPipe<T> caster )
+                    SinkCaster<T> caster )
         {
             mDestFormat    = destFormat;
             mSink          = sink;

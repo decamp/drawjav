@@ -52,6 +52,11 @@ public class IntVideoTexture extends DrawNodeAdapter implements Sink<IntFrame> {
     
     public void close() {}
     
+
+    public boolean isOpen() {
+        return true;
+    }
+    
     
     
     @Override

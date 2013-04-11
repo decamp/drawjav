@@ -35,5 +35,9 @@ public class IntFrameSplitter implements Sink<IntFrame> {
         mA.close();
         mB.close();
     }
+
+    public boolean isOpen() {
+        return true;
+    }
     
 }

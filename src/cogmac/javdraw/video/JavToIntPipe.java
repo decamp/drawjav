@@ -60,5 +60,10 @@ public class JavToIntPipe implements Sink<VideoPacket> {
     public void close() throws IOException {
         mSink.close();
     }
+
+    
+    public boolean isOpen() {
+        return true;
+    }
     
 }

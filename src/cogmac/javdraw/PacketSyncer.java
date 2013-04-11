@@ -19,7 +19,6 @@ public class PacketSyncer {
     
     private static final Logger sLog = Logger.getLogger(PacketSyncer.class.getName());
     
-    
     private final PlayController mPlayCont;
     private final PlayClock mClock;
     private final PlayControl mPlayHandler;
@@ -51,16 +50,17 @@ public class PacketSyncer {
     
     
     
-    public synchronized <T> Sink<Packet> openStream(Sink<T> sink) {
-        if(mClosed)
+    public synchronized <T> Sink<Packet> openStream( Sink<T> sink ) {
+        if( mClosed ) {
             return null;
+        }
         
-        Pipe pipe = new Pipe(sink);
-        mPipes.add(pipe);
+        Pipe pipe = new Pipe( sink );
+        mPipes.add( pipe );
         return pipe;
     }
     
-
+    
     
     private void runLoop() {
         while( true ) {
@@ -104,10 +104,9 @@ public class PacketSyncer {
     
     
     private synchronized void scheduleSend( Pipe pipe, Packet packet ) {
-        Command c = new SendCommand(mCommandSequence++, packet.getStartMicros(), pipe, packet);
-        mQueue.add(c);
-        
-        if(mQueue.size() == 1 || mQueue.first() == c) {
+        Command c = new SendCommand( mCommandSequence++, packet.getStartMicros(), pipe, packet );
+        mQueue.add( c );
+        if( mQueue.size() == 1 || mQueue.first() == c ) {
             notifyAll();
         }
     }
@@ -117,10 +116,10 @@ public class PacketSyncer {
         Iterator<Command> iter = mQueue.iterator();
         boolean first = true;
         
-        while(iter.hasNext()) {
+        while( iter.hasNext() ) {
             Command c = iter.next();
              
-            if(c.mPipe == pipe) {
+            if( c.mPipe == pipe ) {
                 switch(c.mCode) {
                 case COMMAND_CLEAR:
                 case COMMAND_CLOSE:
@@ -131,7 +130,7 @@ public class PacketSyncer {
                     iter.remove();
                     c.cancel();
                     
-                    if(first) {
+                    if( first ) {
                         //Head is changing.
                         notifyAll();
                     }
@@ -141,7 +140,7 @@ public class PacketSyncer {
             first = false;
         }
         
-        mQueue.add(new ClearCommand(mCommandSequence++, pipe));
+        mQueue.add( new ClearCommand( mCommandSequence++, pipe ) );
     }
     
     
@@ -149,11 +148,11 @@ public class PacketSyncer {
         Iterator<Command> iter = mQueue.iterator();
         boolean first = true;
         
-        while(iter.hasNext()) {
+        while( iter.hasNext() ) {
             Command c = iter.next();
              
-            if(c.mPipe == pipe) {
-                if(c.mCode == COMMAND_CLOSE) {
+            if( c.mPipe == pipe ) {
+                if( c.mCode == COMMAND_CLOSE ) {
                     //No point in sending another close.
                     return;
                 }
@@ -161,7 +160,7 @@ public class PacketSyncer {
                 iter.remove();
                 c.cancel();
                 
-                if(first) {
+                if( first ) {
                     //Head is changing.
                     notifyAll();
                 }
@@ -170,7 +169,7 @@ public class PacketSyncer {
             }
         }
         
-        mQueue.add(new CloseCommand(mCommandSequence++, pipe));
+        mQueue.add( new CloseCommand( mCommandSequence++, pipe ) );
     }
     
     
@@ -189,41 +188,40 @@ public class PacketSyncer {
         private int mQueued = 0;
         
         
-        Pipe(Sink sink) {
+        Pipe( Sink sink ) {
             mSink   = sink;
             mMaxCap = 5;
         }
         
         
-        public void consume(Packet packet) throws IOException {
-            synchronized(PacketSyncer.this) {
-                while(mQueued >= mMaxCap && !mClosed) {
+        public void consume( Packet packet ) throws IOException {
+            synchronized( PacketSyncer.this ) {
+                while( mQueued >= mMaxCap && !mClosed ) {
                     try {
                         PacketSyncer.this.wait();
-                    }catch(InterruptedException ex) {
+                    } catch( InterruptedException ex ) {
                         InterruptedIOException t = new InterruptedIOException();
-                        t.initCause(ex);
+                        t.initCause( ex );
                         throw t;
                     }
                 }
-                
-                if(mClosed)
+                if( mClosed ) {
                     return;
-                
-                scheduleSend(this, packet);
+                }
+                scheduleSend( this, packet );
                 mQueued++;
             }
         }
-
+        
         public void clear() {
-            synchronized(PacketSyncer.this) {
-                if(mClosed)
+            synchronized( PacketSyncer.this ) {
+                if( mClosed ) {
                     return;
+                }
                 
-                scheduleClear(this);
+                scheduleClear( this );
                 mQueued = 0;
                 PacketSyncer.this.notifyAll();
-                //System.out.println("Clearing...");
             }
         }
 
@@ -237,10 +235,14 @@ public class PacketSyncer {
                 PacketSyncer.this.notifyAll();
             }
         }
+    
+        public boolean isOpen() {
+            return !mClosed;
+        }
         
         public void decrementQueue() {
-            synchronized(PacketSyncer.this) {
-                mQueued = Math.max(0, mQueued - 1);
+            synchronized( PacketSyncer.this ) {
+                mQueued = Math.max( 0, mQueued - 1 );
                 PacketSyncer.this.notifyAll();
             }
         }
@@ -251,19 +253,19 @@ public class PacketSyncer {
     
     private final class PlayHandler implements PlayControl {
 
-        public void playStart(long execMicros) {
+        public void playStart( long execMicros ) {
             doNotify();
         }
 
-        public void playStop(long execMicros) {
+        public void playStop( long execMicros ) {
             doNotify();
         }
 
-        public void seek(long execMicros, long gotoMicros) {
+        public void seek( long execMicros, long gotoMicros ) {
             doNotify();
         }
 
-        public void setRate(long execMicros, double rate) {
+        public void setRate( long execMicros, double rate ) {
             doNotify();
         }
         
@@ -279,7 +281,7 @@ public class PacketSyncer {
         final int mCode;
         final Pipe mPipe;
         
-        Command(long sequence, long micros, int code, Pipe pipe) {
+        Command( long sequence, long micros, int code, Pipe pipe ) {
             mSequence = sequence;
             mMicros   = micros;
             mCode     = code;
@@ -293,13 +295,13 @@ public class PacketSyncer {
         public abstract void cancel();
         
         
-        public int compareTo(Command c) {
-            if(this == c)
+        public int compareTo( Command c ) {
+            if( this == c ) {
                 return 0;
-            
-            if(mMicros != c.mMicros)
+            }
+            if( mMicros != c.mMicros ) {
                 return mMicros < c.mMicros ? -1 : 1;
-            
+            }
             return mSequence < c.mSequence ? -1: 1;
         }
         
@@ -311,8 +313,8 @@ public class PacketSyncer {
         private Packet mPacket;
         
         
-        SendCommand(long sequence, long micros, Pipe pipe, Packet packet) {
-            super(sequence, micros, COMMAND_SEND, pipe);
+        SendCommand( long sequence, long micros, Pipe pipe, Packet packet ) {
+            super( sequence, micros, COMMAND_SEND, pipe );
             mPacket = packet;
             packet.ref();
         }
@@ -321,22 +323,21 @@ public class PacketSyncer {
         @SuppressWarnings("unchecked")
         public void run() {
             try {
-                mPipe.mSink.consume(mPacket);
-            }catch(IOException ex) {
-                sLog.log(Level.WARNING, "Stream error.", ex);
-                scheduleClose(mPipe);
-            }finally{
+                mPipe.mSink.consume( mPacket );
+            }catch( IOException ex ) {
+                sLog.log( Level.WARNING, "Stream error.", ex );
+                scheduleClose( mPipe );
+            } finally {
                 cancel();
             }
         }
         
         
         public void cancel() {
-            if(mPacket != null) {
+            if( mPacket != null ) {
                 mPacket.deref();
                 mPacket = null;
             }
-            
             mPipe.decrementQueue();
         }
         
@@ -346,8 +347,8 @@ public class PacketSyncer {
     private class ClearCommand extends Command {
         
         
-        ClearCommand(long sequence, Pipe pipe) {
-            super(sequence, Long.MIN_VALUE, COMMAND_CLEAR, pipe);
+        ClearCommand( long sequence, Pipe pipe ) {
+            super( sequence, Long.MIN_VALUE, COMMAND_CLEAR, pipe );
         }
         
         
@@ -362,8 +363,8 @@ public class PacketSyncer {
     
     private class CloseCommand extends Command {
         
-        CloseCommand(long sequence, Pipe pipe) {
-            super(sequence, Long.MIN_VALUE, COMMAND_CLOSE, pipe);
+        CloseCommand( long sequence, Pipe pipe ) {
+            super( sequence, Long.MIN_VALUE, COMMAND_CLOSE, pipe );
         }
 
         
@@ -374,8 +375,8 @@ public class PacketSyncer {
                 sLog.log(Level.WARNING, "Failed to close stream.", ex);
             }
             
-            synchronized(PacketSyncer.this) {
-                mPipes.remove(mPipe);
+            synchronized( PacketSyncer.this ) {
+                mPipes.remove( mPipe );
             }
         }
 

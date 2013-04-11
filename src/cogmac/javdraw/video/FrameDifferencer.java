@@ -79,6 +79,12 @@ public class FrameDifferencer implements Sink<IntFrame> {
         mSink.close();
     }
 
+    
+    public boolean isOpen() {
+        return true;
+    }
+    
+    
 
     private void doClear() {
         if(mPrev != null) {

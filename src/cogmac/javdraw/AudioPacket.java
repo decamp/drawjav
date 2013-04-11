@@ -2,6 +2,7 @@ package cogmac.javdraw;
 
 import java.nio.FloatBuffer;
 
+import cogmac.jav.JavConstants;
 import cogmac.langx.ref.*;
 
 
@@ -36,7 +37,7 @@ public class AudioPacket extends AbstractRefable implements Packet {
     
     
     public int type() {
-        return TYPE_AUDIO;
+        return JavConstants.AVMEDIA_TYPE_AUDIO;
     }
 
     

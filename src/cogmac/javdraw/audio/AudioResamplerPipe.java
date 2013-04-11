@@ -49,4 +49,9 @@ public class AudioResamplerPipe implements Sink<AudioPacket> {
         mSink.close();
     }
     
+    
+    public boolean isOpen() {
+        return true;
+    }
+    
 }

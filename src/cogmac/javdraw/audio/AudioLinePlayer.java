@@ -292,13 +292,18 @@ STATE_CHANGE:
 
     
     public void close() {
-        close(mState.masterMicros());
+        close( mState.masterMicros() );
+    }
+    
+
+    public boolean isOpen() {
+        return !mClosed;
     }
     
     
-    public void consume(AudioPacket packet) throws IOException  {
+    public void consume( AudioPacket packet ) throws IOException  {
         FloatBuffer bb = packet.buffer();
-        consumeAudio(bb.array(), bb.position(), bb.remaining());
+        consumeAudio( bb.array(), bb.position(), bb.remaining() );
     }
 
 

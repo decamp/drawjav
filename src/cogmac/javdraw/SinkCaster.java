@@ -2,6 +2,8 @@ package cogmac.javdraw;
 
 import java.io.IOException;
 
+import cogmac.data.ConcurrentBag;
+
 /**
  * Threadsafe structure for sending method calls to multiple sinks.
  * 
@@ -10,49 +12,24 @@ import java.io.IOException;
 public class SinkCaster<T> implements Sink<T> {
     
     
-    public static <T> Sink<? super T> add( Sink<? super T> a, Sink<? super T> b ) {
-        if( a == null ) return b;
-        if( b == null ) return a;
-        return new SinkCaster<T>( a, b );
-    }
+    protected final ConcurrentBag<Sink<? super T>> mSinks = new ConcurrentBag<Sink<? super T>>();
+    private boolean mClosed = false;
     
     
-    public static <T> Sink<? super T> remove( Sink<? super T> s, Sink<?> old ) {
-        if( s == null ) {
-            return null;
-        }
-        if( old != null && ( s instanceof SinkCaster ) ) {
-            return ((SinkCaster<? super T>)s).remove( old );
-        }
-        return s;
-    }
-    
-    
-    
-    protected final Sink<? super T> mA;
-    protected final Sink<? super T> mB;
-    
-    
-    protected SinkCaster( Sink<? super T> a, Sink<? super T> b ) {
-        mA = a;
-        mB = b;
-    }
+    public SinkCaster() {}
     
     
     
     public void consume( T frame ) throws IOException {
         IOException err = null;
+        ConcurrentBag.Node<Sink<? super T>> head = mSinks.head();
         
-        try {
-            mA.consume( frame );
-        } catch( IOException ex ) {
-            err = ex;
-        }
-        
-        try {
-            mB.consume( frame );
-        }catch( IOException ex ) {
-            err = ex;
+        while( head != null ) {
+            try {
+                head.mItem.consume( frame );
+            } catch( IOException ex ) {
+                err = IOExceptionList.join( err, ex ); 
+            }
         }
         
         if(err != null) {
@@ -62,61 +39,77 @@ public class SinkCaster<T> implements Sink<T> {
 
     
     public void clear() {
-        mA.clear();
-        mB.clear();
+        ConcurrentBag.Node<Sink<? super T>> head = mSinks.head();
+        
+        while( head != null ) {
+            head.mItem.clear();
+        }
     }
     
     
     public void close() throws IOException {
-        IOException t = null;
+        mClosed = true;
         
-        try {
-            mA.close();
-        } catch( IOException ex ) {
-            t = ex;
+        IOException err = null;
+        ConcurrentBag.Node<Sink<? super T>> head = mSinks.head();
+        mSinks.clear();
+        
+        while( head != null ) {
+            try {
+                head.mItem.close();
+            } catch( IOException ex ) {
+                err = IOExceptionList.join( err, ex ); 
+            }
         }
         
-        try {
-            mB.close();
-        } catch( IOException ex ) {
-            t = ex;
-        }
-        
-        if( t != null ) {
-            throw t;
+        if( err != null ) {
+            throw err;
         }
     } 
 
     
-
-    protected Sink<? super T> remove( Sink<?> old ) {
-        if( old == mA ) {
-            return mB;
-        }
-        if( old == mB ) {
-            return mA;
-        }
-        
-        Sink<? super T> a2;
-        Sink<? super T> b2;
-        if( mA instanceof SinkCaster ) {
-            a2 = ((SinkCaster<? super T>)mA).remove( old );
-        } else {
-            a2 = mA;
-        }
-        if( mB instanceof SinkCaster ) {
-            b2 = ((SinkCaster<? super T>)mB).remove( old );
-        } else {
-            b2 = mB;
-        }
-        
-        if( a2 == mA && b2 == mB ) {
-            // Not here.
-            return this;
-        }
-        
-        return add( a2, b2 );
+    public boolean isOpen() {
+        return !mClosed;
     }
     
+    
+    public void addSink( Sink<? super T> sink ) {
+        if( mClosed ) {
+            return;
+        }
+        mSinks.add( sink );
+    }
+    
+    
+    public boolean removeSink( Sink<? super T> sink ) {
+        if( mClosed ) {
+            return false;
+        }
+        return mSinks.remove( sink );
+    }
 
+    
+    public boolean containsSink() {
+        return !mSinks.isEmpty();
+    }
+    
+   
+    public boolean containsSink( Object obj ) {
+        return mSinks.contains( obj );
+    }
+
+    
+    public boolean containsSinkOtherThan( Object obj ) {
+        ConcurrentBag.Node<Sink<? super T>> node = mSinks.head();
+        if( node == null ) {
+            return false;
+        }
+        
+        if( node.mNext != null ) {
+            return true;
+        }
+        
+        return obj != node.mItem && ( obj == null || !obj.equals( node.mItem ) );
+    }
+    
 }

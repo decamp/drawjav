@@ -71,6 +71,10 @@ public class VideoResamplerPipe implements Sink<VideoPacket> {
         mConverter.close();
         mSink.close();
     }
+
     
+    public boolean isOpen() {
+        return true;
+    }
     
 }
