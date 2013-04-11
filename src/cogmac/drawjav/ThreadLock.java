@@ -63,7 +63,7 @@ public class ThreadLock {
      * Equivalent to <code>notify()</code>.
      */
     public synchronized void unblock() {
-        notify();
+        notifyAll();
     }
     
     /**
@@ -71,7 +71,7 @@ public class ThreadLock {
      */
     public synchronized void interrupt() {
         mInterrupted = true;
-        notify();
+        notifyAll();
     }
 
     /**

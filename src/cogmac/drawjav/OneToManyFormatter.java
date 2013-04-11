@@ -30,7 +30,7 @@ public class OneToManyFormatter implements Sink<Packet> {
     
     private int mVideoPoolCap;
     private int mAudioPoolCap;
-    private SinkCaster<Packet> mCaster = null;
+    private SinkCaster<Packet> mCaster = new SinkCaster<Packet>();
     private boolean mClosed = false;
     
     

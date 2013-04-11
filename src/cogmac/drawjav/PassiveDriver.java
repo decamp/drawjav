@@ -171,17 +171,12 @@ public class PassiveDriver implements StreamDriver {
     }
     
     
-    public void seek( long micros ) {
+    public synchronized void seek( long micros ) {
         mNeedSeek   = true;
         mSeekMicros = micros;
     }
         
-    /**
-     * Thread should not be interrupted during this call.
-     * 
-     * @return
-     * @throws IOException
-     */
+    
     public synchronized boolean queue() throws IOException {
         if( mClosed ) {
             throw new ClosedChannelException();
@@ -218,27 +213,20 @@ public class PassiveDriver implements StreamDriver {
     
     
     public void clear() {
-        Sink<Packet> sink;
-        
         synchronized( this ) {
-            sink = mSink;
             if( mNextPacket != null ) {
                 mNextPacket.deref();
                 mNextPacket = null;
             }
         }
-        
-        if( sink != null ) {
-            sink.clear();
-        }
+
+        mSink.clear();
     }
     
     
     public boolean send() throws IOException {
         Packet p;
-        Sink<Packet> sink;
-        boolean needClear;
-        
+                
         synchronized( this ) {
             if( mNextPacket == null ) {
                 return false;
@@ -246,11 +234,10 @@ public class PassiveDriver implements StreamDriver {
             
             p = mNextPacket;
             mNextPacket = null;
-            sink = mSink;
         }
         
         try {
-            sink.consume( p );
+            mSink.consume( p );
             p.deref();
             return true;
         } catch( InterruptedIOException ex ) {

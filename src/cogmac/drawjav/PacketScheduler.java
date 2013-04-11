@@ -89,12 +89,12 @@ public class PacketScheduler {
     }
     
     
-    public <T extends Packet> Sink<T> openPipe( Sink<T> sink ) throws IOException {
+    public <T extends Packet> Sink<T> openPipe( Sink<? super T> sink ) throws IOException {
         return openPipe( sink, null, mDefaultQueueCap );
     }
     
     
-    public <T extends Packet> Sink<T> openPipe( Sink<T> sink, 
+    public <T extends Packet> Sink<T> openPipe( Sink<? super T> sink, 
                                                 ThreadLock lock ) 
                                                 throws IOException 
     {
@@ -102,7 +102,7 @@ public class PacketScheduler {
     }
     
         
-    public <T extends Packet> Sink<T> openPipe( Sink<T> sink, 
+    public <T extends Packet> Sink<T> openPipe( Sink<? super T> sink, 
                                                 ThreadLock lock, 
                                                 int queueCapacity )
                                                 throws IOException 
@@ -221,10 +221,13 @@ public class PacketScheduler {
         
         
         public void consume( Object packet ) throws IOException {
+            //System.out.println( "*" );
+            
             synchronized( mLock ) {
                 while( mQueueSize >= mCap && !mClosed ) {
                     mLock.block();
                 }
+                
                 if( mClosed ) {
                     throw new ClosedChannelException();
                 }
@@ -245,6 +248,7 @@ public class PacketScheduler {
                     command.mDataMicros = p.getStartMicros();
                 }
                 
+                
                 try {
                     mQueue.offer( mChannel, command );
                 } catch( ClosedChannelException ex ) {
@@ -262,6 +266,7 @@ public class PacketScheduler {
                     return;
                 }
                 
+                //System.out.println( "^ CLEARING CHANNEL" );
                 Command command = poll();
                 command.mCommandCode = COMMAND_CLEAR;
                 command.mPriority    = COMMAND_CLEAR;

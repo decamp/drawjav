@@ -125,7 +125,7 @@ class TimedMultiQueue<T extends TimedNode> {
         if( c.mClosed ) {
             throw new ClosedChannelException();
         }
-            
+        
         c.offer( item );
         item.ref();
         reschedule( c );
@@ -171,6 +171,7 @@ class TimedMultiQueue<T extends TimedNode> {
     
     private synchronized void reschedule( Channel<T> c ) {
         // Check if head changes during rescheduling. If so, notify scheduling thread.
+        
         Channel<T> oldHead = mChannels.head();
         mChannels.reschedule( c );
         if( oldHead != mChannels.head() || oldHead == c ) {

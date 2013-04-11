@@ -28,7 +28,7 @@ public class ReformatPipe implements StreamFormatter, Sink<Packet> {
     private final Map<StreamHandle,OneToManyFormatter> mSourceMap = new HashMap<StreamHandle,OneToManyFormatter>();
     
     private final SinkCaster mCaster = new SinkCaster();
-    private boolean mClosed    = false;
+    private boolean mClosed = false;
     
     private int mVideoPoolCap = 16;
     private int mAudioPoolCap = 32;
@@ -163,15 +163,11 @@ public class ReformatPipe implements StreamFormatter, Sink<Packet> {
     
     
     public void clear() {
-        Sink caster = mCaster;
-        if( caster != null ) {
-            caster.clear();
-        }
+        mCaster.clear();
     }
     
     
     public void close() {
-        
         synchronized( this ) {
             if( mClosed ) {
                 return;
@@ -273,14 +269,14 @@ public class ReformatPipe implements StreamFormatter, Sink<Packet> {
     
     private synchronized void addDest( StreamHandle key, OneToManyFormatter pipe ) {
         mSourceMap.put( key, pipe );
-        mCaster.removeSink( pipe );
+        mCaster.addSink( pipe );
     }
 
     
     private synchronized void removeDest( StreamHandle key ) {
         OneToManyFormatter pipe = mSourceMap.remove( key );
         if( pipe != null ) {
-            mCaster.addSink( pipe );
+            mCaster.removeSink( pipe );
         }
     }
     

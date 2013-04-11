@@ -1,6 +1,6 @@
 package cogmac.drawjav;
 
-import java.io.IOException;
+import java.io.*;
 
 import cogmac.data.ConcurrentBag;
 
@@ -27,9 +27,13 @@ public class SinkCaster<T> implements Sink<T> {
         while( head != null ) {
             try {
                 head.mItem.consume( frame );
+            } catch( InterruptedIOException ex ) {
+                throw ex;
             } catch( IOException ex ) {
                 err = IOExceptionList.join( err, ex ); 
             }
+            
+            head = head.mNext;
         }
         
         if(err != null) {
@@ -43,6 +47,7 @@ public class SinkCaster<T> implements Sink<T> {
         
         while( head != null ) {
             head.mItem.clear();
+            head = head.mNext;
         }
     }
     
@@ -60,6 +65,8 @@ public class SinkCaster<T> implements Sink<T> {
             } catch( IOException ex ) {
                 err = IOExceptionList.join( err, ex ); 
             }
+            
+            head = head.mNext;
         }
         
         if( err != null ) {

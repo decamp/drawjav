@@ -23,12 +23,12 @@ public class RealtimeDriverTest {
     
     
     public static void main( String[] args ) throws Exception {
-        testMulti();
+        testRealtime();
     }
     
     
     
-    static void test1() throws Exception {
+    static void testRealtime() throws Exception {
         File file = new File( "/Volumes/DATA2/bf/data/bluefin/CBS_2010-12-15T1801.ts" );
         
         final PlayController playCont = PlayController.newAutoInstance();
@@ -119,7 +119,6 @@ public class RealtimeDriverTest {
             
         }catch(Exception ex) {}
     }
-    
     
     
     static void testSynced() throws Exception {

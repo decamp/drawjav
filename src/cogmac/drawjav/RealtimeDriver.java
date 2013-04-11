@@ -5,11 +5,11 @@ import java.util.logging.*;
 import cogmac.clocks.*;
 
 /**
- * TODO: This whole stupid class.
  * Handles realtime processing of one source.
  * 
  * @author decamp
  */
+@SuppressWarnings( { "unchecked", "rawtypes" } )
 public class RealtimeDriver implements StreamDriver {
     
     public static RealtimeDriver newInstance( PlayController playCont,
@@ -21,10 +21,10 @@ public class RealtimeDriver implements StreamDriver {
     
     public static RealtimeDriver newInstance( PlayController playCont,
                                               Source source,
-                                              PacketSyncer syncer ) 
+                                              PacketScheduler syncer ) 
     {
         if( syncer == null ) {
-            syncer = new PacketSyncer( playCont );
+            syncer = new PacketScheduler( playCont );
         }
         return new RealtimeDriver( playCont, source, syncer );
     }
@@ -34,32 +34,32 @@ public class RealtimeDriver implements StreamDriver {
     
     private final PlayController mPlayCont;
     private final PassiveDriver mDriver;
-    private final PacketSyncer mSyncer;
+    private final PacketScheduler mSyncer;
     private final PlayHandler mPlayHandler;
+    private final ThreadLock mLock;
     private final Thread mThread;
     
-    private boolean mNeedUpdate    = false;
-    private boolean mClosed        = false;
-    private boolean mHasStream     = false;
-    private boolean mEof           = false;
-    private boolean mNeedSeek      = true;
-    private long mSeekMicros       = 0L;
-    
-    private boolean mCanInterrupt  = false;
+    private boolean mNeedUpdate  = false;
+    private boolean mClosed      = false;
+    private boolean mHasStream   = false;
+    private boolean mEof         = false;
+    private boolean mNeedSeek    = true;
+    private long mSeekMicros     = 0L;
     
     
     private RealtimeDriver( PlayController playCont,
                             Source source,
-                            PacketSyncer syncer )
+                            PacketScheduler syncer )
     {
         mPlayCont    = playCont;
         mDriver      = new PassiveDriver( source );
         mSyncer      = syncer;
         mPlayHandler = new PlayHandler();
+        mLock        = new ThreadLock();
         mPlayCont.caster().addListener( mPlayHandler );
         mDriver.seek( mPlayCont.clock().micros() );
         
-        mThread = new Thread(RealtimeDriver.class.getSimpleName()) {
+        mThread = new Thread( RealtimeDriver.class.getSimpleName() ) {
             public void run() {
                 runLoop();
             }
@@ -67,14 +67,15 @@ public class RealtimeDriver implements StreamDriver {
         
         mThread.setDaemon(true);
         mThread.setPriority(Thread.NORM_PRIORITY - 1);
-        mThread.start();
     }
     
     
     
-    public synchronized void start() {
-        if( mThread != null && !mThread.isAlive() ) {
-            mThread.start();
+    public void start() {
+        synchronized( mLock ) {
+            if( mThread != null && !mThread.isAlive() ) {
+                mThread.start();
+            }
         }
     }
     
@@ -109,16 +110,17 @@ public class RealtimeDriver implements StreamDriver {
                                          Sink<? super VideoPacket> sink )
                                          throws IOException 
     {
-        synchronized( this ) {
-            Sink syncedSink = mSyncer.openStream( sink );
-            StreamHandle s = mDriver.openVideoStream( source, destFormat, syncedSink );
+        synchronized( mLock ) {
+            mSyncer.openPipe( sink, mLock );
+            Sink syncedSink = mSyncer.openPipe( sink, mLock );
+            StreamHandle s  = mDriver.openVideoStream( source, destFormat, syncedSink );
             if( s == null ) {
                 syncedSink.close();
                 return null;
             }
             mHasStream = mDriver.hasSink();
             mNeedUpdate = true;
-            notifyAll();
+            mLock.notifyAll();
             return s;
         }
     }
@@ -129,23 +131,24 @@ public class RealtimeDriver implements StreamDriver {
                                          Sink<? super AudioPacket> sink )
                                          throws IOException 
     {
-        synchronized( this ) {
-            Sink syncedSink = mSyncer.openStream( sink );
+        synchronized( mLock ) {
+            Sink syncedSink = mSyncer.openPipe( sink, mLock );
             StreamHandle s = mDriver.openAudioStream( source, format, syncedSink );
             if( s == null ) {
                 syncedSink.close();
                 return null;
             }
+    
             mHasStream = mDriver.hasSink();
             mNeedUpdate = true;
-            notifyAll();
+            mLock.notifyAll();
             return s;
         }
     }
     
     
     public boolean closeStream( StreamHandle stream ) throws IOException {
-        synchronized( this ) {
+        synchronized( mLock ) {
             boolean ret = mDriver.closeStream( stream );
             if( !ret ) {
                 return false;
@@ -158,23 +161,23 @@ public class RealtimeDriver implements StreamDriver {
     }
     
     
-    public synchronized void close() {
-        if( mClosed ) {
-            return;
-        }
-        
-        mClosed     = true;
-        mNeedUpdate = true;
-        notifyAll();
-        
-        try {
-            mDriver.close();
-        } catch( IOException ex ) {
-            warn( "Failed to close stream.", ex );
-        }
-    
-        if( mCanInterrupt ) {
-            mThread.interrupt();
+    public void close() {
+        synchronized( mLock ) {
+            if( mClosed ) {
+                return;
+            }
+            
+            mClosed     = true;
+            mNeedUpdate = true;
+            mLock.notifyAll();
+            
+            try {
+                mDriver.close();
+            } catch( IOException ex ) {
+                warn( "Failed to close stream.", ex );
+            }
+            
+            mLock.interrupt();
         }
     }
     
@@ -189,11 +192,9 @@ public class RealtimeDriver implements StreamDriver {
         boolean sendPacket = false;
         
         while( true ) {
-            synchronized( this ) {
-                mCanInterrupt = false;
-                
+            synchronized( mLock ) {
                 if( mNeedUpdate ) {
-                    Thread.interrupted();
+                    mLock.reset();
                     
                     if( mClosed ) {
                         break;
@@ -217,8 +218,6 @@ public class RealtimeDriver implements StreamDriver {
                     
                     mNeedUpdate = false;
                 }
-                
-                mCanInterrupt = sendPacket;
             }
             
             if( sendPacket ) {
@@ -236,7 +235,7 @@ public class RealtimeDriver implements StreamDriver {
                         sendPacket = true;
                     }
                 } catch( EOFException ex ) {
-                    synchronized( this ) {
+                    synchronized( mLock ) {
                         mEof = true;
                     }
                 } catch( IOException ex ) {
@@ -247,13 +246,15 @@ public class RealtimeDriver implements StreamDriver {
     }
     
     
-    private synchronized void waitForSomething( String message, Exception ex ) {
-        if( ex instanceof EOFException ) {
-            try {
-                wait( 1000L );
-            } catch( InterruptedException e ) {}
-        } else {
-            sLog.log( Level.WARNING, message, ex );
+    private void waitForSomething( String message, Exception ex ) {
+        synchronized( mLock ) {
+            if( ex instanceof EOFException ) {
+                try {
+                    mLock.block( 1000L );
+                } catch( InterruptedIOException e ) {}
+            } else {
+                sLog.log( Level.WARNING, message, ex );
+            }
         }
     }
     
@@ -261,8 +262,7 @@ public class RealtimeDriver implements StreamDriver {
     private static void warn( String msg, Exception ex ) {
         sLog.log( Level.WARNING, msg, ex );
     }
-    
-    
+        
     
     private final class PlayHandler implements PlayControl {
 
@@ -271,16 +271,12 @@ public class RealtimeDriver implements StreamDriver {
         public void playStop( long execMicros ) {}
 
         public void seek( long execMicros, long seekMicros ) {
-            synchronized( RealtimeDriver.this ) {
+            synchronized( mLock ) {
                 mNeedUpdate = true;
                 mNeedSeek   = true;
                 mSeekMicros = seekMicros;
-                RealtimeDriver.this.notifyAll();
-                
-                
-                if( mCanInterrupt ) {
-                    mThread.interrupt();
-                }
+                mLock.interrupt();
+                mLock.notifyAll();
             }
         }
 

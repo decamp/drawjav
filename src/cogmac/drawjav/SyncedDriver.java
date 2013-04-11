@@ -130,7 +130,6 @@ public class SyncedDriver extends DrawNodeAdapter implements StreamDriver {
         long timeMicros = 0;
         
         synchronized( this ) {
-            
             if( mNeedUpdate ) {
                 if( mClosed ) {
                     return;
