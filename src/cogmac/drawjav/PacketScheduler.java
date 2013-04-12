@@ -461,7 +461,8 @@ public class PacketScheduler {
             if( mDataMicros == Long.MIN_VALUE ) {
                 return mDataMicros;
             } else {
-                return mClock.toMasterMicros( mDataMicros );
+                long t = mClock.toMasterMicros( mDataMicros );
+                return t - mClock.masterMicros() + System.currentTimeMillis() * 1000L;
             }
         }
         
