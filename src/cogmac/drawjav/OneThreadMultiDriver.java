@@ -71,9 +71,13 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
         
         mThread.setDaemon( true );
         mThread.setPriority( Thread.NORM_PRIORITY - 1 );
-        mThread.start();
     }
     
+    
+    
+    public void start() {
+        mThread.start();
+    }
     
 
     public Source source() {

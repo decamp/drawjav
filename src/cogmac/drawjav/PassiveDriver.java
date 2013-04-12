@@ -42,6 +42,9 @@ public class PassiveDriver implements StreamDriver {
     
     
     
+    public void start() {}
+    
+    
     public long seekWarmupMicros() {
         return mSeekWarmupMicros;
     }

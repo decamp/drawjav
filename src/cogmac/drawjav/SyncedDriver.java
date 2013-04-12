@@ -32,6 +32,9 @@ public class SyncedDriver extends DrawNodeAdapter implements StreamDriver {
     }
     
     
+    public void start() {}
+    
+    
     public long seekWarmupMicros() {
         return mDriver.seekWarmupMicros();
     }

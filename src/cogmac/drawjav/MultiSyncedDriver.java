@@ -42,6 +42,9 @@ public class MultiSyncedDriver extends DrawNodeAdapter implements MultiSourceDri
     
     
     
+    public void start() {}
+    
+    
     public PlayController playController() {
         return mPlayCont;
     }
