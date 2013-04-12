@@ -10,6 +10,7 @@ import cogmac.clocks.*;
 /**
  * @author decamp
  */
+@SuppressWarnings( { "unchecked", "rawtypes" } )
 public class OneThreadMultiDriver implements MultiSourceDriver {
     
     
@@ -155,7 +156,7 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
                 return null;
             }
             
-            Sink<? super VideoPacket> syncSink = mScheduler.openPipe( sink, mLock, mVideoQueueCap );
+            Sink syncSink = mScheduler.openPipe( sink, mLock, mVideoQueueCap );
             StreamHandle ret;
             
             try {
@@ -192,7 +193,7 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
                 return null;
             }
             
-            Sink<? super AudioPacket> syncSink = mScheduler.openPipe( sink, mLock, mAudioQueueCap );
+            Sink syncSink = mScheduler.openPipe( sink, mLock, mAudioQueueCap );
             StreamHandle ret;
             
             try {
