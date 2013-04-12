@@ -1,10 +1,7 @@
 package cogmac.drawjav.audio;
 
 import java.io.*;
-import javax.media.opengl.*;
-
 import cogmac.drawjav.*;
-import cogmac.drawjav.audio.*;
 import cogmac.jav.JavConstants;
 
 
@@ -22,9 +19,9 @@ public class TestAudioPlayer {
     
     
     static void test1() throws Exception {
-        File file           = new File("/workspace/decamp/code/gopdebate/resources_ext/oct18/oct18_debate_full.ts");
+        File file = new File( "/Volumes/DATA2/bf/data/bluefin/CBS_2010-12-15T1801.ts" );
         FormatDecoder demux = FormatDecoder.openFile(file, false, 0L);
-        StreamHandle stream = demux.firstStream(JavConstants.AVMEDIA_TYPE_AUDIO);
+        StreamHandle stream = demux.stream( JavConstants.AVMEDIA_TYPE_AUDIO, 0 );
         
         demux.openStream(stream);
         
@@ -40,10 +37,10 @@ public class TestAudioPlayer {
     
     
     static void test2() throws Exception {
-        File file     = new File("/workspace/decamp/code/gopdebate/resources_ext/oct18/oct18_debate_full.ts");
+        File file = new File( "/Volumes/DATA2/bf/data/bluefin/CBS_2010-12-15T1801.ts" );
         FormatDecoder demux = FormatDecoder.openFile(file);
         
-        StreamHandle stream = demux.firstStream(JavConstants.AVMEDIA_TYPE_AUDIO);
+        StreamHandle stream = demux.stream( JavConstants.AVMEDIA_TYPE_AUDIO, 0 );
         
         AudioFormat srcFormat = stream.audioFormat();
         AudioFormat dstFormat = new AudioFormat(srcFormat.channels(), 44100, JavConstants.AV_SAMPLE_FMT_FLT);
@@ -76,13 +73,4 @@ public class TestAudioPlayer {
         }
     }
 
-    
-    static void test3() throws Exception {
-        GLCapabilities glc = new GLCapabilities();
-        GLCanvas canvas = new GLCanvas(glc);
-        
-            
-        
-    }
-    
 }
