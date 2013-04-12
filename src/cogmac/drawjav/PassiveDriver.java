@@ -8,10 +8,11 @@ import cogmac.clocks.*;
 
 
 /**
- * Handles processing of one source. PassiveDriver is NOT THREAD SAFE 
- * and is meant to be used by a single controlling thread.
- * PassiveDriver is intended to be a component that may be used to
- * build more complex and complete drivers.
+ * PassiveDriver is not a real driver in that it does not handle
+ * threading, but is meant as a general purpose component that
+ * can simplify IO while supporting a variety of threading and
+ * scheduling strategies. PassiveDriver can handle reading from
+ * a single Source object, and delivery to multiple sinks.
  * 
  * @author decamp
  */
@@ -20,13 +21,17 @@ public class PassiveDriver implements StreamDriver {
     private static Logger sLog = Logger.getLogger( SyncedDriver.class.getName() );
     
     private final Source mSource;
-    private final ReformatPipe mSink = new ReformatPipe();
+    private final ManyToManyFormatter mSink = new ManyToManyFormatter();
     
-    private boolean mClosed        = false;
-    private boolean mHasStream     = false;
+    private boolean mClosed         = false;
+    private boolean mReadable       = true;
+    private boolean mEof            = false;
+    private IOException mErrorState = null;
+    
     private boolean mNeedSeek      = false;
     private long mSeekMicros       = Long.MIN_VALUE;
     private long mSeekWarmupMicros = 500000L;
+    private boolean mNeedClear     = false;
     
     private Packet mNextPacket = null;
     
@@ -82,6 +87,10 @@ public class PassiveDriver implements StreamDriver {
                                                       Sink<? super VideoPacket> sink )
                                                       throws IOException 
     {
+        if( mClosed ) {
+            throw new ClosedChannelException();
+        }
+        
         boolean active   = mSink.isSourceActive( source );
         StreamHandle ret = mSink.openVideoStream( source, destFormat, sink );
         if( ret == null ) {
@@ -97,6 +106,7 @@ public class PassiveDriver implements StreamDriver {
             }
         }
         
+        updateStatus();
         return ret;
     }
     
@@ -106,6 +116,10 @@ public class PassiveDriver implements StreamDriver {
                                                       Sink<? super AudioPacket> sink )
                                                       throws IOException 
     {
+        if( mClosed ) {
+            throw new ClosedChannelException();
+        }
+        
         boolean active   = mSink.isSourceActive( source );
         StreamHandle ret = mSink.openAudioStream( source, format, sink );
         if( ret == null ) {
@@ -121,6 +135,7 @@ public class PassiveDriver implements StreamDriver {
             }
         }
         
+        updateStatus();
         return ret;
     }
 
@@ -130,34 +145,54 @@ public class PassiveDriver implements StreamDriver {
             return false;
         }
         
+        // Check if need to close source.
         synchronized( this ) {
-            StreamHandle orig = mSink.destToSource( stream );
-            if( orig == null ) {
-                return true;
-            }
-            
-            if( !mSink.isSourceActive( orig ) ) {
-                try {
-                    mSource.closeStream( orig );
-                } catch( IOException ex ) {
-                    warn( "Failed to close source stream.", ex );
+            StreamHandle sourceStream = mSink.destToSource( stream );
+            if( sourceStream != null && !mSink.isSourceActive( sourceStream ) ) {
+                if( !mSink.isSourceActive( sourceStream ) ) {
+                    try {
+                        mSource.closeStream( sourceStream );
+                    } catch( IOException ex ) {
+                        warn( "Failed to close source stream.", ex );
+                    }
                 }
             }
-            
+        
+            updateStatus();
             return true;
         }
     }
     
     
-    public void close() throws IOException {
+    public void close() {
+        close( true );
+    }
+    
+    
+    public void close( boolean closeSource ) {
         synchronized( this ) {
             if( mClosed ) {
                 return;
             }
+            
             mClosed = true;
+            updateStatus();
+            
+            if( mNextPacket != null ) {
+                mNextPacket.deref();
+                mNextPacket = null;
+            }
         }
+        
         mSink.close();
-        mSource.close();
+        
+        if( closeSource ) {
+            try {
+                mSource.close();
+            } catch( IOException ex ) {
+                warn( "Failed to close av source.", ex );
+            }
+        }
     }
     
     
@@ -171,46 +206,128 @@ public class PassiveDriver implements StreamDriver {
     }
     
     
+    public boolean isReadable() {
+        return mReadable;
+    }
+    
+    
+    public boolean isEof() {
+        return mEof;
+    }
+    
+    
+    public IOException errorState() {
+        return mErrorState;
+    }
+    
+    
     public synchronized void seek( long micros ) {
         mNeedSeek   = true;
         mSeekMicros = micros;
+        mEof        = false;
+        mErrorState = null;
+        if( mNextPacket != null ) {
+            mNextPacket.deref();
+            mNextPacket = null;
+        }
+        updateStatus();
     }
         
     
-    public synchronized boolean queue() throws IOException {
-        if( mClosed ) {
-            throw new ClosedChannelException();
+    public synchronized boolean queue() {
+        if( !mReadable ) {
+            return false;
         }
         
         if( mNeedSeek ) {
-            mNeedSeek = false;
-            if( mNextPacket != null ) {
-                mNextPacket.deref();
-                mNextPacket = null;
+            mNeedSeek  = false;
+            mNeedClear = true;
+            
+            try {
+                mSource.seek( mSeekMicros - mSeekWarmupMicros );
+            } catch( IOException ex ) {
+                mErrorState = ex;
+                updateStatus();
+                return false;
             }
-            mSource.seek( mSeekMicros - mSeekWarmupMicros );
+        
         } else if( mNextPacket != null ) {
             return true;
         }
         
-        Packet p = mSource.readNext();
-        if( p == null ) {
-            return false;
-        }
-        if( p.getStartMicros() < mSeekMicros ) {
-            p.deref();
-            return false;
+        try {
+            Packet p = mSource.readNext();
+            if( p == null ) {
+                return false;
+            }
+            if( p.getStartMicros() < mSeekMicros ) {
+                p.deref();
+                return false;
+            }
+            mNextPacket = p;
+            return true;
+        } catch( InterruptedIOException ex ) {
+        } catch( EOFException ex ) {
+            mEof = true;
+            updateStatus();
+        } catch( IOException ex ) {
+            mErrorState = ex;
+            updateStatus();
         }
         
-        mNextPacket = p;
-        return true;
+        return false;
     }
     
     
-    public long nextMicros() {
+    public synchronized long nextMicros() {
         return mNextPacket == null ? Long.MIN_VALUE : mNextPacket.getStartMicros();
     }
     
+    
+    public boolean hasPacket() {
+        return mNextPacket != null;
+    }
+    
+
+    public boolean send() {
+        Packet packet;
+        boolean clear;
+        
+        synchronized( this ) {
+            if( mNextPacket == null ) {
+                return false;
+            }
+            
+            packet = mNextPacket;
+            mNextPacket = null;
+            clear = mNeedClear;
+            mNeedClear = false;
+        }
+        
+        try {
+            if( clear ) {
+                mSink.clear();
+            }
+            mSink.consume( packet );
+            packet.deref();
+            return true;
+        } catch( InterruptedIOException ex ) {
+            packet.deref();
+            packet = null;
+            return false;
+        } catch( IOException ex ) {
+            warn( "Failed to process packet", ex );
+            synchronized( this ) {
+                if( !mNeedSeek ) {
+                    mErrorState = ex;
+                    updateStatus();
+                }
+            }
+            
+            return false;
+        }
+    }
+
     
     public void clear() {
         synchronized( this ) {
@@ -224,36 +341,16 @@ public class PassiveDriver implements StreamDriver {
     }
     
     
-    public boolean send() throws IOException {
-        Packet p;
-                
-        synchronized( this ) {
-            if( mNextPacket == null ) {
-                return false;
-            }
-            
-            p = mNextPacket;
-            mNextPacket = null;
-        }
-        
-        try {
-            mSink.consume( p );
-            p.deref();
-            return true;
-        } catch( InterruptedIOException ex ) {
-            p.deref();
-            p = null;
-            return false;
-        } catch( IOException ex ) {
-            warn( "Failed to process packet", ex );
-            return false;
-        }
+    
+    private synchronized void updateStatus() {
+        mReadable = !mClosed && !mEof && mErrorState == null && mSink.hasSink();
     }
     
     
-    private void warn( String message, Exception ex ) {
+    private static void warn( String message, Exception ex ) {
         sLog.log( Level.WARNING, message, ex );
     }
+
     
     
 }

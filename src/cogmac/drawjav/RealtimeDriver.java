@@ -38,14 +38,7 @@ public class RealtimeDriver implements StreamDriver {
     private final PlayHandler mPlayHandler;
     private final ThreadLock mLock;
     private final Thread mThread;
-    
-    private boolean mNeedUpdate  = false;
-    private boolean mClosed      = false;
-    private boolean mHasStream   = false;
-    private boolean mEof         = false;
-    private boolean mNeedSeek    = true;
-    private long mSeekMicros     = 0L;
-    
+        
     
     private RealtimeDriver( PlayController playCont,
                             Source source,
@@ -111,17 +104,25 @@ public class RealtimeDriver implements StreamDriver {
                                          throws IOException 
     {
         synchronized( mLock ) {
+            boolean success = false;
             mSyncer.openPipe( sink, mLock );
             Sink syncedSink = mSyncer.openPipe( sink, mLock );
-            StreamHandle s  = mDriver.openVideoStream( source, destFormat, syncedSink );
-            if( s == null ) {
-                syncedSink.close();
-                return null;
+            
+            try {
+                StreamHandle s  = mDriver.openVideoStream( source, destFormat, syncedSink );
+                if( s != null ) {
+                    success = true;
+                    mLock.unblock();
+                    return s;
+                }
+            } finally {
+                if( !success ) {
+                    syncedSink.close();
+                }
             }
-            mHasStream = mDriver.hasSink();
-            mNeedUpdate = true;
-            mLock.notifyAll();
-            return s;
+                
+            return null;
+            
         }
     }
     
@@ -132,17 +133,23 @@ public class RealtimeDriver implements StreamDriver {
                                          throws IOException 
     {
         synchronized( mLock ) {
+            boolean success = false;
             Sink syncedSink = mSyncer.openPipe( sink, mLock );
-            StreamHandle s = mDriver.openAudioStream( source, format, syncedSink );
-            if( s == null ) {
-                syncedSink.close();
-                return null;
+            
+            try {
+                StreamHandle s = mDriver.openAudioStream( source, format, syncedSink );
+                if( s != null ) {
+                    success = true;
+                    mLock.unblock();
+                    return s;
+                }
+            } finally {
+                if( !success ) {
+                    syncedSink.close();
+                }
             }
-    
-            mHasStream = mDriver.hasSink();
-            mNeedUpdate = true;
-            mLock.notifyAll();
-            return s;
+            
+            return null;
         }
     }
     
@@ -153,39 +160,21 @@ public class RealtimeDriver implements StreamDriver {
             if( !ret ) {
                 return false;
             }
-            
-            mHasStream = mDriver.hasSink();
-            mNeedUpdate = true;
+            mLock.unblock();
             return true;
         }
     }
     
     
     public void close() {
-        synchronized( mLock ) {
-            if( mClosed ) {
-                return;
-            }
-            
-            mClosed     = true;
-            mNeedUpdate = true;
-            mLock.notifyAll();
-            
-            try {
-                mDriver.close();
-            } catch( IOException ex ) {
-                warn( "Failed to close stream.", ex );
-            }
-            
-            mLock.interrupt();
-        }
+        mDriver.close();
+        mLock.interrupt();
     }
     
     
     public boolean isOpen() {
-        return !mClosed;
+        return mDriver.isOpen();
     }
-    
     
     
     private void runLoop() {
@@ -193,67 +182,27 @@ public class RealtimeDriver implements StreamDriver {
         
         while( true ) {
             synchronized( mLock ) {
-                if( mNeedUpdate ) {
-                    mLock.reset();
+                if( !mDriver.isReadable() ) {
+                    sendPacket = false;
                     
-                    if( mClosed ) {
-                        break;
+                    if( !mDriver.isOpen() ) {
+                        sLog.fine( "Driver shutdown complete." );
+                        return;
                     }
                     
-                    if( mNeedSeek ) {
-                        mNeedSeek  = false;
-                        mEof       = false;
-                        sendPacket = false;
-                        mDriver.seek( mSeekMicros );
-                        mDriver.clear();
-                        continue;
-                    }
+                    try {
+                        mLock.block();
+                    } catch( InterruptedIOException ex ) {}
                     
-                    if( !mHasStream || mEof ) {
-                        try {
-                            wait();
-                        } catch( InterruptedException ex ) {}
-                        continue;
-                    }
-                    
-                    mNeedUpdate = false;
+                    continue;
                 }
             }
             
             if( sendPacket ) {
+                mDriver.send();
                 sendPacket = false;
-                
-                try {
-                    mDriver.send();
-                } catch( InterruptedIOException ex ) {
-                } catch( IOException ex ) {
-                    ex.printStackTrace();
-                }
             } else {
-                try {
-                    if( mDriver.queue() ) {
-                        sendPacket = true;
-                    }
-                } catch( EOFException ex ) {
-                    synchronized( mLock ) {
-                        mEof = true;
-                    }
-                } catch( IOException ex ) {
-                    waitForSomething( "Read failed.", ex );
-                }
-            }
-        }
-    }
-    
-    
-    private void waitForSomething( String message, Exception ex ) {
-        synchronized( mLock ) {
-            if( ex instanceof EOFException ) {
-                try {
-                    mLock.block( 1000L );
-                } catch( InterruptedIOException e ) {}
-            } else {
-                sLog.log( Level.WARNING, message, ex );
+                sendPacket = mDriver.queue();
             }
         }
     }
@@ -272,11 +221,8 @@ public class RealtimeDriver implements StreamDriver {
 
         public void seek( long execMicros, long seekMicros ) {
             synchronized( mLock ) {
-                mNeedUpdate = true;
-                mNeedSeek   = true;
-                mSeekMicros = seekMicros;
+                mDriver.seek( seekMicros );
                 mLock.interrupt();
-                mLock.notifyAll();
             }
         }
 

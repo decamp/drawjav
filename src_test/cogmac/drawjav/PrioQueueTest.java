@@ -3,8 +3,6 @@ package cogmac.drawjav;
 import java.util.*;
 
 import org.junit.Test;
-
-import cogmac.drawjav.*;
 import static org.junit.Assert.*;
 
 

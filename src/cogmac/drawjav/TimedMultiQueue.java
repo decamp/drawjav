@@ -115,6 +115,7 @@ class TimedMultiQueue<T extends TimedNode> {
 
             // Remove command from queue.
             channel.removeHead();
+            mChannels.reschedule( channel );
             return ret;
         }
     }
@@ -175,7 +176,7 @@ class TimedMultiQueue<T extends TimedNode> {
         Channel<T> oldHead = mChannels.head();
         mChannels.reschedule( c );
         if( oldHead != mChannels.head() || oldHead == c ) {
-            notify();
+            notifyAll();
         }
     }
     

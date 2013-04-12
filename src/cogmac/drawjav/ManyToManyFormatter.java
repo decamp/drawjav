@@ -21,9 +21,9 @@ import cogmac.jav.JavConstants;
  * @author decamp
  */
 @SuppressWarnings( { "rawtypes", "unchecked" } )
-public class ReformatPipe implements StreamFormatter, Sink<Packet> {
+public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
     
-    private static final Logger sLog = Logger.getLogger( ReformatPipe.class.getName() );
+    private static final Logger sLog = Logger.getLogger( ManyToManyFormatter.class.getName() );
     
     private final Map<StreamHandle,OneToManyFormatter> mSourceMap = new HashMap<StreamHandle,OneToManyFormatter>();
     
@@ -34,7 +34,7 @@ public class ReformatPipe implements StreamFormatter, Sink<Packet> {
     private int mAudioPoolCap = 32;
     
     
-    public ReformatPipe() {}
+    public ManyToManyFormatter() {}
     
     
     
@@ -88,7 +88,7 @@ public class ReformatPipe implements StreamFormatter, Sink<Packet> {
                 throw new ClosedChannelException();
             }
             
-            OneToManyFormatter pipe    = mSourceMap.get( source );
+            OneToManyFormatter pipe = mSourceMap.get( source );
             boolean addPipe = false;
             if( pipe == null ) {
                 pipe = new OneToManyFormatter( source, mVideoPoolCap, mAudioPoolCap );
@@ -151,11 +151,9 @@ public class ReformatPipe implements StreamFormatter, Sink<Packet> {
     
     public void consume( Packet packet ) throws IOException {
         Sink sink = null;
-        
         synchronized( this ) {
             sink = mSourceMap.get( packet.stream() );
         }
-        
         if( sink != null ) {
             sink.consume( packet );
         }

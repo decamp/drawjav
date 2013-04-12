@@ -180,6 +180,9 @@ public class PacketScheduler {
     
     private static final class Pipe extends DoubleLinkedNode implements Sink, ObjectPool<Command> {
         
+        static int sIndex = 0;
+        
+        final int mIndex;
         final PlayClock mClock;
         final TimedMultiQueue mQueue;
         
@@ -207,6 +210,7 @@ public class PacketScheduler {
               boolean fastForwardFirstVideoFrame )
               throws ClosedChannelException
         {
+            mIndex   = sIndex++;
             mClock   = clock;
             mQueue   = queue;
             mChannel = queue.openChannel();
@@ -221,13 +225,10 @@ public class PacketScheduler {
         
         
         public void consume( Object packet ) throws IOException {
-            //System.out.println( "*" );
-            
             synchronized( mLock ) {
                 while( mQueueSize >= mCap && !mClosed ) {
                     mLock.block();
                 }
-                
                 if( mClosed ) {
                     throw new ClosedChannelException();
                 }
@@ -266,7 +267,6 @@ public class PacketScheduler {
                     return;
                 }
                 
-                //System.out.println( "^ CLEARING CHANNEL" );
                 Command command = poll();
                 command.mCommandCode = COMMAND_CLEAR;
                 command.mPriority    = COMMAND_CLEAR;

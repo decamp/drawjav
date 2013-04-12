@@ -5,7 +5,6 @@ import java.nio.channels.ClosedChannelException;
 import java.util.*;
 
 import cogmac.clocks.*;
-import cogmac.drawjav.*;
 import cogmac.jav.JavConstants;
 import cogmac.langx.ref.*;
 

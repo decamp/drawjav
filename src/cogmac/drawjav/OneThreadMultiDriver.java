@@ -1,6 +1,7 @@
 package cogmac.drawjav;
 
 import java.io.*;
+import java.nio.channels.ClosedChannelException;
 import java.util.*;
 import java.util.logging.*;
 import cogmac.clocks.*;
@@ -18,13 +19,13 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
     
     
     public static OneThreadMultiDriver newInstance( PlayController playCont,
-                                                    PacketSyncer syncer )
+                                                    PacketScheduler scheduler )
     {
-        if( syncer == null ) {
-            syncer = new PacketSyncer( playCont );
+        if( scheduler == null ) {
+            scheduler = new PacketScheduler( playCont );
         }
         
-        return new OneThreadMultiDriver( playCont, syncer );
+        return new OneThreadMultiDriver( playCont, scheduler );
     }
     
     
@@ -32,30 +33,31 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
     
     
     private final PlayController mPlayCont;
-    private final PacketSyncer mSyncer;
+    private final ThreadLock mLock;
+    private final PacketScheduler mScheduler;
     private final PlayHandler mPlayHandler;
     
     private final Map<Source,SourceData> mSourceMap       = new HashMap<Source,SourceData>();
     private final Map<StreamHandle,SourceData> mStreamMap = new HashMap<StreamHandle,SourceData>();
     
-    private final Queue<SourceData> mNewSources = new LinkedList<SourceData>();
-    private List<SourceData> mSources = new LinkedList<SourceData>();
+    private final PrioQueue<SourceData> mSources = new PrioQueue<SourceData>();
     
     private Thread mThread;
     
-    private boolean mNeedUpdate    = true;
-    private boolean mClosed        = false;
-    private boolean mCanInterrupt  = false;
-    private boolean mNeedSeek      = false;
-    private long mSeekMicros       = 0L;
     private long mSeekWarmupMicros = 2000000L;
+    private int mVideoQueueCap     =  8;
+    private int mAudioQueueCap     = 16;
+    
+    private boolean mClosing       = false;
+    private boolean mCloseComplete = false;
     
     
     OneThreadMultiDriver( PlayController playCont,
-                          PacketSyncer syncer )
+                          PacketScheduler syncer )
     {
         mPlayCont = playCont;
-        mSyncer   = syncer;
+        mLock     = new ThreadLock();
+        mScheduler = syncer;
         
         mPlayHandler = new PlayHandler();
         mPlayCont.caster().addListener( mPlayHandler );
@@ -72,12 +74,7 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
     }
     
     
-    
-    public boolean isOpen() {
-        return !mClosed;
-    }
-    
-    
+
     public Source source() {
         return null;
     }
@@ -88,215 +85,235 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
     }
     
     
-    public synchronized boolean addSource( Source source ) {
-        if( mClosed ) {
-            return false;
-        }
-        if( mSourceMap.containsKey( source ) ) {
-            return true;
-        }
-        
-        SourceData data = new SourceData( source );
-        data.mDriver.seekWarmupMicros( mSeekWarmupMicros );
-        mSourceMap.put( source, data );
-        for( int i = 0; i < source.streamCount(); i++ ) {
-            mStreamMap.put( source.stream( i ), data );
-        }
-        return true;
+    public boolean isOpen() {
+        return !mClosing;
     }
+    
+    
+    public void close() {
+        synchronized( mLock ) {
+            if( mClosing ) {
+                return;
+            }
+            mClosing = true;
+            mLock.interrupt();
+            
+            Set<Source> sources = mSourceMap.keySet();
+            while( !sources.isEmpty() ) {
+                removeSource( sources.iterator().next(), true );
+            }
+        }
+    }
+    
+    
+    public boolean closeSource( Source source ) {
+        return removeSource( source, true );
+    }    
     
     
     public boolean removeSource( Source source ) {
-        return false;
+        return removeSource( source, false );
     }
     
     
-    public synchronized StreamHandle openVideoStream( StreamHandle stream,
-                                                      PictureFormat outputFormat,
-                                                      Sink<? super VideoPacket> sink )
-                                                      throws IOException 
+    public boolean addSource( Source source ) {
+        synchronized( mLock ) {
+            if( mClosing ) {
+                return false;
+            }
+            if( mSourceMap.containsKey( source ) ) {
+                return true;
+            }
+            
+            SourceData data = new SourceData( source );
+            data.mDriver.seekWarmupMicros( mSeekWarmupMicros );
+            
+            mSourceMap.put( source, data );
+            for( StreamHandle s: data.mStreams ) {
+                mStreamMap.put( s, data );
+            }
+            
+            mSources.offer( data );
+            mLock.unblock();
+            return true;
+        }
+    }
+    
+    
+    public StreamHandle openVideoStream( StreamHandle stream,
+                                         PictureFormat outputFormat,
+                                         Sink<? super VideoPacket> sink )
+                                         throws IOException 
     {
-        SourceData source = mStreamMap.get( stream );
-        if( source == null ) {
-            return null;
+        synchronized( mLock ) {
+            if( mClosing ) {
+                throw new ClosedChannelException();
+            }
+            
+            SourceData source = mStreamMap.get( stream );
+            if( source == null ) {
+                return null;
+            }
+            
+            Sink<? super VideoPacket> syncSink = mScheduler.openPipe( sink, mLock, mVideoQueueCap );
+            StreamHandle ret;
+            
+            try {
+                ret = source.mDriver.openVideoStream( stream, outputFormat, syncSink );
+                if( ret == null ) {
+                    return null;
+                }
+                syncSink = null;
+            } finally {
+                if( syncSink != null ) {
+                    syncSink.close();
+                }
+            }
+            
+            mSources.reschedule( source );
+            mLock.unblock();
+            return ret;
         }
-
-        Sink syncSink = mSyncer.openStream( sink );
-        StreamHandle ret = source.mDriver.openVideoStream( stream, outputFormat, syncSink );
-        if( ret == null ) {
-            syncSink.close();
-            return null;
-        }
-        
-        mNeedUpdate = true;
-        
-        if( source.mOpenCount++ == 0 ) {
-            mNewSources.offer( source );
-            notifyAll();
-        }
-
-        return ret;
     }
                               
 
-    public synchronized StreamHandle openAudioStream( StreamHandle source, 
-                                                      AudioFormat format,
-                                                      Sink<? super AudioPacket> sink )
+    public StreamHandle openAudioStream( StreamHandle stream, 
+                                         AudioFormat format,
+                                         Sink<? super AudioPacket> sink )
+                                         throws IOException 
     {
-        return null;
+        synchronized( mLock ) {
+            if( mClosing ) {
+                throw new ClosedChannelException();
+            }
+            
+            SourceData source = mStreamMap.get( stream );
+            if( source == null ) {
+                return null;
+            }
+            
+            Sink<? super AudioPacket> syncSink = mScheduler.openPipe( sink, mLock, mAudioQueueCap );
+            StreamHandle ret;
+            
+            try {
+                ret = source.mDriver.openAudioStream( stream, format, syncSink );
+                if( ret == null ) {
+                    return null;
+                }
+                syncSink = null;
+            } finally {
+                if( syncSink != null ) {
+                    syncSink.close();
+                }
+            }
+            
+            mSources.reschedule( source );
+            mLock.unblock();
+            return ret;
+        }
+            
     }
-
+    
     
     public boolean closeStream( StreamHandle stream ) throws IOException {
-        return false;
+        synchronized( mLock ) {
+            SourceData source = mStreamMap.get( stream );
+            if( source == null ) {
+                return false;
+            }
+            if( !source.mDriver.closeStream( stream ) ) {
+                return false;
+            }
+            mSources.reschedule( source );
+            mLock.unblock();
+            return true;
+        }
     }
         
-
-    public void close() {
-        doDispose();
-    }
     
     
     private void runLoop() {
-        while( true ) {
-            synchronized( this ) {
-                mCanInterrupt = false;
-                
-                if( mNeedUpdate ) {
-                    Thread.interrupted();
-                    
-                    if( mClosed ) {
-                        break;
-                    }
-                    
-                    // Check if any work to do.
-                    if( !mNewSources.isEmpty() ) {
-                        insertSource( mNewSources.remove() );
-                        continue;
-                    } else if( mSources.isEmpty() ) {
-                        try {
-                            wait();
-                        } catch( InterruptedException ex ) {}
-                        continue;
-                    }
-                    
-                    if( mNeedSeek ) {
-                        mNeedSeek = false;
-                        for( SourceData s: mSources ) {
-                            s.mEof = false;
-                            s.mNextMicros = Long.MIN_VALUE;
-                            s.mDriver.seek( mSeekMicros );
-                            s.mDriver.clear();
-                        }
-                        continue;
-                    }
-                    
-                    mNeedUpdate = false;
-                }
-                
-                mCanInterrupt = true;
-            }
-            
-            SourceData s = mSources.remove( 0 );
-
-            if( s.mEof ) {
-                // Means all sources are EOF.
-                insertSource( s );
-                synchronized( this ) {
-                    try {
-                        wait();
-                    } catch( InterruptedException ex ) {}
-                    continue;
-                }
-            }
-            
-            try {
-                if( s.mNextMicros > Long.MIN_VALUE ) {
-                    try {
-                        s.mNextMicros = Long.MIN_VALUE;
-                        s.mDriver.send();
-                    } catch( InterruptedIOException ex ) {
-                        continue;
-                    } catch( IOException ex ) {
-                        ex.printStackTrace();
-                    }
-                }
-                
-                synchronized( this ) {
-                    mCanInterrupt = false;
-                    if( mNeedUpdate ) {
-                        continue;
-                    }
-                }
-                
-                try {
-                    while( !mNeedUpdate ) {
-                        if( s.mDriver.queue() ) {
-                            s.mNextMicros = s.mDriver.nextMicros();
-                            break;
-                        }
-                    } 
-                }catch( EOFException ex ) {
-                    s.mEof = true;
-                } catch( IOException ex ) {
-                    s.mEof = true;
-                    sLog.log( Level.WARNING, "Error", ex );
-                }
-            } finally {
-                insertSource( s );
-            }
-        }
-    }
-    
-    
-    
-    private void insertSource( SourceData source ) {
-        ListIterator<SourceData> iter = mSources.listIterator( mSources.size() );
-        while( iter.hasPrevious() ) {
-            SourceData prev = iter.previous();
-            if( prev.mEof != source.mEof ) {
-                if( source.mEof ) {
-                    iter.next();
-                    iter.add( source );
-                    return;
-                } else {
-                    continue;
-                }
-            }
-            
-            if( prev.mNextMicros <= source.mNextMicros ) {
-                iter.next();
-                iter.add( source );
-                return;
-            }
-        }
+        SourceData s = null;
+        boolean sendPacket = false;
         
-        iter.add( source );
+        while( true ) {
+            synchronized( mLock ) {
+                if( s != null ) {
+                    mSources.reschedule( s );
+                }
+                
+                s = mSources.head();
+                if( s == null ) {
+                    // Nothing to do.
+                    if( mClosing ) {
+                        sLog.fine( "Driver shutdown complete." );
+                        mCloseComplete = true;
+                        return;
+                    }
+                    
+                    try {
+                        mLock.block();
+                    } catch( InterruptedIOException ex ) {}
+                    
+                    continue;
+                }
+                
+                if( !s.mDriver.isReadable() ) {
+                    if( !s.mDriver.isOpen() ) {
+                        mSources.remove( s );
+                        continue;
+                    }
+                    
+                    try {
+                        mLock.block();
+                    } catch( InterruptedIOException ex ) {}
+                    
+                    continue;
+                }
+                
+                sendPacket = s.mDriver.hasPacket();
+            }
+            
+            if( sendPacket ) {
+                s.mDriver.send();
+            } else {
+                s.mDriver.queue();
+            }
+        }
     }
     
     
-    private synchronized void doDispose() {
-        mThread = null;
-        notifyAll();
+    
+    private boolean removeSource( Source source, boolean closeSource ) {
+        synchronized( mLock ) {
+            SourceData d = mSourceMap.remove( source );
+            if( d == null ) {
+                return false;
+            }
+            for( StreamHandle s: d.mStreams ) {
+                mStreamMap.remove( s );
+            }
+            
+            d.mDriver.close( closeSource );
+            mLock.unblock();
+            return true;
+        }
     }
     
     
     
     private final class PlayHandler implements PlayControl {
-
+        
         public void playStart( long execMicros ) {}
 
         public void playStop( long execMicros ) {}
 
         public void seek( long execMicros, long seekMicros ) {
-            synchronized( OneThreadMultiDriver.this ) {
-                mNeedUpdate = true;
-                mNeedSeek = true;
-                mSeekMicros = seekMicros;
-                OneThreadMultiDriver.this.notifyAll();
-                if( mCanInterrupt && mThread != null ) {
-                    mThread.interrupt();
+            synchronized( mLock ) {
+                for( SourceData s: mSourceMap.values() ) {
+                    s.mDriver.seek( seekMicros );
                 }
+                mLock.interrupt();
             }
         }
 
@@ -305,20 +322,45 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
     }
     
     
-    private static final class SourceData {
-        Source mSource;
-        PassiveDriver mDriver;
-        long mNextMicros = Long.MIN_VALUE;
-        boolean mEof     = false;
-        int mOpenCount   = 0;
+    private static final class SourceData extends DoubleLinkedNode implements Comparable<SourceData> {
+
+        final Source mSource;
+        final List<StreamHandle> mStreams;
+        final PassiveDriver mDriver;
         
         SourceData( Source source ) {
             mSource  = source;
+            mStreams = source.streams();
             mDriver  = new PassiveDriver( source );
         }
         
+        
+        @Override
+        public int compareTo( SourceData s ) {
+            boolean r0 = mDriver.isReadable();
+            boolean r1 = s.mDriver.isReadable();
+            
+            if( r0 && r1 ) {
+                // Both are readable. Sort based on next packet.
+                long t0 = mDriver.nextMicros();
+                long t1 = s.mDriver.nextMicros();
+                return t0 < t1 ? -1 :
+                       t0 > t1 ?  1 : 0;
+            }
+            
+            // Schedule closed drivers first.
+            boolean close0 = !mDriver.isOpen();
+            boolean close1 = !s.mDriver.isOpen();
+        
+            if( close0 ) {
+                return close1 ? 0 : -1;
+            } else if( close1 ) {
+                return 1;
+            }
+            
+            return r0 ? -1 : ( r1 ? 1 : 0 );
+        }
+    
     }
     
-    
-
 }

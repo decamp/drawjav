@@ -22,15 +22,8 @@ public class SyncedDriver extends DrawNodeAdapter implements StreamDriver {
     private final PlayController mPlayCont;
     private final PassiveDriver mDriver;
     private final PlayHandler mPlayHandler;
-
-    private boolean mNeedUpdate = true;
-    private boolean mClosed     = false;
-    private boolean mHasStream  = false;
-    private boolean mNeedSeek = false;
-    private boolean mEof      = false;
-    private long mSeekMicros  = 0L;
     
-    
+        
     public SyncedDriver( PlayController playCont, Source source ) {
         mPlayCont    = playCont;
         mDriver      = new PassiveDriver( source );
@@ -74,104 +67,47 @@ public class SyncedDriver extends DrawNodeAdapter implements StreamDriver {
                                          Sink<? super VideoPacket> sink )
                                          throws IOException 
     {
-        StreamHandle ret = mDriver.openVideoStream( source, destFormat, sink );
-        if( ret == null ) {
-            return null;
-        }
-        mHasStream = mDriver.hasSink();
-        mNeedUpdate = true;
-        return ret;
+        return mDriver.openVideoStream( source, destFormat, sink );
     }
     
     
-    public synchronized StreamHandle openAudioStream( StreamHandle source,
-                                                      AudioFormat format,
-                                                      Sink<? super AudioPacket> sink )
-                                                      throws IOException 
+    public StreamHandle openAudioStream( StreamHandle source,
+                                         AudioFormat format,
+                                         Sink<? super AudioPacket> sink )
+                                         throws IOException 
     {
-        StreamHandle ret = mDriver.openAudioStream( source, format, sink );
-        if( ret == null ) {
-            return null;
-        }
-        mHasStream  = mDriver.hasSink();
-        mNeedUpdate = true;
-        return ret;
+        return mDriver.openAudioStream( source, format, sink );
     }
     
     
-    public synchronized boolean closeStream( StreamHandle stream ) throws IOException {
-        boolean ret = mDriver.closeStream( stream );
-        mHasStream  = mDriver.hasSink();
-        mNeedUpdate = true;
-        return ret;
+    public boolean closeStream( StreamHandle stream ) throws IOException {
+        return mDriver.closeStream( stream );
     }
     
     
-    public synchronized void close() throws IOException {
-        if( mClosed ) {
-            return;
-        }
-        mClosed     = true;
-        mNeedUpdate = true;
+    public void close() throws IOException {
         mDriver.close();
         mPlayCont.caster().removeListener( mPlayHandler );
     }
     
     
     public boolean isOpen() {
-        return !mClosed;
+        return mDriver.isOpen();
     }
     
     
-    
     public void pushDraw( GL gl ) {
-        boolean seek    = false;
-        long seekMicros = 0;
-        long timeMicros = 0;
-        
-        synchronized( this ) {
-            if( mNeedUpdate ) {
-                if( mClosed ) {
-                    return;
-                }
-                
-                if( mNeedSeek ) {
-                    mNeedSeek = false;
-                    mEof      = false;
-                    mDriver.seek( mSeekMicros );
-                    mDriver.clear();
-                }
-                
-                if( !mHasStream || mEof ) {
-                    return;
-                }
-                
-                timeMicros = mPlayCont.clock().micros();
-            }
-        }
-
+        long timeMicros = mPlayCont.clock().micros();
         
         while( true ) {
-            try {
-                if( !mDriver.queue() ) {
-                    continue;
+            if( !mDriver.isReadable() ) {
+                return;
+            }
+            if( mDriver.queue() ) {
+                if( mDriver.nextMicros() > timeMicros ) {
+                    return;
                 }
-            } catch( EOFException ex ) {
-                mEof = true;
-                return;
-            } catch( IOException ex ) {
-                mEof = true;
-                warn( "Failed to process packet.", ex );
-            }
-            
-            if( mDriver.nextMicros() > timeMicros ) {
-                return;
-            }
-            
-            try {
                 mDriver.send();
-            } catch( IOException ex ) {
-                sLog.log( Level.WARNING, "Failed to process packet", ex );
             }
         }
     }
@@ -190,10 +126,7 @@ public class SyncedDriver extends DrawNodeAdapter implements StreamDriver {
         public void playStop( long execMicros ) {}
 
         public void seek( long execMicros, long seekMicros ) {
-            synchronized( SyncedDriver.this ) {
-                mNeedSeek   = true;
-                mSeekMicros = seekMicros;
-            }
+            mDriver.seek( seekMicros );
         }
 
         public void setRate( long execMicros, double rate ) {}

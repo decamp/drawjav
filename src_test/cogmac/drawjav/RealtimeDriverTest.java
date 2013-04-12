@@ -8,8 +8,6 @@ import javax.media.opengl.*;
 import javax.swing.JFrame;
 
 import cogmac.clocks.PlayController;
-import cogmac.drawjav.*;
-import cogmac.drawjav.audio.AudioLinePlayer;
 import cogmac.drawjav.video.VideoTexture;
 import cogmac.jav.JavConstants;
 import cogmac.jav.util.Rational;
@@ -23,7 +21,7 @@ public class RealtimeDriverTest {
     
     
     public static void main( String[] args ) throws Exception {
-        testRealtime();
+        testMultiSynced();
     }
     
     
@@ -322,14 +320,14 @@ public class RealtimeDriverTest {
         try {
             Thread.sleep( 1000L );
             System.out.println("SEEK");
-            playCont.control().seek( 5000000L );
+            //playCont.control().seek( 5000000L );
             System.out.println("PLAY");
             playCont.control().playStart();
             
             while( true ) {
                 Thread.sleep( 5000L );
-                System.out.println("SEEK");
-                playCont.control().seek( 10000000L );
+                //System.out.println("SEEK");
+                //playCont.control().seek( 10000000L );
             }
             
             
