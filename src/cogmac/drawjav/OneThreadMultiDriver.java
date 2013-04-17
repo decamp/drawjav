@@ -263,7 +263,7 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
                     continue;
                 }
                 
-                if( !s.mDriver.canRead() ) {
+                if( !s.mDriver.hasNext() ) {
                     if( !s.mDriver.isOpen() ) {
                         mSources.remove( s );
                         continue;
@@ -276,13 +276,13 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
                     continue;
                 }
                 
-                sendPacket = s.mDriver.hasNext();
+                sendPacket = s.mDriver.hasCurrent();
             }
             
             if( sendPacket ) {
-                s.mDriver.sendNext();
+                s.mDriver.sendCurrent();
             } else {
-                s.mDriver.queueNext();
+                s.mDriver.readPacket();
             }
         }
     }
@@ -342,13 +342,13 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
         
         @Override
         public int compareTo( SourceData s ) {
-            boolean r0 = mDriver.canRead();
-            boolean r1 = s.mDriver.canRead();
+            boolean r0 = mDriver.hasNext();
+            boolean r1 = s.mDriver.hasNext();
             
             if( r0 && r1 ) {
                 // Both are readable. Sort based on next packet.
-                long t0 = mDriver.nextMicros();
-                long t1 = s.mDriver.nextMicros();
+                long t0 = mDriver.currentMicros();
+                long t1 = s.mDriver.currentMicros();
                 return t0 < t1 ? -1 :
                        t0 > t1 ?  1 : 0;
             }

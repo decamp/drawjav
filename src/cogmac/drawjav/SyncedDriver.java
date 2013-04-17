@@ -103,14 +103,14 @@ public class SyncedDriver extends DrawNodeAdapter implements StreamDriver {
         long timeMicros = mPlayCont.clock().micros();
         
         while( true ) {
-            if( !mDriver.canRead() ) {
+            if( !mDriver.hasNext() ) {
                 return;
             }
-            if( mDriver.queueNext() ) {
-                if( mDriver.nextMicros() > timeMicros ) {
+            if( mDriver.readPacket() ) {
+                if( mDriver.currentMicros() > timeMicros ) {
                     return;
                 }
-                mDriver.sendNext();
+                mDriver.sendCurrent();
             }
         }
     }

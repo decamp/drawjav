@@ -42,28 +42,46 @@ public class PassiveDriver implements StreamDriver {
     }
     
     
-    
-    public boolean canRead() {
+    /**
+     * @return true iff this PassiveDriver MIGHT have more packets.
+     *        If this PassiveDriver has reached the end of its source
+     *        or had an IO error, this method will return null.
+     */
+    public boolean hasNext() {
         return mReadable;
     }
     
-    
+    /**
+     * @return true iff this PassiveDriver has reached the end of its source.
+     */
     public boolean eof() {
         return mEof;
     }
     
-    
+    /**
+     * @return true iff this PassiveDriver has somewhere to send data.
+     */
     public boolean hasSink() {
         return mSink.hasSink();
     }
     
-    
+    /**
+     * PassiveDriver will keep track of the last error that
+     * occurred. This error status is erased after seek
+     * operations.
+     * 
+     * @return current error status.
+     */
     public IOException error() {
         return mErrorState;
     }
     
     
-    
+    /**
+     * Seeks position in source to read packets from.
+     * 
+     * @param micros
+     */
     public synchronized void seek( long micros ) {
         mNeedSeek   = true;
         mSeekMicros = micros;
@@ -75,16 +93,25 @@ public class PassiveDriver implements StreamDriver {
         }
         updateStatus();
     }
-        
     
-    public synchronized boolean queueNext() {
+    /**
+     * Attempts to read next packet from source and
+     * hold on to it for processing. If PassiveDriver
+     * already has a packet, returns true immediately. 
+     * Several attempts may be required to successfully
+     * read a packet.
+     * 
+     * @return true iff PassiveDriver has a packet ready on return.
+     *         ( Same as calling hasPacket() afterwards ).
+     */
+    public synchronized boolean readPacket() {
         if( !mReadable ) {
             return false;
         }
         
         if( mNeedSeek ) {
             mNeedSeek  = false;
-            mNeedClear = true;
+            mNeedClear = mClearOnSeek;
             
             try {
                 mSource.seek( mSeekMicros - mSeekWarmupMicros );
@@ -121,13 +148,20 @@ public class PassiveDriver implements StreamDriver {
         return false;
     }
     
-    
-    public boolean hasNext() {
+    /**
+     * @return true iff PassiveDriver is currently holding a packet.
+     */
+    public boolean hasCurrent() {
         return mNextPacket != null;
     }
     
-    
-    public synchronized Packet next() {
+    /**
+     * If a packet is being held, adds reference and returns it.
+     * Otherwise returns null.
+     * 
+     * @return current packet held by driver.
+     */
+    public synchronized Packet current() {
         if( mNextPacket == null ) {
             return null;
         }
@@ -135,13 +169,19 @@ public class PassiveDriver implements StreamDriver {
         return mNextPacket;
     }
     
-    
-    public synchronized long nextMicros() {
+    /**
+     * @return start time of currently held packet, or Long.MIN_VALUE if no packet.
+     */
+    public synchronized long currentMicros() {
         return mNextPacket == null ? Long.MIN_VALUE : mNextPacket.getStartMicros();
     }
     
-
-    public boolean sendNext() {
+    /**
+     * Sends currently held packet to sink.
+     * 
+     * @return true iff packet successfully sent.
+     */
+    public boolean sendCurrent() {
         Packet packet;
         boolean clear;
         
@@ -180,7 +220,13 @@ public class PassiveDriver implements StreamDriver {
         }
     }
     
-    
+    /**
+     * Sends arbitrary packet to sink. 
+     * Will clear sink if clear is pending.  
+     * 
+     * @param packet
+     * @return true if successful.
+     */
     public boolean send( Packet packet ) {
         boolean clear;
         
@@ -209,33 +255,50 @@ public class PassiveDriver implements StreamDriver {
         }
     }
     
-    
-    public synchronized void clearNext() {
+    /**
+     * Clears currently held packet. If 
+     * no packet is being held, call has
+     * no effect.
+     */
+    public synchronized void clearCurrent() {
         if( mNextPacket != null ) {
             mNextPacket.deref();
             mNextPacket = null;
         }
     }
     
-    
+    /**
+     * Clears sink and currently held packet. 
+     */
     public void clear() {
         synchronized( this ) {
             if( mNextPacket != null ) {
                 mNextPacket.deref();
                 mNextPacket = null;
             }
+            mNeedClear = false;
         }
 
         mSink.clear();
     }
     
-    
-    
+    /**
+     * After a seek() call, PassiveDriver may actually go
+     * further back into the data stream and decode some
+     * amount of data in order to warmup the decoder 
+     * (there's currently no support for finding correct keyframes).
+     * This method returns the number of micros of data processed
+     * before PassiveDriver will begin returning packets.
+     * 
+     * @return Amount of data read after each seek operation before returning packets.
+     */
     public long seekWarmupMicros() {
         return mSeekWarmupMicros;
     }
     
-    
+    /**
+     * @param micros  Amount of data to read after each seek operation before returning packets.
+     */
     public void seekWarmupMicros( long micros ) {
         mSeekWarmupMicros = micros;
     }
@@ -261,11 +324,18 @@ public class PassiveDriver implements StreamDriver {
     }
     
     
+    /**
+     * @return true if this PassiveDriver will clear the sink
+     *              after a seek call.
+     */
     public boolean clearOnSeek() {
         return mClearOnSeek;
     }
     
-    
+    /**
+     * @param clearOnSeek Specifies whether this PassiveDriver will
+     *               clear its sink after every seek call.
+     */
     public void clearOnSeek( boolean clearOnSeek ) {
         mClearOnSeek = clearOnSeek;
     }
