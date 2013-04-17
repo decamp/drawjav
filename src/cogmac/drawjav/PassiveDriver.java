@@ -32,6 +32,7 @@ public class PassiveDriver implements StreamDriver {
     private long mSeekMicros       = Long.MIN_VALUE;
     private long mSeekWarmupMicros = 500000L;
     private boolean mNeedClear     = false;
+    private boolean mClearOnSeek   = true;
     
     private Packet mNextPacket = null;
     
@@ -42,7 +43,192 @@ public class PassiveDriver implements StreamDriver {
     
     
     
-    public void start() {}
+    public boolean canRead() {
+        return mReadable;
+    }
+    
+    
+    public boolean eof() {
+        return mEof;
+    }
+    
+    
+    public boolean hasSink() {
+        return mSink.hasSink();
+    }
+    
+    
+    public IOException error() {
+        return mErrorState;
+    }
+    
+    
+    
+    public synchronized void seek( long micros ) {
+        mNeedSeek   = true;
+        mSeekMicros = micros;
+        mEof        = false;
+        mErrorState = null;
+        if( mNextPacket != null ) {
+            mNextPacket.deref();
+            mNextPacket = null;
+        }
+        updateStatus();
+    }
+        
+    
+    public synchronized boolean queueNext() {
+        if( !mReadable ) {
+            return false;
+        }
+        
+        if( mNeedSeek ) {
+            mNeedSeek  = false;
+            mNeedClear = true;
+            
+            try {
+                mSource.seek( mSeekMicros - mSeekWarmupMicros );
+            } catch( IOException ex ) {
+                mErrorState = ex;
+                updateStatus();
+                return false;
+            }
+        
+        } else if( mNextPacket != null ) {
+            return true;
+        }
+        
+        try {
+            Packet p = mSource.readNext();
+            if( p == null ) {
+                return false;
+            }
+            if( p.getStartMicros() < mSeekMicros ) {
+                p.deref();
+                return false;
+            }
+            mNextPacket = p;
+            return true;
+        } catch( InterruptedIOException ex ) {
+        } catch( EOFException ex ) {
+            mEof = true;
+            updateStatus();
+        } catch( IOException ex ) {
+            mErrorState = ex;
+            updateStatus();
+        }
+        
+        return false;
+    }
+    
+    
+    public boolean hasNext() {
+        return mNextPacket != null;
+    }
+    
+    
+    public synchronized Packet next() {
+        if( mNextPacket == null ) {
+            return null;
+        }
+        mNextPacket.ref();
+        return mNextPacket;
+    }
+    
+    
+    public synchronized long nextMicros() {
+        return mNextPacket == null ? Long.MIN_VALUE : mNextPacket.getStartMicros();
+    }
+    
+
+    public boolean sendNext() {
+        Packet packet;
+        boolean clear;
+        
+        synchronized( this ) {
+            if( mNextPacket == null ) {
+                return false;
+            }
+            
+            packet = mNextPacket;
+            mNextPacket = null;
+            clear = mNeedClear;
+            mNeedClear = false;
+        }
+        
+        try {
+            if( clear ) {
+                mSink.clear();
+            }
+            mSink.consume( packet );
+            packet.deref();
+            return true;
+        } catch( InterruptedIOException ex ) {
+            packet.deref();
+            packet = null;
+            return false;
+        } catch( IOException ex ) {
+            warn( "Failed to process packet", ex );
+            synchronized( this ) {
+                if( !mNeedSeek ) {
+                    mErrorState = ex;
+                    updateStatus();
+                }
+            }
+            
+            return false;
+        }
+    }
+    
+    
+    public boolean send( Packet packet ) {
+        boolean clear;
+        
+        synchronized( this ) {
+            clear = mNeedClear;
+            mNeedClear = false;
+        }
+        
+        try {
+            if( clear ) {
+                mSink.clear();
+            }
+            mSink.consume( packet );
+            return true;
+        } catch( InterruptedIOException ex ) {
+            return false;
+        } catch( IOException ex ) {
+            warn( "Failed to process packet", ex );
+            synchronized( this ) {
+                if( !mNeedSeek ) {
+                    mErrorState = ex;
+                    updateStatus();
+                }
+            }
+            return false;
+        }
+    }
+    
+    
+    public synchronized void clearNext() {
+        if( mNextPacket != null ) {
+            mNextPacket.deref();
+            mNextPacket = null;
+        }
+    }
+    
+    
+    public void clear() {
+        synchronized( this ) {
+            if( mNextPacket != null ) {
+                mNextPacket.deref();
+                mNextPacket = null;
+            }
+        }
+
+        mSink.clear();
+    }
+    
     
     
     public long seekWarmupMicros() {
@@ -73,6 +259,20 @@ public class PassiveDriver implements StreamDriver {
     public void audioPoolCap( int cap ) {
         mSink.audioPoolCap( cap );
     }
+    
+    
+    public boolean clearOnSeek() {
+        return mClearOnSeek;
+    }
+    
+    
+    public void clearOnSeek( boolean clearOnSeek ) {
+        mClearOnSeek = clearOnSeek;
+    }
+    
+    
+    
+    public void start() {}
     
     
     public Source source() {
@@ -201,146 +401,6 @@ public class PassiveDriver implements StreamDriver {
     
     public boolean isOpen() {
         return !mClosed;
-    }
-
-    
-    public boolean hasSink() {
-        return mSink.hasSink();
-    }
-    
-    
-    public boolean isReadable() {
-        return mReadable;
-    }
-    
-    
-    public boolean isEof() {
-        return mEof;
-    }
-    
-    
-    public IOException errorState() {
-        return mErrorState;
-    }
-    
-    
-    public synchronized void seek( long micros ) {
-        mNeedSeek   = true;
-        mSeekMicros = micros;
-        mEof        = false;
-        mErrorState = null;
-        if( mNextPacket != null ) {
-            mNextPacket.deref();
-            mNextPacket = null;
-        }
-        updateStatus();
-    }
-        
-    
-    public synchronized boolean queue() {
-        if( !mReadable ) {
-            return false;
-        }
-        
-        if( mNeedSeek ) {
-            mNeedSeek  = false;
-            mNeedClear = true;
-            
-            try {
-                mSource.seek( mSeekMicros - mSeekWarmupMicros );
-            } catch( IOException ex ) {
-                mErrorState = ex;
-                updateStatus();
-                return false;
-            }
-        
-        } else if( mNextPacket != null ) {
-            return true;
-        }
-        
-        try {
-            Packet p = mSource.readNext();
-            if( p == null ) {
-                return false;
-            }
-            if( p.getStartMicros() < mSeekMicros ) {
-                p.deref();
-                return false;
-            }
-            mNextPacket = p;
-            return true;
-        } catch( InterruptedIOException ex ) {
-        } catch( EOFException ex ) {
-            mEof = true;
-            updateStatus();
-        } catch( IOException ex ) {
-            mErrorState = ex;
-            updateStatus();
-        }
-        
-        return false;
-    }
-    
-    
-    public synchronized long nextMicros() {
-        return mNextPacket == null ? Long.MIN_VALUE : mNextPacket.getStartMicros();
-    }
-    
-    
-    public boolean hasPacket() {
-        return mNextPacket != null;
-    }
-    
-
-    public boolean send() {
-        Packet packet;
-        boolean clear;
-        
-        synchronized( this ) {
-            if( mNextPacket == null ) {
-                return false;
-            }
-            
-            packet = mNextPacket;
-            mNextPacket = null;
-            clear = mNeedClear;
-            mNeedClear = false;
-        }
-        
-        try {
-            if( clear ) {
-                mSink.clear();
-            }
-            mSink.consume( packet );
-            packet.deref();
-            return true;
-        } catch( InterruptedIOException ex ) {
-            packet.deref();
-            packet = null;
-            return false;
-        } catch( IOException ex ) {
-            warn( "Failed to process packet", ex );
-            synchronized( this ) {
-                if( !mNeedSeek ) {
-                    mErrorState = ex;
-                    updateStatus();
-                }
-            }
-            
-            return false;
-        }
-    }
-
-    
-    public void clear() {
-        synchronized( this ) {
-            if( mNextPacket != null ) {
-                mNextPacket.deref();
-                mNextPacket = null;
-            }
-        }
-
-        mSink.clear();
     }
     
     

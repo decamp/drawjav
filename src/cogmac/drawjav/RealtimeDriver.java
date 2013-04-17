@@ -182,7 +182,7 @@ public class RealtimeDriver implements StreamDriver {
         
         while( true ) {
             synchronized( mLock ) {
-                if( !mDriver.isReadable() ) {
+                if( !mDriver.canRead() ) {
                     sendPacket = false;
                     
                     if( !mDriver.isOpen() ) {
@@ -199,10 +199,10 @@ public class RealtimeDriver implements StreamDriver {
             }
             
             if( sendPacket ) {
-                mDriver.send();
+                mDriver.sendNext();
                 sendPacket = false;
             } else {
-                sendPacket = mDriver.queue();
+                sendPacket = mDriver.queueNext();
             }
         }
     }
