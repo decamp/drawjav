@@ -39,9 +39,9 @@ public class VideoPacketResampler {
 
     public VideoPacket process( VideoPacket source ) throws JavException {
         if( mNeedsInit ) {
-            initConverter();
+            init();
         }
-
+        
         if( mConverter == null ) {
             source.ref();
             return source;
@@ -124,7 +124,12 @@ public class VideoPacketResampler {
 
 
     public void close() {
-        changeDestFormat( null );
+        if( mFactory != null ) {
+            mFactory.close();
+            mFactory = null;
+        }
+        mConverter = null;
+        mNeedsInit = true;
     }
 
     
@@ -137,24 +142,30 @@ public class VideoPacketResampler {
         if( format.equals( mDestFormat ) ) {
             return;
         }
-        changeDestFormat( format );
+
+        mDestFormat = format;
+        close();
     }
 
 
-    private void initConverter() throws JavException {
+    private void init() throws JavException {
         mNeedsInit = false;
-        mConverter = null;
-
+        
         PictureFormat src = mSourceFormat;
         PictureFormat dst = mDestFormat;
-
-        if( !PictureFormats.isFullyDefined( src ) || !PictureFormats.isFullyDefined( dst ) )
+        
+        if( !PictureFormats.isFullyDefined( src ) || !PictureFormats.isFullyDefined( dst ) ) {
             return;
+        }
 
         if( mCropTop != 0 || mCropBottom != 0 ) {
             src = new PictureFormat( src.width(), src.height() - mCropBottom, src.pixelFormat() );
         }
-
+        
+        if( dst.equals( src ) ) {
+            return;
+        }
+        
         mConverter = SwsContext.newInstance();
         mConverter.configure( src.width(), src.height(), src.pixelFormat(),
                               dst.width(), dst.height(), dst.pixelFormat(),
@@ -167,13 +178,4 @@ public class VideoPacketResampler {
     }
     
     
-    private void changeDestFormat( PictureFormat format ) {
-        mDestFormat = format;
-        if( mFactory != null ) {
-            mFactory.close();
-            mFactory = null;
-        }
-        mNeedsInit = true;
-    }
-
 }

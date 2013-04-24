@@ -6,7 +6,6 @@ import java.util.*;
 
 import cogmac.data.Guid;
 import cogmac.drawjav.audio.*;
-import cogmac.drawjav.video.*;
 import cogmac.jav.*;
 import cogmac.jav.codec.*;
 import cogmac.jav.format.*;
@@ -32,7 +31,7 @@ public class FormatDecoder implements Source {
                                           long startMicros ) 
                                           throws IOException {
         JavLibrary.init();
-        JavFormatContext format = JavFormatContext.openFile( file );
+        JavFormatContext format = JavFormatContext.openInputFile( file );
         return new FormatDecoder( format, overrideStartMicros, startMicros );
     }
     
@@ -236,19 +235,16 @@ public class FormatDecoder implements Source {
     
     
     public Packet readNext() throws IOException {
-        try {
-            mFormat.readPacket( mPacket );
-        } catch( JavException ex ) {
+        if( mFormat.readPacket( mPacket ) != 0 ) {
             //Probably EOF?
-            EOFException e = new EOFException();
-            e.initCause( ex );
-            throw e;
+            throw new EOFException();
         }
         
         int idx = mPacket.streamIndex();
         if( idx < 0 || idx >= mStreams.length ) {
             return null;
         }
+        
         return mStreams[idx].process( mPacket );
     }
     
@@ -273,25 +269,26 @@ public class FormatDecoder implements Source {
     }
     
     
-    public void overrideTimestamps(long mediaStartMicros) {
-        if(mFirstStreamIndex < 0)
+    public void overrideTimestamps( long mediaStartMicros ) {
+        if( mFirstStreamIndex < 0 ) {
             return;
+        }
         
-        JavStream ss       = mFormat.stream(mFirstStreamIndex);
+        JavStream ss       = mFormat.stream( mFirstStreamIndex );
         Rational firstBase = ss.timeBase();
         long firstPts      = ss.startTime();
         
-        for(Stream s: mStreams) {
+        for( Stream s: mStreams ) {
             Rational tb   = s.timeBase();
             long startPts = firstPts;
             
-            if(tb.equals(firstBase)) {
+            if( tb.equals( firstBase ) ) {
                 startPts = firstPts;
-            }else{
-                startPts = firstPts * firstBase.num() * tb.den() / (firstBase.den() * tb.num());
+            } else {
+                startPts = firstPts * firstBase.num() * tb.den() / ( firstBase.den() * tb.num() );
             }
             
-            s.initTimer(startPts, mediaStartMicros);
+            s.initTimer( startPts, mediaStartMicros );
         }
     }
     
@@ -421,8 +418,7 @@ public class FormatDecoder implements Source {
         private final JavCodecContext mCodecContext;
         private final PictureFormat mPictureFormat;
         
-        private VideoStreamTimer mTimer;
-        
+        private PacketTimer mTimer;
         private final long[] mRange = new long[2];
         
         private boolean mIsOpen                = false;
@@ -454,13 +450,13 @@ public class FormatDecoder implements Source {
                 return;
             }
             
-            if( !mCodecContext.isDecoderOpen() ) {
+            if( !mCodecContext.isOpen() ) {
                 JavCodec codec = JavCodec.findDecoder( mCodecContext.codecId() );
                 if( codec == null ) {
-                    throw new JavException( JavConstants.ERROR_CODEC_NOT_FOUND,
+                    throw new JavException( JavConstants.AVERROR_DECODER_NOT_FOUND,
                                             "Codec not found for stream: " + mStream.index() );
                 }
-                mCodecContext.openDecoder( codec );
+                mCodecContext.open( codec );
             }
 
             mPool   = new HardRefPool<VideoPacket>( poolSize );
@@ -479,9 +475,9 @@ public class FormatDecoder implements Source {
             }
             
             mIsOpen = false;
-            if( mCodecContext.isDecoderOpen() ) {
+            if( mCodecContext.isOpen() ) {
                 try {
-                    mCodecContext.closeDecoder();
+                    mCodecContext.close();
                 } catch(Exception ex) {}
             }
             
@@ -525,7 +521,7 @@ public class FormatDecoder implements Source {
                 return null;
             }
             
-            mTimer.packetDecoded( pts, duration, ret.pts(), mRange );
+            mTimer.packetDecoded( ret.bestEffortTimestamp(), ret.packetDuration(), mRange );
             
             if( !mHasKeyFrame && !ret.isKeyFrame() ) {
                 ret.deref();
@@ -541,11 +537,17 @@ public class FormatDecoder implements Source {
         
         public void seekPts( long pts ) {
             mTimer.seekPts( pts );
+            if( mIsOpen ) {
+                mCodecContext.flush();
+            }
         }
         
         
         public void seekMicros( long micros ) {
             mTimer.seekMicros( micros );
+            if( mIsOpen ) {
+                mCodecContext.flush();
+            }
         }
         
         
@@ -560,7 +562,7 @@ public class FormatDecoder implements Source {
         
         
         public void initTimer( long startSrcPts, long startDstMicros ) {
-            mTimer = new VideoStreamTimer( mTimeBase, startSrcPts, startDstMicros );
+            mTimer = new PacketTimer( mTimeBase, startSrcPts, startDstMicros );
         }
         
     }
@@ -573,12 +575,14 @@ public class FormatDecoder implements Source {
         private final AudioFormat mFormat;
         private final AudioSampleFormat mSampleFormat;
         
-        private AudioStreamTimer mTimer;
+        private PacketTimer mTimer;
         private final long[] mRange = new long[2];
         
         private boolean mIsOpen                = false;
         private ByteBuffer mBuffer             = null;
+        
         private HardRefPool<AudioPacket> mPool = null;
+        private AudioPacket mCurrentFrame      = null;
         
         
         public AudioStream( JavStream stream,
@@ -605,13 +609,13 @@ public class FormatDecoder implements Source {
             if( mIsOpen ) {
                 return;
             }
-            if( !mCodecContext.isDecoderOpen() ) {
+            if( !mCodecContext.isOpen() ) {
                 JavCodec codec = JavCodec.findDecoder( mCodecContext.codecId() );
                 if( codec == null ) {
-                    throw new JavException( JavConstants.ERROR_CODEC_NOT_FOUND,
+                    throw new JavException( JavConstants.AVERROR_DECODER_NOT_FOUND,
                                             "Codec not found for stream: " + mStream.index() );
                 }
-                mCodecContext.openDecoder( codec );
+                mCodecContext.open( codec );
             }
             
             mPool   = new HardRefPool<AudioPacket>( poolSize );
@@ -630,9 +634,9 @@ public class FormatDecoder implements Source {
             mPool   = null;
             mBuffer = null;
             
-            if( mCodecContext.isDecoderOpen() ) {
+            if( mCodecContext.isOpen() ) {
                 try {
-                    mCodecContext.closeDecoder();
+                    mCodecContext.close();
                 }catch(Exception ex) {}
             }
         }
@@ -644,30 +648,24 @@ public class FormatDecoder implements Source {
                 mTimer.packetSkipped( packet.presentTime(), packet.duration(), mRange );
                 return null;
             }
+
+            AudioPacket ret = mCurrentFrame;
+            mCurrentFrame   = null;
             
-            mBuffer.clear();
-            mCodecContext.decodeAudio( packet, mBuffer );
-            mBuffer.flip();
+            if( ret == null ) {
+                ret = mPool.poll();
+                if( ret == null ) {
+                    ret = AudioPacket.newAutoInstance( mPool );
+                }
+            }
             
-            int n = mBuffer.remaining() / mSampleFormat.sampleSize();
-            mTimer.packetDecoded( packet.presentTime(), n, mRange );
-            if( n == 0 ) {
+            boolean finished = mCodecContext.decodeVideo( packet, ret );
+            if( !finished ) {
+                mCurrentFrame = ret;
                 return null;
             }
             
-            AudioPacket ret = mPool.poll();
-            FloatBuffer fb;
-            
-            if( ret == null || ret.bufferRef().capacity() < n ) {
-                fb = FloatBuffer.allocate( n + 16 );
-                fb.limit(n);
-                ret = new AudioPacket( mPool, fb );
-            }else{
-                fb = ret.bufferRef();
-                fb.clear().limit( n );
-            }
-            
-            mSampleFormat.transfer( mBuffer, fb.array(), n );
+            mTimer.packetDecoded( ret.bestEffortTimestamp(), ret.packetDuration(), mRange );
             ret.init( this, mFormat, mRange[0], mRange[1] );
             
             return ret;
@@ -676,11 +674,17 @@ public class FormatDecoder implements Source {
         
         public void seekPts( long pts ) {
             mTimer.seekPts( pts );
+            if( mIsOpen ) {
+                mCodecContext.flush();
+            }
         }
         
         
         public void seekMicros( long micros ) {
             mTimer.seekMicros( micros );
+            if( mIsOpen ) {
+                mCodecContext.flush();
+            }
         }
 
         
@@ -700,11 +704,7 @@ public class FormatDecoder implements Source {
 
         
         public void initTimer( long startPts, long startMicros ) {
-            mTimer  = new AudioStreamTimer( mTimeBase,
-                                            startPts,
-                                            startMicros,
-                                            mFormat.sampleRate(),
-                                            mFormat.channels() );
+            mTimer  = new PacketTimer( mTimeBase, startPts, startMicros );
         }
         
     }

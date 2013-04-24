@@ -207,7 +207,7 @@ public class PacketScheduler {
               Sink sink, 
               ThreadLock lock, 
               int queueCap, 
-              boolean fastForwardFirstVideoFrame )
+              boolean rushFirstVideoFrame )
               throws ClosedChannelException
         {
             mIndex   = sIndex++;
@@ -217,8 +217,8 @@ public class PacketScheduler {
             mSink    = sink;
             mLock    = lock;
             mCap     = queueCap;
-            mRushFirstVideoFrame = fastForwardFirstVideoFrame;
-            mNeedRush            = fastForwardFirstVideoFrame;
+            mRushFirstVideoFrame = rushFirstVideoFrame;
+            mNeedRush            = rushFirstVideoFrame;
             mPoolCap = Math.max( 128, Math.min( queueCap, 1024 ) );
         }
         
@@ -249,7 +249,6 @@ public class PacketScheduler {
                     command.mDataMicros = p.getStartMicros();
                 }
                 
-                
                 try {
                     mQueue.offer( mChannel, command );
                 } catch( ClosedChannelException ex ) {
@@ -266,7 +265,8 @@ public class PacketScheduler {
                 if( mClosed ) {
                     return;
                 }
-                
+
+                mNeedRush = true;
                 Command command = poll();
                 command.mCommandCode = COMMAND_CLEAR;
                 command.mPriority    = COMMAND_CLEAR;
@@ -460,10 +460,13 @@ public class PacketScheduler {
         public long presentationMicros() {
             if( mDataMicros == Long.MIN_VALUE ) {
                 return mDataMicros;
-            } else {
-                long t = mClock.toMasterMicros( mDataMicros );
-                return t - mClock.masterMicros() + System.currentTimeMillis() * 1000L;
             }
+            long t = mClock.toMasterMicros( mDataMicros );
+            if( t == Long.MIN_VALUE || t == Long.MAX_VALUE ) {
+                return t;
+            }
+            
+            return t - mClock.masterMicros() + System.currentTimeMillis() * 1000L;
         }
         
     }

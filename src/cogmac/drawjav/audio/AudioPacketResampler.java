@@ -4,6 +4,7 @@ import java.io.*;
 import java.nio.FloatBuffer;
 
 import cogmac.drawjav.*;
+import cogmac.jav.JavConstants;
 
 
 /**
@@ -21,21 +22,26 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
     private long mStartMicros    = 0;
     private long mSampleCount    = 0;
     
+    private float[] mSrcArr  = null;
+    private float[] mDstArr = null;
+    
     
     public AudioPacketResampler( AudioFormat sourceFormat,
                                  AudioFormat destFormat,
                                  int poolSize ) 
     {
+        assert( sourceFormat.sampleFormat() == JavConstants.AV_SAMPLE_FMT_FLT );
+        
         mSourceFormat = sourceFormat;
         mDestFormat   = new AudioFormat( sourceFormat.channels(), 
-                                         destFormat.sampleRate() <= 0 ? sourceFormat.sampleRate() : destFormat.sampleRate(), 
-                                         sourceFormat.sampleFormat() );
+                                         destFormat.sampleRate() <= 0 ? sourceFormat.sampleRate() : destFormat.sampleRate(),
+                                         JavConstants.AV_SAMPLE_FMT_FLT );
         
         if( mDestFormat.sampleRate() == mSourceFormat.sampleRate() ) {
             mFactory   = null;
             mResampler = null;
         } else {
-            mFactory   = new AudioPacketFactory( destFormat, poolSize );
+            mFactory   = new AudioPacketFactory( poolSize );
             mResampler = new AudioResampler( sourceFormat.sampleRate(),
                                              destFormat.sampleRate(),
                                              sourceFormat.channels() );
@@ -60,20 +66,35 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
             return packet;
         }
         
-        FloatBuffer srcBuf = packet.buffer();
-        int srcLen         = srcBuf.remaining();
-        int dstLen         = mResampler.recommendOutBufferSize( srcLen );
-        AudioPacket dst    = mFactory.build( dstLen, null, 0, 0 );
-        FloatBuffer dstBuf = dst.bufferRef();
+        FloatBuffer srcBuf = packet.directBuffer().asFloatBuffer();
+        int srcLen = srcBuf.remaining();
+        float[] srcArr = mSrcArr;
+        if( srcArr == null || srcArr.length < srcLen ) {
+            srcArr = new float[srcLen * 4 / 3];
+            mSrcArr = srcArr;
+        }
+        srcBuf.get( srcArr, 0, srcLen );
         
-        dstLen = mResampler.processSamples( srcBuf.array(), srcBuf.position(), dstBuf.array(), 0, srcLen );
+        int dstLen = mResampler.recommendOutBufferSize( srcLen );
+        float[] dstArr = mDstArr;
+        if( dstArr == null || dstArr.length < dstLen ) {
+            dstArr = new float[dstLen * 4 / 3];
+            mDstArr = dstArr;
+        }
         
+        dstLen = mResampler.processSamples( srcArr, 0, dstArr, 0, srcLen );
         if( dstLen <= 0 ) {
-            dst.deref();
             return null;
         }
         
-        dstBuf.limit( dstLen );
+        AudioPacket dst = mFactory.build( packet.stream(),
+                                          packet.getStartMicros(),
+                                          packet.getStopMicros(),
+                                          mDestFormat,
+                                          dstLen / mDestFormat.channels() );
+        
+        FloatBuffer dstBuf = dst.directBuffer().asFloatBuffer();
+        dstBuf.put( dstArr, 0, dstLen );
         
         if( mInitMicros ) {
             mInitMicros  = false;

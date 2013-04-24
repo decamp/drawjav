@@ -1,7 +1,6 @@
 package cogmac.drawjav;
 
 import java.io.File;
-import java.nio.ByteBuffer;
 
 import cogmac.jav.*;
 import cogmac.jav.codec.*;
@@ -15,83 +14,49 @@ import cogmac.jav.util.Rational;
 public class TestPresentTime {
 
     
-    public static void main(String[] args) throws Exception {
-        test2();
+    public static void main( String[] args ) throws Exception {
+        test1();
     }
     
     
     
     static void test1() throws Exception {
-        File file = new File("/workspace/decamp/code/gopdebate/resources_ext/oct18/oct18_debate_full.ts");
+        File file = new File( "resources_ext/video.mp4" );
+        
         JavLibrary.init();
-        JavFormatContext format = JavFormatContext.openFile(file);
+        JavFormatContext format = JavFormatContext.openInputFile( file );
         JavPacket packet = JavPacket.newInstance();
 
-        JavStream stream = format.stream(0);
+        JavStream stream = format.stream( 0 );
         JavCodecContext codec = stream.codecContext();
-        codec.openDecoder(JavCodec.findDecoder(codec.codecId()));
-        
+        codec.open( JavCodec.findDecoder( codec.codecId() ) );
         JavFrame frame = JavFrame.newAutoFrame();
         
-        for(int i = 0; i < 10; i++) {
-            format.readPacket(packet);
+        for( int i = 0; i < 10; i++ ) {
+            format.readPacket( packet );
             
-            if(packet.streamIndex() != 0) {
+            if( packet.streamIndex() != 0 ) {
                 i--;
                 continue;
             }
             
-            codec.decodeVideo(packet, frame);
-            
-            
-            Rational tb = stream.timeBase();
-            
-            System.out.print(packet.decodeTime() * tb.num() / (double)tb.den());
-            System.out.print("  ");
-            System.out.print(packet.presentTime() * tb.num() / (double)tb.den());
-            System.out.print("  ");
-            System.out.print((frame.pts() == JavConstants.AV_NOPTS_VALUE)); 
-            System.out.println();
-            //System.out.format("0x%016X\n", frame.presentTime());
-            
-        }
-    }
-    
-    
-    
-    static void test2() throws Exception {
-        File file = new File("/workspace/decamp/code/gopdebate/resources_ext/oct18/oct18_debate_full.ts");
-        JavLibrary.init();
-        JavFormatContext format = JavFormatContext.openFile(file);
-        JavPacket packet = JavPacket.newInstance();
-
-        JavStream stream       = format.stream(1);
-        JavCodecContext codec = stream.codecContext();
-        codec.openDecoder(JavCodec.findDecoder(codec.codecId()));
-        
-        ByteBuffer audioBuf = ByteBuffer.allocateDirect(JavConstants.AVCODEC_MAX_AUDIO_FRAME_SIZE);
-        
-        System.out.println(codec.sampleRate());
-        
-        for(int i = 0; i < 10; i++) {
-            format.readPacket(packet);
-            
-            if(packet.streamIndex() != 1) {
-                i--;
+            boolean hasFrame = codec.decodeVideo( packet, frame );
+            if( !hasFrame ) {
                 continue;
             }
             
-            audioBuf.clear();
-            codec.decodeAudio(packet, audioBuf);
-            
             Rational tb = stream.timeBase();
             
-            System.out.print(packet.decodeTime() * tb.num() / (double)tb.den());
-            System.out.print("  ");
-            System.out.print(packet.presentTime() * tb.num() / (double)tb.den());
-            System.out.println();
+            System.out.println( "Packet " + i + "   Frame: " + hasFrame );
+            System.out.println( "  timebase:               " + tb );
+            System.out.println( "  frame.pts:              " + ( frame.pts() * tb.num() / (double)tb.den() ) );
+            System.out.println( "  packet.pts:             " + ( packet.presentTime() * tb.num() / (double)tb.den() ) );
+            System.out.println( "  coded picture number:   " + frame.codedPictureNumber() );
+            System.out.println( "  display picture number: " + frame.displayPictureNumber() );
+            System.out.println( "  interlaced frame:       " + frame.interlacedFrame() );
+            System.out.println( "  picture type:           " + frame.pictureType() );
         }
     }
-
-
+    
+    
 }

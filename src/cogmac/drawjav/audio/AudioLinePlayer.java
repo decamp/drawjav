@@ -3,6 +3,7 @@ package cogmac.drawjav.audio;
 import cogmac.clocks.*;
 import cogmac.drawjav.*;
 import cogmac.drawjav.AudioFormat;
+import cogmac.jav.JavConstants;
 
 import java.io.*;
 import java.nio.FloatBuffer;
@@ -81,76 +82,112 @@ public class AudioLinePlayer implements Sink<AudioPacket>, PlayControl {
     
     
     
-    public synchronized void playStart(long execTimeMicros) {
-        System.out.println("Play on: " + execTimeMicros + "\t" + mState.masterMicros());
-        
-        mState.playStart(execTimeMicros);
+    public synchronized void playStart( long execTimeMicros ) {
+        System.out.println( "Play on: " + execTimeMicros + "\t" + mState.masterMicros() );
+        mState.playStart( execTimeMicros );
         mStateChanged = true;
         notifyAll();
     }
     
     
-    public synchronized void playStop(long execTimeMicros) {
-        mState.playStop(execTimeMicros);
+    public synchronized void playStop( long execTimeMicros ) {
+        mState.playStop( execTimeMicros );
         mStateChanged = true;
         notifyAll();
     }
     
     
-    public synchronized void close(long execTimeMicros) {
+    public synchronized void close( long execTimeMicros ) {
         mClosed = true;
         mStateChanged = true;
         notifyAll();
     }
     
     
-    public synchronized void seek(long execTimeMicros, long gotoTimeMicros){
-        mState.seek(execTimeMicros, gotoTimeMicros);
+    public synchronized void seek( long execTimeMicros, long gotoTimeMicros ) {
+        mState.seek( execTimeMicros, gotoTimeMicros );
         mStateChanged = true;
         notifyAll();
     }
     
     
-    public synchronized void setRate(long execTimeMicros, double rate){
-        mState.setRate(execTimeMicros, rate);
+    public synchronized void setRate( long execTimeMicros, double rate ) {
+        mState.setRate( execTimeMicros, rate );
         mStateChanged = true;
         notifyAll();
     }
 
     
-    public synchronized void setVolume(long execTimeMicros, double volume) {
-        double gain = 20.0 * Math.log10(volume);
-        mGainControl.setValue((float)gain);
+    public synchronized void setVolume( long execTimeMicros, double volume ) {
+        double gain = 20.0 * Math.log10( volume );
+        mGainControl.setValue( (float) gain );
     }
     
     
-
-    public synchronized int consumeAudio(float[] buf, int offset, int length) throws InterruptedIOException {
-        if(length < 1)
+    public synchronized int consumeAudio( float[] buf, int offset, int length ) throws InterruptedIOException {
+        if( length <= 0 ) {
             return 0;
-        
-        int toWrite = (mBuf.length - mBufSize) / 2;
-        
-        while(toWrite < 1) {
-            try{
-                wait();
-            }catch(InterruptedException ex) {
-                throw new InterruptedIOException();
-            }
-            
-            toWrite = (mBuf.length - mBufSize) / 2;
         }
         
-        toWrite = length = Math.min(toWrite, length);
+        int toWrite = ( mBuf.length - mBufSize ) / 2;
+        while( toWrite < 1 ) {
+            try {
+                wait();
+            } catch( InterruptedException ex ) {
+                throw new InterruptedIOException();
+            }
+
+            toWrite = ( mBuf.length - mBufSize) / 2;
+        }
+
+        toWrite = length = Math.min( toWrite, length );
         
-        while(toWrite > 0){
-            int pos = (mBufIndex + mBufSize) % mBuf.length;
-            int n = Math.min(toWrite, (mBuf.length - pos) / 2);
+        while( toWrite > 0 ) {
+            int pos = ( mBufIndex + mBufSize) % mBuf.length;
+            int n = Math.min( toWrite, ( mBuf.length - pos) / 2 );
+
+            for( int i = 0; i < n; i++ ) {
+                int s = (int)( buf[offset+i] * MAX_VALUE );
+                mBuf[pos+i*2  ] = (byte)( ( s >> 8 ) & 0xFF );
+                mBuf[pos+i*2+1] = (byte)( s & 0xFF );
+            }
             
-            for(int i = 0; i < n; i++){
-                int s = (int)(buf[offset+i] * MAX_VALUE);
-                mBuf[pos+i*2  ] = (byte)((s >> 8) & 0xFF);
-                mBuf[pos+i*2+1] = (byte)(s & 0xFF);
+            mBufSize += n*2;
+            offset += n;
+            toWrite -= n;
+        }
+        
+        notifyAll();
+        return length;
+    }
+    
+
+    public synchronized int consumeAudio( FloatBuffer buf, int offset, int length ) throws InterruptedIOException {
+        if( length <= 0 ) {
+            return 0;
+        }
+        
+        int toWrite = ( mBuf.length - mBufSize ) / 2;
+        while( toWrite < 1 ) {
+            try {
+                wait();
+            } catch( InterruptedException ex ) {
+                throw new InterruptedIOException();
+            }
+
+            toWrite = ( mBuf.length - mBufSize) / 2;
+        }
+
+        toWrite = length = Math.min( toWrite, length );
+        
+        while( toWrite > 0 ) {
+            int pos = ( mBufIndex + mBufSize) % mBuf.length;
+            int n = Math.min( toWrite, ( mBuf.length - pos) / 2 );
+
+            for( int i = 0; i < n; i++ ) {
+                int s = (int)( buf.get( i + offset ) * MAX_VALUE );
+                mBuf[pos+i*2  ] = (byte)( ( s >> 8 ) & 0xFF );
+                mBuf[pos+i*2+1] = (byte)( s & 0xFF );
             }
             
             mBufSize += n*2;
@@ -163,6 +200,7 @@ public class AudioLinePlayer implements Sink<AudioPacket>, PlayControl {
     }
     
     
+    
     public synchronized void clearAudio() {
         mBufSize = 0;
         mBufIndex = 0;
@@ -171,10 +209,9 @@ public class AudioLinePlayer implements Sink<AudioPacket>, PlayControl {
     
     
     public synchronized void drainAudio() throws InterruptedException {
-        while(mBufSize > 0){
+        while( mBufSize > 0 ) {
             wait();
         }
-        
         mLine.drain();
     }
     
@@ -183,30 +220,27 @@ public class AudioLinePlayer implements Sink<AudioPacket>, PlayControl {
         boolean isPlaying = false;
                 
 STATE_CHANGE:
-        while(!mClosed) {
+        while( !mClosed ) {
             mStateChanged = false;
-            
-            if(mState.isPlaying()) {
+            if( mState.isPlaying() ) {
                 
                 // Start the audio line, if necessary.
-                if(!isPlaying) {
+                if( !isPlaying ) {
                     long waitUntil  = mState.masterSyncMicros() / 1000L;
                     long waitMillis = waitUntil - mState.masterMicros() / 1000L;
-                    
-                    if(waitMillis > 10L) {
+                    if( waitMillis > 10L ) {
                         //Not sure about this loop, but I'm not about to mess with it.
-                        do{
-                            try{
-                                wait(waitMillis);
-                            }catch(InterruptedException ex) {}
-                            
-                            if(mStateChanged)
+                        do {
+                            try {
+                                wait( waitMillis );
+                            } catch( InterruptedException ex ) {}
+                            if( mStateChanged ) {
                                 continue STATE_CHANGE;
-                            
+                            }
                             writeToLine();
                             waitMillis = waitUntil - mState.masterMicros() / 1000L;
-                        }while(waitMillis > 10L);
-                    }else{
+                        } while( waitMillis > 10L );
+                    } else {
                         writeToLine();
                     }
                 }
@@ -214,37 +248,35 @@ STATE_CHANGE:
                 mLine.start();
                 isPlaying = true;
                 
-                while(!mStateChanged) {
-                    if(mBufSize == 0) {
-                        try{
+                while( !mStateChanged ) {
+                    if( mBufSize == 0 ) {
+                        try {
                             wait();
-                        }catch(InterruptedException ex){}
-                    }else{
+                        } catch( InterruptedException ex ) {}
+                    } else {
                         long waitTime = (LINE_BUFFER_SIZE / 4 - mLine.available()) * 1000 / mFrequency;
-                        
-                        if(waitTime > 10L) {
+                        if( waitTime > 10L ) {
                             try{
-                                wait(waitTime);
-                            }catch(InterruptedException ex){}
-                        
-                        }else{
+                                wait( waitTime );
+                            } catch( InterruptedException ex ) {}
+                        } else {
                             writeToLine();
                         }
                     }
                 }
-                
-            }else{
-                if(isPlaying) {
+            } else {
+                if( isPlaying ) {
                     long waitUntil  = mState.masterSyncMicros() / 1000L;
                     long waitMillis = waitUntil - mState.masterMicros() / 1000L;
                     
-                    while(waitMillis > 10L) {
-                        try{
-                            wait(waitMillis);
-                        }catch(InterruptedException ex){}
+                    while( waitMillis > 10L ) {
+                        try {
+                            wait( waitMillis );
+                        } catch( InterruptedException ex ){}
                         
-                        if(mStateChanged)
+                        if( mStateChanged ) {
                             continue STATE_CHANGE;
+                        }
                         
                         waitMillis = waitUntil - mState.masterMicros() / 1000L;
                     }
@@ -253,10 +285,10 @@ STATE_CHANGE:
                     isPlaying = false;
                 }
                 
-                while(!mStateChanged) {
-                    try{
+                while( !mStateChanged ) {
+                    try {
                         wait();
-                    }catch(InterruptedException ex) {}
+                    } catch( InterruptedException ex ) {}
                 }
             }
         }
@@ -302,8 +334,17 @@ STATE_CHANGE:
     
     
     public void consume( AudioPacket packet ) throws IOException  {
-        FloatBuffer bb = packet.buffer();
-        consumeAudio( bb.array(), bb.position(), bb.remaining() );
+        if( packet == null || !packet.hasDirectBuffer() ) {
+            return;
+        }
+        
+        AudioFormat format = packet.audioFormat();
+        if( format == null || format.sampleFormat() != JavConstants.AV_SAMPLE_FMT_FLT ) {
+            return;
+        }
+        
+        FloatBuffer bb = packet.directBuffer().asFloatBuffer();
+        consumeAudio( bb, bb.position(), packet.nbSamples() * packet.channels() );
     }
 
 

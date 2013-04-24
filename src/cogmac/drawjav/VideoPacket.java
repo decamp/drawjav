@@ -12,23 +12,23 @@ import cogmac.jav.codec.*;
  */
 public class VideoPacket extends JavFrame implements Packet {
     
+    
     public static VideoPacket newAutoInstance(RefPool<? super VideoPacket> pool) {
-        long p = allocFrame();
-        if(p == 0)
+        long p = nAllocFrame();
+        if( p == 0 ) {
             throw new OutOfMemoryError("Allocation failed.");
-        
-        return new VideoPacket(p, pool);
+        }
+        return new VideoPacket( p, pool );
     }
     
     
     public static VideoPacket newFormattedInstance( RefPool<? super VideoPacket> pool,
                                                     PictureFormat format )
     {
-        int size = computeBufferSize(format.width(), format.height(), format.pixelFormat());
-        ByteBuffer buf = ByteBuffer.allocateDirect(size);
-        buf.order(ByteOrder.nativeOrder());
-        
-        return newFormattedInstance(pool, format, buf);
+        int size = nComputeVideoBufferSize( format.width(), format.height(), format.pixelFormat() );
+        ByteBuffer buf = ByteBuffer.allocateDirect( size );
+        buf.order( ByteOrder.nativeOrder() );
+        return newFormattedInstance( pool, format, buf );
     }
     
     
@@ -36,13 +36,13 @@ public class VideoPacket extends JavFrame implements Packet {
                                                     PictureFormat format,
                                                     ByteBuffer buf )
     {
-        long pointer = allocFrame();
-        if(pointer == 0)
+        long pointer = nAllocFrame();
+        if( pointer == 0 ) {
             throw new OutOfMemoryError();
-
-        VideoPacket ret = new VideoPacket(pointer, pool);
-        ret.directBuffer(buf, format.width(), format.height(), format.pixelFormat());
-        ret.pictureFormat(format);
+        }
+        VideoPacket ret = new VideoPacket( pointer, pool );
+        ret.fillInterleavedVideoFrame( format.width(), format.height(), format.pixelFormat(), buf, 0 );
+        ret.pictureFormat( format );
         return ret;
     }
 
@@ -93,13 +93,8 @@ public class VideoPacket extends JavFrame implements Packet {
     }
     
     
-    
     /**
-     * You should always check if VideoPacket still
-     * has a JavFrame after receiving it from a pool,
-     * VideoPacket may or may not keep JavFrame
-     * when entering pool, depending on whether JavFrame
-     * has any externel references.
+     * Initializes packet object. 
      * 
      * @param frame
      * @param format

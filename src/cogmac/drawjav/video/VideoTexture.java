@@ -27,16 +27,17 @@ public class VideoTexture extends DrawNodeAdapter implements Sink<VideoPacket> {
     
     
     
-    public void consume(VideoPacket frame) {
-        if(frame == null || !frame.hasDirectBuffer())
+    public void consume( VideoPacket frame ) {
+        if( frame == null || !frame.hasDirectBuffer() ) {
             return;
+        }
         
         PictureFormat format = frame.pictureFormat();
-        
-        if(format == null || format.width() <= 0 || format.height() <= 0)
+        if( format == null || format.width() <= 0 || format.height() <= 0 ) {
             return;
+        }
         
-        switch(format.pixelFormat()) {
+        switch( format.pixelFormat() ) {
         case JavConstants.PIX_FMT_BGR24:
         case JavConstants.PIX_FMT_BGRA:
             break;
@@ -47,11 +48,9 @@ public class VideoTexture extends DrawNodeAdapter implements Sink<VideoPacket> {
     
         synchronized(this) {
             frame.ref();
-
             if(mNextFrame != null) {
                 mNextFrame.deref();
             }
-
             mNextFrame = frame;
         }
     }

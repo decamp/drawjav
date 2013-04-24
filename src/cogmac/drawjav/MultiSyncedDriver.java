@@ -141,7 +141,6 @@ public class MultiSyncedDriver extends DrawNodeAdapter implements MultiSourceDri
         List<StreamHandle> mStreams;
         SyncedDriver mDriver = null;
         
-        
         SourceData( Source source ) {
             mStreams = source.streams();
             mDriver  = new SyncedDriver( mPlayCont, source );

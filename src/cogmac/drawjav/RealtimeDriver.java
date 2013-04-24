@@ -50,7 +50,7 @@ public class RealtimeDriver implements StreamDriver {
         mPlayHandler = new PlayHandler();
         mLock        = new ThreadLock();
         mPlayCont.caster().addListener( mPlayHandler );
-        mDriver.seek( mPlayCont.clock().micros() );
+        //mDriver.seek( mPlayCont.clock().micros() );
         
         mThread = new Thread( RealtimeDriver.class.getSimpleName() ) {
             public void run() {
@@ -58,8 +58,8 @@ public class RealtimeDriver implements StreamDriver {
             }
         };
         
-        mThread.setDaemon(true);
-        mThread.setPriority(Thread.NORM_PRIORITY - 1);
+        mThread.setDaemon( true );
+        mThread.setPriority( Thread.NORM_PRIORITY - 1 );
     }
     
     

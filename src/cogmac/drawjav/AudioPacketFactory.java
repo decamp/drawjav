@@ -1,9 +1,9 @@
 package cogmac.drawjav;
 
 import java.io.Closeable;
-import java.nio.FloatBuffer;
 import java.util.*;
 
+import cogmac.jav.codec.JavFrame;
 import cogmac.langx.ref.RefPool;
 
 
@@ -13,26 +13,65 @@ import cogmac.langx.ref.RefPool;
 public class AudioPacketFactory implements RefPool<AudioPacket>, Closeable {
 
     
-    private final AudioFormat mFormat;
-    private final List<AudioPacket> mQueue = new ArrayList<AudioPacket>();
+    private final List<AudioPacket> mQueue;
     private int mCapacity;
     
+    private final AudioFormat mFormat;
+    private final int mNumSamples;
     
-    public AudioPacketFactory( AudioFormat format, int poolSize ) {
-        mFormat   = format;
-        mCapacity = poolSize;
+    public AudioPacketFactory( int poolSize ) {
+        this( poolSize, null, -1 );
     }
     
     
+    public AudioPacketFactory( int poolSize, AudioFormat format, int numSamples ) {
+        mCapacity   = Math.max( 1, poolSize );
+        mQueue      = new ArrayList<AudioPacket>( mCapacity );
         
-    public synchronized AudioPacket build( int capacity, StreamHandle stream, long startMicros, long stopMicros ) {
+        if( format == null || numSamples <= 0 ) {
+            mFormat = null;
+            mNumSamples = -1;
+        } else {
+            mFormat = format;
+            mNumSamples = numSamples;
+        }
+    }
+    
+    
+    
+    public synchronized AudioPacket build( StreamHandle stream, 
+                                           long startMicros, 
+                                           long stopMicros ) 
+    {
+        return build( stream, startMicros, stopMicros, mFormat, mNumSamples );
+    }
+    
+    
+    public synchronized AudioPacket build( StreamHandle stream,
+                                           long startMicros,
+                                           long stopMicros,
+                                           AudioFormat format,
+                                           int numSamples )
+    {
         AudioPacket ret = poll();
-        if( ret == null || ret.bufferRef().capacity() < capacity ) {
-            ret = new AudioPacket( this, FloatBuffer.allocate(capacity + 16) );
+        
+        if( format != null && numSamples > 0 ) {
+            if( ret == null ) {
+                ret = AudioPacket.newFormattedInstance( this, format, numSamples, false );
+            } else {
+                int cap = JavFrame.computeAudioBufferSize( format.channels(), numSamples, format.sampleFormat(), false );
+                if( ret.directBufferCapacity() < cap ) {
+                    // Don't deref frame and return it pool. Just let it be garbage-collected and create new frame.
+                    ret = AudioPacket.newFormattedInstance( this, format, numSamples, false );
+                } else {
+                    ret.nbSamples( numSamples );
+                }
+            }
+        } else if( ret == null ) {
+            ret = AudioPacket.newAutoInstance( this );
         }
         
-        ret.init( stream, mFormat, startMicros, stopMicros );
-        ret.bufferRef().clear();
+        ret.init( stream, format, startMicros, stopMicros );
         return ret;
     }
     
