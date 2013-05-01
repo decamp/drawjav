@@ -4,7 +4,8 @@ import cogmac.jav.JavConstants;
 import cogmac.draw3d.nodes.*;
 import cogmac.drawjav.*;
 
-import javax.media.opengl.GL;
+import javax.media.opengl.*;
+
 import static javax.media.opengl.GL.*;
 
 
@@ -19,6 +20,9 @@ public class VideoTexture extends DrawNodeAdapter implements Sink<VideoPacket> {
     
     private VideoPacket mNextFrame    = null;
     private VideoPacket mCurrentFrame = null;
+    
+    private boolean mDisposed = false;
+    
     
     
     public VideoTexture() {
@@ -47,6 +51,10 @@ public class VideoTexture extends DrawNodeAdapter implements Sink<VideoPacket> {
         }
     
         synchronized(this) {
+            if( mDisposed ) {
+                return;
+            }
+            
             frame.ref();
             if(mNextFrame != null) {
                 mNextFrame.deref();
@@ -63,7 +71,7 @@ public class VideoTexture extends DrawNodeAdapter implements Sink<VideoPacket> {
 
     
     public boolean isOpen() {
-        return true;
+        return !mDisposed;
     }
     
     
@@ -116,6 +124,30 @@ public class VideoTexture extends DrawNodeAdapter implements Sink<VideoPacket> {
         mTex.popDraw(gl);
     }
 
-
+    
+    @Override
+    public void dispose( GLAutoDrawable gld ) {
+        dispose( gld.getGL() );
+    }
+    
+    
+    public synchronized void dispose( GL gl ) {
+        if( mDisposed ) {
+            return;
+        }
+        
+        mDisposed = true;
+        mTex.dispose( gl );
+        
+        if( mNextFrame != null ) {
+            mNextFrame.deref();
+            mNextFrame = null;
+        }
+        
+        if( mCurrentFrame != null ) {
+            mCurrentFrame.deref();
+            mCurrentFrame = null;
+        }
+    }
 
 }
