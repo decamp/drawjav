@@ -31,6 +31,9 @@ public class FormatDecoder implements Source {
                                           long startMicros ) 
                                           throws IOException {
         JavLibrary.init();
+        if( !file.exists() ) {
+            throw new FileNotFoundException();
+        }
         JavFormatContext format = JavFormatContext.openInputFile( file );
         return new FormatDecoder( format, overrideStartMicros, startMicros );
     }
