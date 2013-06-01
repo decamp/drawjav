@@ -208,11 +208,6 @@ public class RealtimeDriver implements StreamDriver {
     }
     
     
-    private static void warn( String msg, Exception ex ) {
-        sLog.log( Level.WARNING, msg, ex );
-    }
-        
-    
     private final class PlayHandler implements PlayControl {
 
         public void playStart( long execMicros ) {}

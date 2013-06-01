@@ -219,8 +219,7 @@ public class AudioResampler {
         
         int poolHead = pool.mFill;
         int newPool  = 0;
-        int lencheck = checkLength(sourceLength);
-
+        
         //Fill pool.
         while( poolHead < poolEnd && sourceLength > 0 ) {
             pool.mBuf[poolHead++] = source[sourceOff];

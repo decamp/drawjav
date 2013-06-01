@@ -38,6 +38,11 @@ public class VideoPacketResampler {
 
 
     public VideoPacket process( VideoPacket source ) throws JavException {
+        PictureFormat fmt = source.pictureFormat();
+        if( fmt != mSourceFormat ) {
+            setSourceFormat( mSourceFormat );
+        }
+        
         if( mNeedsInit ) {
             init();
         }
@@ -46,12 +51,12 @@ public class VideoPacketResampler {
             source.ref();
             return source;
         }
-
+        
         VideoPacket dest = mFactory.build( source.stream(), source.getStartMicros(), source.getStopMicros() );
         mConverter.convert( source, mCropTop, mSourceFormat.height() - mCropBottom - mCropTop, dest );
         return dest;
     }
-
+    
     
 
     public void setSourceFormat( PictureFormat format ) {

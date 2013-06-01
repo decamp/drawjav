@@ -107,20 +107,20 @@ public final class PictureFormats {
             //Nothing to do.
         } else if( outWidth >= 0 ) {
             //Determine height from defined factors.
-            double aspect = ((double)inWidth / inHeight) / aspectScale;
+            double aspect = ((double)inWidth / inHeight) * aspectScale;
             outHeight = (int)Math.round( outWidth / aspect );
         } else if( outHeight >= 0 ) {
             //Determine width from defined factors.
-            double aspect = ((double)inWidth / inHeight) / aspectScale;
+            double aspect = ((double)inWidth / inHeight) * aspectScale;
             outWidth = (int)Math.round( outHeight * aspect );
         } else {
             //Determine width and height from defined factors.
-            if( aspectScale < 1.0 ) {
-                outWidth  = (int)Math.round( inWidth / aspectScale );
+            if( aspectScale > 1.0 ) {
+                outWidth  = (int)Math.round( inWidth * aspectScale );
                 outHeight = inHeight;
-            } else if( aspectScale > 1.0 ) {
+            } else if( aspectScale < 1.0 ) {
                 outWidth  = inWidth;
-                outHeight = (int)Math.round( inHeight * aspectScale );
+                outHeight = (int)Math.round( inHeight / aspectScale );
             } else {
                 outWidth  = inWidth;
                 outHeight = inHeight;

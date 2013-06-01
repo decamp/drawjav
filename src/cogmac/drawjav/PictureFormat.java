@@ -1,6 +1,5 @@
 package cogmac.drawjav;
 
-import static cogmac.jav.JavConstants.*;
 import cogmac.jav.codec.JavCodecContext;
 import cogmac.jav.util.Rational;
 
@@ -45,11 +44,6 @@ public class PictureFormat {
         mHeight       = height >= 0 ? height : -1;
         mPixelFormat  = pixelFormat;
         mSampleAspect = sampleAspect == null ? null : sampleAspect.reduce();
-    }
-    
-    
-    private PictureFormat() {
-        this(-1, -1, PIX_FMT_NONE, null);
     }
     
     

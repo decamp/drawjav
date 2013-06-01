@@ -116,10 +116,6 @@ public class SyncedDriver extends DrawNodeAdapter implements StreamDriver {
     }
     
     
-
-    private synchronized void warn( String message, Exception ex ) {
-        sLog.log( Level.WARNING, message, ex );
-    }
         
     
     private final class PlayHandler implements PlayControl {
