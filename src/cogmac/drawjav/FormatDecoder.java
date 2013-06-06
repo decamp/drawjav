@@ -81,12 +81,15 @@ public class FormatDecoder implements Source {
             Rational tb   = s.timeBase();
             Rational conv = Rational.reduce( tb.num() * 1000000, tb.den() );
             long micros   = pts * conv.num() / conv.den();
+            int type      = s.codecContext().codecType();
             
-            if( i == 0 || micros < firstMicros ) {
-                firstPts          = pts;
-                firstTimeBase     = tb;
-                firstMicros       = micros;
-                mFirstStreamIndex = i;
+            if( type == JavConstants.AVMEDIA_TYPE_VIDEO || type == JavConstants.AVMEDIA_TYPE_AUDIO ) {
+                if( i == 0 || micros < firstMicros ) {
+                    firstPts          = pts;
+                    firstTimeBase     = tb;
+                    firstMicros       = micros;
+                    mFirstStreamIndex = i;
+                }
             }
         }
         
@@ -351,6 +354,7 @@ public class FormatDecoder implements Source {
         final int mIndex;
         final int mType;
         final Rational mTimeBase;
+        final PacketTimer mTimer;
         
         Stream( JavStream stream ) {
             mStream   = stream;
@@ -358,8 +362,10 @@ public class FormatDecoder implements Source {
             mIndex    = stream.index();
             mType     = stream.codecContext().codecType();
             mTimeBase = stream.timeBase();
+            mTimer    = new PacketTimer( mTimeBase );
         }
         
+
         
         public Guid guid() {
             return mGuid;
@@ -396,6 +402,22 @@ public class FormatDecoder implements Source {
         }
         
         
+        void initTimer( long startSrcPts, long startDstMicros ) {
+            mTimer.init( startSrcPts, startDstMicros );
+        }
+        
+        
+        public long ptsToMicros( long pts ) {
+            return mTimer.ptsToMicros( pts );
+        }
+        
+        
+        public long microsToPts( long micros ) {
+            return mTimer.microsToPts( micros );
+        }
+
+        
+        
         public abstract boolean isOpen();
         public abstract void close() throws IOException;
 
@@ -403,9 +425,7 @@ public class FormatDecoder implements Source {
         abstract Packet process( JavPacket packet ) throws IOException;
         abstract void seekPts( long pts );
         abstract void seekMicros( long micros );
-        abstract long ptsToMicros( long pts );
-        abstract long microsToPts( long micros );
-        abstract void initTimer( long startPts, long startMicros );
+        
         
         @Override
         public int hashCode() {
@@ -421,7 +441,6 @@ public class FormatDecoder implements Source {
         private final JavCodecContext mCodecContext;
         private final PictureFormat mPictureFormat;
         
-        private PacketTimer mTimer;
         private final long[] mRange = new long[2];
         
         private boolean mIsOpen                = false;
@@ -553,21 +572,6 @@ public class FormatDecoder implements Source {
             }
         }
         
-        
-        public long ptsToMicros( long pts ) {
-            return mTimer.ptsToMicros( pts );
-        }
-        
-        
-        public long microsToPts( long micros ) {
-            return mTimer.microsToPts( micros );
-        }
-        
-        
-        public void initTimer( long startSrcPts, long startDstMicros ) {
-            mTimer = new PacketTimer( mTimeBase, startSrcPts, startDstMicros );
-        }
-        
     }
 
 
@@ -578,7 +582,6 @@ public class FormatDecoder implements Source {
         private final AudioFormat mFormat;
         private final AudioSampleFormat mSampleFormat;
         
-        private PacketTimer mTimer;
         private final long[] mRange = new long[2];
         
         private boolean mIsOpen                = false;
@@ -689,26 +692,6 @@ public class FormatDecoder implements Source {
                 mCodecContext.flush();
             }
         }
-
-        
-        public Rational timeBase() {
-            return mTimeBase;
-        }
-        
-
-        public long ptsToMicros( long pts ) {
-            return mTimer.ptsToMicros( pts );
-        }
-        
-        
-        public long microsToPts( long micros ) {
-            return mTimer.microsToPts( micros );
-        }
-
-        
-        public void initTimer( long startPts, long startMicros ) {
-            mTimer  = new PacketTimer( mTimeBase, startPts, startMicros );
-        }
         
     }
     
@@ -716,46 +699,13 @@ public class FormatDecoder implements Source {
     
     private static class NullStream extends Stream {
         
-        private final Rational mMicrosPerPts;
+        private final long[] mRange = new long[2];
         
         
-        public NullStream(JavStream stream) {
-            super(stream);
-            Rational rat  = mTimeBase.reduce();
-            mMicrosPerPts = Rational.reduce(rat.num() * 1000000, rat.den());
+        public NullStream( JavStream stream ) {
+            super( stream );
         }
         
-        
-        
-        public Guid guid() {
-            return mGuid;
-        }
-
-        
-        public int type() {
-            return mType;
-        }
-        
-        
-        public PictureFormat pictureFormat() {
-            return null;
-        }
-        
-        
-        public AudioFormat audioFormat() {
-            return null;
-        }
-                                          
-
-        
-        public JavStream javStream() {
-            return mStream;
-        }
-        
-        
-        public int index() {
-            return mIndex;
-        }
         
         
         public boolean isOpen() {
@@ -763,41 +713,31 @@ public class FormatDecoder implements Source {
         }
         
         
-        public void open(int poolSize) throws JavException {
-            throw new JavException("Cannot open stream of type: " + mType);
+        public void open( int poolSize ) throws JavException {
+            throw new JavException( "Cannot open stream of type: " + mType );
         }
         
         
         public void close() {}
         
         
-        public Packet process(JavPacket packet) throws IOException {
+        public Packet process( JavPacket packet ) throws IOException {
+            long pts      = packet.presentTime();
+            long duration = packet.duration();
+            
+            mTimer.packetSkipped( pts, duration, mRange );
             return null;
         }
         
-        
-        public void seekPts(long pts) {}
-        
-        
-        public void seekMicros(long micros) {}
-        
-        
-        public Rational timeBase() {
-            return mTimeBase;
-        }
-        
-        
-        public long ptsToMicros(long pts) {
-            return pts * mMicrosPerPts.num() / mMicrosPerPts.den();
-        }
-        
-        
-        public long microsToPts(long micros) {
-            return micros * mMicrosPerPts.den() / mMicrosPerPts.num();
-        }
 
+        public void seekPts( long pts ) {
+            mTimer.seekPts( pts );
+        }
         
-        public void initTimer(long startPts, long startMicros) {}
+        
+        public void seekMicros( long micros ) {
+            mTimer.seekMicros( micros );
+        }
         
     }
 

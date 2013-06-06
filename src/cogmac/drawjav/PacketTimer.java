@@ -8,30 +8,46 @@ public class PacketTimer {
     private static final long NAN = JavConstants.AV_NOPTS_VALUE;
     
     private final Rational mMicrosPerPts;
-    private final long mStartPts;
-    private final long mStartMicros;
-    private final long mSyncThreshPts;
-    private final long mSyncThreshMicros = 2000000L;
     
+    // Changed only on init()
+    private long mStartPts;
+    private long mStartMicros;
+    private long mSyncThreshPts;
+    private long mSyncThreshMicros = 2000000L;
+    
+    // Estimates of acutal start pts and micros.
     private long mOffsetPts;
     private long mOffsetMicros;
-    
+
+    // Current position
+    private long mPosPts = 0;
+
+    // Indicates seek was performed and timestamps need to be recomputed.
     private boolean mNeedSync = true;
     private long mSyncPts;
     
-    private long mPosPts = 0;
     
     
-    public PacketTimer( Rational timeBase, long firstPts, long firstMicros ) {
+    public PacketTimer( Rational timeBase ) {
+        this( timeBase, 0, 0 );
+    }
+    
+    
+    public PacketTimer( Rational timeBase, long startPts, long startMicros ) {
         mMicrosPerPts  = Rational.reduce( timeBase.num() * 1000000, timeBase.den() );
-        mStartPts      = firstPts;
-        mOffsetPts     = firstPts;
-        mPosPts        = firstPts;
-        mStartMicros   = firstMicros;
-        mOffsetMicros  = firstMicros;
+        init( startPts, startMicros );
+    }
+    
+    
+    
+    public void init( long startPts, long startMicros ) {
+        mStartPts      = startPts;
+        mOffsetPts     = startPts;
+        mPosPts        = startPts;
+        mStartMicros   = startMicros;
+        mOffsetMicros  = startMicros;
         mSyncThreshPts = mSyncThreshMicros * mMicrosPerPts.den() / mMicrosPerPts.num();
     }
-                        
     
     
     public long startPts() {

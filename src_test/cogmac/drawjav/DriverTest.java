@@ -116,9 +116,9 @@ public class DriverTest {
                 System.out.println("SEEK");
                 playCont.control().seek( 10000000L );
             }
-            
-            
         }catch(Exception ex) {}
+        
+        driver.close();
     }
     
     
