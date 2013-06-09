@@ -40,7 +40,7 @@ public class VideoPacketResampler {
     public VideoPacket process( VideoPacket source ) throws JavException {
         PictureFormat fmt = source.pictureFormat();
         if( fmt != mSourceFormat ) {
-            setSourceFormat( mSourceFormat );
+            setSourceFormat( fmt );
         }
         
         if( mNeedsInit ) {
