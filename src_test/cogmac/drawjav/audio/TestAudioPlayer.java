@@ -1,8 +1,9 @@
 package cogmac.drawjav.audio;
 
 import java.io.*;
+
+import bits.jav.JavConstants;
 import cogmac.drawjav.*;
-import cogmac.jav.JavConstants;
 
 
 /**
@@ -29,7 +30,7 @@ public class TestAudioPlayer {
             Packet packet = demux.readNext();
             
             if(packet != null) {
-                System.out.println("Okay: " + packet.getStartMicros());
+                System.out.println("Okay: " + packet.startMicros());
                 packet.deref();
             }
         }

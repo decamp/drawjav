@@ -1,6 +1,6 @@
 package cogmac.drawjav.video;
 
-import cogmac.langx.ref.*;
+import bits.langx.ref.*;
 
 /**
  * Buffered format for video frame that can be easily modified.

@@ -2,8 +2,9 @@ package cogmac.drawjav.video;
 
 import java.io.IOException;
 
+import bits.jav.swscale.SwsFilter;
+
 import cogmac.drawjav.*;
-import cogmac.jav.swscale.SwsFilter;
 
 
 /**

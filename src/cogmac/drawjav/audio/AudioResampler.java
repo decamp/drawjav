@@ -1,6 +1,6 @@
 package cogmac.drawjav.audio;
 
-import cogmac.jav.util.Rational;
+import bits.jav.util.Rational;
 
 
 /**

@@ -2,10 +2,11 @@ package cogmac.drawjav;
 
 import java.io.File;
 
-import cogmac.jav.*;
-import cogmac.jav.codec.*;
-import cogmac.jav.format.*;
-import cogmac.jav.util.Rational;
+import bits.jav.*;
+import bits.jav.codec.*;
+import bits.jav.format.*;
+import bits.jav.util.Rational;
+
 
 
 /**

@@ -3,7 +3,7 @@ package cogmac.drawjav;
 import java.io.IOException;
 import java.nio.channels.Channel;
 import java.util.*;
-import cogmac.data.Guid;
+import bits.data.Guid;
 
 /**
  * @author decamp

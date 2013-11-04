@@ -2,9 +2,8 @@ package cogmac.drawjav;
 
 import java.nio.*;
 
-import cogmac.langx.ref.*;
-import cogmac.jav.codec.*;
-
+import bits.jav.codec.*;
+import bits.langx.ref.*;
 
 
 /**
@@ -68,12 +67,14 @@ public class VideoPacket extends JavFrame implements Packet {
     }
     
 
-    public long getStartMicros() {
+    @Override
+    public long startMicros() {
         return mStartMicros;
     }
 
 
-    public long getStopMicros() {
+    @Override
+    public long stopMicros() {
         return mStopMicros;
     }
 

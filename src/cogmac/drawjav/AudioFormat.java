@@ -1,7 +1,7 @@
 package cogmac.drawjav;
 
-import cogmac.jav.JavConstants;
-import cogmac.jav.codec.JavCodecContext;
+import bits.jav.JavConstants;
+import bits.jav.codec.JavCodecContext;
 
 
 /**

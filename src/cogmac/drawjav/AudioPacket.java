@@ -2,8 +2,9 @@ package cogmac.drawjav;
 
 import java.nio.*;
 
-import cogmac.jav.codec.JavFrame;
-import cogmac.langx.ref.*;
+import bits.jav.codec.JavFrame;
+import bits.langx.ref.*;
+
 
 
 /**
@@ -84,12 +85,12 @@ public class AudioPacket extends JavFrame implements Packet {
     }
     
     
-    public long getStartMicros() {
+    public long startMicros() {
         return mStartMicros;
     }
 
     
-    public long getStopMicros() {
+    public long stopMicros() {
         return mStopMicros;
     }
 

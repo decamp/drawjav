@@ -3,8 +3,9 @@ package cogmac.drawjav;
 import java.io.Closeable;
 import java.util.*;
 
-import cogmac.jav.codec.JavFrame;
-import cogmac.langx.ref.RefPool;
+import bits.jav.codec.JavFrame;
+import bits.langx.ref.RefPool;
+
 
 
 /**

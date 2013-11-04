@@ -1,9 +1,9 @@
 package cogmac.drawjav.audio;
 
-import cogmac.clocks.*;
+import bits.clocks.*;
+import bits.jav.JavConstants;
 import cogmac.drawjav.*;
 import cogmac.drawjav.AudioFormat;
-import cogmac.jav.JavConstants;
 
 import java.io.*;
 import java.nio.FloatBuffer;

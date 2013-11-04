@@ -6,7 +6,8 @@ import java.nio.channels.ClosedChannelException;
 import java.util.*;
 import java.util.logging.*;
 
-import cogmac.jav.JavConstants;
+import bits.jav.JavConstants;
+
 
 
 

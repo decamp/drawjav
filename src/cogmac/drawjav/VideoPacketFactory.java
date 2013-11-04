@@ -1,7 +1,8 @@
 package cogmac.drawjav;
 
 import java.util.*;
-import cogmac.langx.ref.RefPool;
+
+import bits.langx.ref.RefPool;
 
 /**
  * @author decamp

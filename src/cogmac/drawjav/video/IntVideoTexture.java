@@ -2,7 +2,7 @@ package cogmac.drawjav.video;
 
 import java.nio.*;
 
-import cogmac.draw3d.nodes.*;
+import bits.draw3d.nodes.*;
 import cogmac.drawjav.Sink;
 
 import javax.media.opengl.GL;

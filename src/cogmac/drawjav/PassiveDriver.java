@@ -4,7 +4,7 @@ import java.io.*;
 import java.nio.channels.ClosedChannelException;
 import java.util.logging.*;
 
-import cogmac.clocks.*;
+import bits.clocks.*;
 
 
 /**
@@ -130,7 +130,7 @@ public class PassiveDriver implements StreamDriver {
             if( p == null ) {
                 return false;
             }
-            if( p.getStartMicros() < mSeekMicros ) {
+            if( p.startMicros() < mSeekMicros ) {
                 p.deref();
                 return false;
             }
@@ -173,7 +173,7 @@ public class PassiveDriver implements StreamDriver {
      * @return start time of currently held packet, or Long.MIN_VALUE if no packet.
      */
     public synchronized long currentMicros() {
-        return mNextPacket == null ? Long.MIN_VALUE : mNextPacket.getStartMicros();
+        return mNextPacket == null ? Long.MIN_VALUE : mNextPacket.startMicros();
     }
     
     /**

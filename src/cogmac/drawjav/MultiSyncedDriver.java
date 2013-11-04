@@ -6,8 +6,8 @@ import java.util.logging.*;
 
 import javax.media.opengl.GL;
 
-import cogmac.clocks.*;
-import cogmac.draw3d.nodes.*;
+import bits.clocks.*;
+import bits.draw3d.nodes.*;
 
 
 

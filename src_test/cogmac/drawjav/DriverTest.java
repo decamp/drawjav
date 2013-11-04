@@ -7,11 +7,11 @@ import java.io.File;
 import javax.media.opengl.*;
 import javax.swing.JFrame;
 
-import cogmac.clocks.PlayController;
-import cogmac.draw3d.nodes.*;
+import bits.clocks.PlayController;
+import bits.draw3d.nodes.*;
+import bits.jav.JavConstants;
+import bits.jav.util.Rational;
 import cogmac.drawjav.video.VideoTexture;
-import cogmac.jav.JavConstants;
-import cogmac.jav.util.Rational;
 
 import com.sun.opengl.util.Animator;
 

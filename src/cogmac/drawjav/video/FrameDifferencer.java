@@ -2,8 +2,9 @@ package cogmac.drawjav.video;
 
 import java.io.IOException;
 
+import bits.langx.ref.*;
+
 import cogmac.drawjav.Sink;
-import cogmac.langx.ref.*;
 
 /**
  * Computes linear difference between two frames, storing difference in the alpha channel.

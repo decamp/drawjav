@@ -4,13 +4,13 @@ import java.io.*;
 import java.nio.*;
 import java.util.*;
 
-import cogmac.data.Guid;
+import bits.data.Guid;
+import bits.jav.*;
+import bits.jav.codec.*;
+import bits.jav.format.*;
+import bits.jav.util.Rational;
+import bits.langx.ref.*;
 import cogmac.drawjav.audio.*;
-import cogmac.jav.*;
-import cogmac.jav.codec.*;
-import cogmac.jav.format.*;
-import cogmac.jav.util.Rational;
-import cogmac.langx.ref.*;
 
 
 /**

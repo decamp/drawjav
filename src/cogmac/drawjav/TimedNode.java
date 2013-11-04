@@ -1,6 +1,6 @@
 package cogmac.drawjav;
 
-import cogmac.langx.ref.Refable;
+import bits.langx.ref.Refable;
 
 
 public abstract class TimedNode extends DoubleLinkedNode implements Refable, Comparable<TimedNode> {

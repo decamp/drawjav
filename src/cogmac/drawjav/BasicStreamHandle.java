@@ -1,7 +1,7 @@
 package cogmac.drawjav;
 
 import java.io.IOException;
-import cogmac.data.Guid;
+import bits.data.Guid;
 
 /**
  * @author decamp

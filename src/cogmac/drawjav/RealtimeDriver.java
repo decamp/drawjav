@@ -2,7 +2,7 @@ package cogmac.drawjav;
 
 import java.io.*;
 import java.util.logging.*;
-import cogmac.clocks.*;
+import bits.clocks.*;
 
 /**
  * Handles realtime processing of one source.

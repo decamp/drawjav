@@ -3,8 +3,9 @@ package cogmac.drawjav.audio;
 import java.io.*;
 import java.nio.FloatBuffer;
 
+import bits.jav.JavConstants;
+
 import cogmac.drawjav.*;
-import cogmac.jav.JavConstants;
 
 
 /**
@@ -88,8 +89,8 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
         }
         
         AudioPacket dst = mFactory.build( packet.stream(),
-                                          packet.getStartMicros(),
-                                          packet.getStopMicros(),
+                                          packet.startMicros(),
+                                          packet.stopMicros(),
                                           mDestFormat,
                                           dstLen / mDestFormat.channels() );
         
@@ -98,7 +99,7 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
         
         if( mInitMicros ) {
             mInitMicros  = false;
-            mStartMicros = packet.getStartMicros();
+            mStartMicros = packet.startMicros();
             mSampleCount = 0;
         }
         

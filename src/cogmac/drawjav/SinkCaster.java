@@ -1,8 +1,7 @@
 package cogmac.drawjav;
 
 import java.io.*;
-
-import cogmac.data.ConcurrentBag;
+import bits.data.ConcurrentBag;
 
 /**
  * Threadsafe structure for sending method calls to multiple sinks.
@@ -10,7 +9,6 @@ import cogmac.data.ConcurrentBag;
  * @author decamp
  */
 public class SinkCaster<T> implements Sink<T> {
-    
     
     protected final ConcurrentBag<Sink<? super T>> mSinks = new ConcurrentBag<Sink<? super T>>();
     private boolean mClosed = false;

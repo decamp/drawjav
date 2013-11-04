@@ -2,10 +2,11 @@ package cogmac.drawjav.video;
 
 import java.util.*;
 import javax.media.opengl.*;
+
+import bits.draw3d.nodes.*;
+import bits.jav.JavConstants;
 import static javax.media.opengl.GL.*;
 
-import cogmac.jav.JavConstants;
-import cogmac.draw3d.nodes.*;
 import cogmac.drawjav.*;
 
 

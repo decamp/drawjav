@@ -5,8 +5,8 @@ import java.nio.channels.ClosedChannelException;
 import java.util.*;
 import java.util.logging.*;
 
-import cogmac.clocks.*;
-import cogmac.langx.ref.*;
+import bits.clocks.*;
+import bits.langx.ref.*;
 
 
 /**
@@ -246,7 +246,7 @@ public class PacketScheduler {
                     mNeedRush = false;
                     command.mDataMicros = Long.MIN_VALUE;
                 } else {
-                    command.mDataMicros = p.getStartMicros();
+                    command.mDataMicros = p.startMicros();
                 }
                 
                 try {

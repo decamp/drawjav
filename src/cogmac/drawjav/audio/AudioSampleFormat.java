@@ -1,7 +1,8 @@
 package cogmac.drawjav.audio;
 
 import java.nio.ByteBuffer;
-import cogmac.jav.JavConstants;
+
+import bits.jav.JavConstants;
 
 
 public enum AudioSampleFormat {

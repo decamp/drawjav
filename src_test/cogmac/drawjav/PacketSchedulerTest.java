@@ -4,9 +4,9 @@ import java.io.*;
 import java.nio.channels.ClosedChannelException;
 import java.util.*;
 
-import cogmac.clocks.*;
-import cogmac.jav.JavConstants;
-import cogmac.langx.ref.*;
+import bits.clocks.*;
+import bits.jav.JavConstants;
+import bits.langx.ref.*;
 
 public class PacketSchedulerTest {
     
@@ -53,7 +53,7 @@ public class PacketSchedulerTest {
         public void consume( LongPacket p ) {
             System.out.format( "%s : %4.2f\n", 
                                p.mStream.guid().toString(),
-                               ( p.getStartMicros() / 1000000.0 ) );
+                               ( p.startMicros() / 1000000.0 ) );
         }
         
         public void clear() {
@@ -214,12 +214,12 @@ public class PacketSchedulerTest {
         }
 
         @Override
-        public long getStartMicros() {
+        public long startMicros() {
             return mMicros;
         }
 
         @Override
-        public long getStopMicros() {
+        public long stopMicros() {
             return mMicros;
         }
 

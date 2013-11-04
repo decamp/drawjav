@@ -1,7 +1,7 @@
 package cogmac.drawjav;
 
 import java.nio.channels.Channel;
-import cogmac.clocks.PlayController;
+import bits.clocks.PlayController;
 
 /**
  * @author decamp

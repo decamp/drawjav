@@ -4,7 +4,7 @@ import java.io.*;
 import java.nio.channels.ClosedChannelException;
 import java.util.*;
 import java.util.logging.*;
-import cogmac.clocks.*;
+import bits.clocks.*;
 
 
 /**

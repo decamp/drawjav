@@ -1,9 +1,9 @@
 package cogmac.drawjav.video;
 
+import bits.jav.*;
+import bits.jav.swscale.*;
+import bits.jav.util.Rational;
 import cogmac.drawjav.*;
-import cogmac.jav.*;
-import cogmac.jav.swscale.*;
-import cogmac.jav.util.Rational;
 
 
 /**
@@ -52,7 +52,7 @@ public class VideoPacketResampler {
             return source;
         }
         
-        VideoPacket dest = mFactory.build( source.stream(), source.getStartMicros(), source.getStopMicros() );
+        VideoPacket dest = mFactory.build( source.stream(), source.startMicros(), source.stopMicros() );
         mConverter.convert( source, mCropTop, mSourceFormat.height() - mCropBottom - mCropTop, dest );
         return dest;
     }

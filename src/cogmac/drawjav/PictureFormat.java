@@ -1,7 +1,7 @@
 package cogmac.drawjav;
 
-import cogmac.jav.codec.JavCodecContext;
-import cogmac.jav.util.Rational;
+import bits.jav.codec.JavCodecContext;
+import bits.jav.util.Rational;
 
 /**
  * Defines format of a single image.

@@ -1,6 +1,6 @@
 package cogmac.drawjav;
 
-import cogmac.jav.JavConstants;
+import bits.jav.JavConstants;
 
 
 /**

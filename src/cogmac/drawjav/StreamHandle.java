@@ -1,7 +1,6 @@
 package cogmac.drawjav;
 
-import cogmac.data.Guid;
-
+import bits.data.Guid;
 
 /**
  * @author decamp
