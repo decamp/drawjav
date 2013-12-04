@@ -2,6 +2,7 @@ package bits.drawjav;
 
 import java.nio.*;
 
+import bits.jav.JavException;
 import bits.jav.codec.*;
 import bits.langx.ref.*;
 
@@ -12,10 +13,10 @@ import bits.langx.ref.*;
 public class VideoPacket extends JavFrame implements Packet {
     
     
-    public static VideoPacket newAutoInstance(RefPool<? super VideoPacket> pool) {
+    public static VideoPacket newAutoInstance( RefPool<? super VideoPacket> pool ) {
         long p = nAllocFrame();
         if( p == 0 ) {
-            throw new OutOfMemoryError("Allocation failed.");
+            throw new OutOfMemoryError( "Allocation failed." );
         }
         return new VideoPacket( p, pool );
     }
@@ -23,6 +24,7 @@ public class VideoPacket extends JavFrame implements Packet {
     
     public static VideoPacket newFormattedInstance( RefPool<? super VideoPacket> pool,
                                                     PictureFormat format )
+                                                    throws JavException
     {
         int size = nComputeVideoBufferSize( format.width(), format.height(), format.pixelFormat() );
         ByteBuffer buf = ByteBuffer.allocateDirect( size );
@@ -34,13 +36,14 @@ public class VideoPacket extends JavFrame implements Packet {
     public static VideoPacket newFormattedInstance( RefPool<? super VideoPacket> pool, 
                                                     PictureFormat format,
                                                     ByteBuffer buf )
+                                                    throws JavException
     {
         long pointer = nAllocFrame();
         if( pointer == 0 ) {
             throw new OutOfMemoryError();
         }
         VideoPacket ret = new VideoPacket( pointer, pool );
-        ret.fillInterleavedVideoFrame( format.width(), format.height(), format.pixelFormat(), buf, 0 );
+        ret.fillVideoFrame( format.width(), format.height(), format.pixelFormat(), buf );
         ret.pictureFormat( format );
         return ret;
     }
@@ -93,7 +96,6 @@ public class VideoPacket extends JavFrame implements Packet {
         mPictureFormat = pictureFormat;
     }
     
-    
     /**
      * Initializes packet object. 
      * 
@@ -113,6 +115,5 @@ public class VideoPacket extends JavFrame implements Packet {
         
         pictureFormat(format);
     }
-
 
 }

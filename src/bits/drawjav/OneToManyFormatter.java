@@ -236,8 +236,6 @@ public class OneToManyFormatter implements Sink<Packet> {
                                                                       mVideoPoolCap );
                     conv.setPictureConversion( (PictureFormat)destFormat, 
                                                Jav.SWS_FAST_BILINEAR,
-                                               null,
-                                               null,
                                                0,
                                                0 );
                     

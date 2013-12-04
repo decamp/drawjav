@@ -22,8 +22,6 @@ public class VideoPacketResampler {
 
     private Rational           mSampleAspect    = null;
     private int                mConversionFlags = Jav.SWS_FAST_BILINEAR;
-    private SwsFilter          mSourceFilter    = null;
-    private SwsFilter          mDestFilter      = null;
     private int                mCropTop         = 0;
     private int                mCropBottom      = 0;
 
@@ -102,27 +100,7 @@ public class VideoPacketResampler {
         mNeedsInit = true;
     }
 
-
-    public void setSourceFilter( SwsFilter filter ) {
-        if( filter == mSourceFilter || filter != null && filter.equals( mSourceFilter ) ) {
-            mSourceFilter = filter;
-            return;
-        }
-        mSourceFilter = filter;
-        mNeedsInit = true;
-    }
-
-
-    public void setDestFilter( SwsFilter filter ) {
-        if( filter == mDestFilter || filter != null && filter.equals( mDestFilter ) ) {
-            mDestFilter = filter;
-            return;
-        }
-        mDestFilter = filter;
-        mNeedsInit = true;
-    }
-
-
+    
     public PictureFormat getDestFormat() {
         return mDestFormat;
     }
@@ -171,11 +149,11 @@ public class VideoPacketResampler {
             return;
         }
         
-        mConverter = SwsContext.newInstance();
+        mConverter = SwsContext.alloc();
         mConverter.configure( src.width(), src.height(), src.pixelFormat(),
                               dst.width(), dst.height(), dst.pixelFormat(),
                               mConversionFlags );
-        mConverter.initialize( mSourceFilter, mDestFilter );
+        mConverter.initialize();
 
         if( mFactory == null ) {
             mFactory = new VideoPacketFactory( mDestFormat, mPoolCapacity );

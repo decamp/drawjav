@@ -2,6 +2,7 @@ package bits.drawjav;
 
 import java.util.*;
 
+import bits.jav.JavException;
 import bits.langx.ref.RefPool;
 
 /**
@@ -21,14 +22,17 @@ public class VideoPacketFactory implements RefPool<VideoPacket> {
     
     
 
-    public synchronized VideoPacket build(StreamHandle stream, long startMicros, long stopMicros) {
+    public synchronized VideoPacket build( StreamHandle stream, long startMicros, long stopMicros ) {
         VideoPacket packet = poll();
-        
-        if(packet == null) {
-            if(mFormat != null) {
-                packet = VideoPacket.newFormattedInstance(this, mFormat);
+        if( packet == null ) {
+            if( mFormat != null ) {
+                try {
+                    packet = VideoPacket.newFormattedInstance( this, mFormat );
+                } catch( JavException ex ) {
+                    throw new RuntimeException( ex );
+                }
             }else{
-                packet = VideoPacket.newAutoInstance(this);
+                packet = VideoPacket.newAutoInstance( this );
             }
         }
         

@@ -3,8 +3,6 @@ package bits.drawjav.video;
 import java.io.IOException;
 
 import bits.drawjav.*;
-import bits.jav.swscale.SwsFilter;
-
 
 
 /**
@@ -32,15 +30,11 @@ public class VideoResamplerPipe implements Sink<VideoPacket> {
     
     public void setPictureConversion( PictureFormat format, 
                                       int swsFlags,
-                                      SwsFilter sourceFilter,
-                                      SwsFilter destFilter,
                                       int cropTop,
                                       int cropBottom )
     {
         mConverter.setDestFormat(format);
         mConverter.setConversionFlags(swsFlags);
-        mConverter.setSourceFilter(sourceFilter);
-        mConverter.setDestFilter(destFilter);
         mConverter.setCrop(cropTop, cropBottom);
     }
 

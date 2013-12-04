@@ -36,7 +36,7 @@ public class FormatDecoder implements Source {
         if( !file.exists() ) {
             throw new FileNotFoundException();
         }
-        JavFormatContext format = JavFormatContext.openInputFile( file );
+        JavFormatContext format = JavFormatContext.openInput( file );
         return new FormatDecoder( format, overrideStartMicros, startMicros );
     }
     
@@ -75,8 +75,8 @@ public class FormatDecoder implements Source {
                            long startMicros ) 
     {
         mFormat     = format;
-        mPacket     = JavPacket.newInstance();
-        mNullPacket = JavPacket.newInstance();
+        mPacket     = JavPacket.alloc();
+        mNullPacket = JavPacket.alloc();
         mStreams    = new Stream[format.streamCount()];
         
         long firstMicros       = Long.MAX_VALUE;
@@ -548,7 +548,7 @@ public class FormatDecoder implements Source {
         public Packet process( JavPacket packet, boolean flushing ) throws IOException {
             if( !mIsOpen ) {
                 if( !flushing ) {
-                    mTimer.packetSkipped( packet.presentTime(), packet.duration(), mRange );
+                    mTimer.packetSkipped( packet.pts(), packet.duration(), mRange );
                     packet.moveDataPointer( packet.size() );
                 }
                 return null;
@@ -676,7 +676,7 @@ public class FormatDecoder implements Source {
         public AudioPacket process( JavPacket packet, boolean flushing ) throws IOException {
             if( mPool == null ) {
                 if( !flushing ) {
-                    mTimer.packetSkipped( packet.presentTime(), packet.duration(), mRange );
+                    mTimer.packetSkipped( packet.pts(), packet.duration(), mRange );
                     packet.moveDataPointer( packet.size() );
                 }
                 return null;
@@ -757,7 +757,7 @@ public class FormatDecoder implements Source {
                 return null;
             }
             
-            long pts      = packet.presentTime();
+            long pts      = packet.pts();
             long duration = packet.duration();
             
             mTimer.packetSkipped( pts, duration, mRange );
