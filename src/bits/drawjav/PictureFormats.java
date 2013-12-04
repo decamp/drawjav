@@ -116,11 +116,11 @@ public final class PictureFormats {
         } else {
             //Determine width and height from defined factors.
             if( aspectScale > 1.0 ) {
-                outWidth  = (int)Math.round( inWidth * aspectScale );
-                outHeight = inHeight;
-            } else if( aspectScale < 1.0 ) {
                 outWidth  = inWidth;
-                outHeight = (int)Math.round( inHeight / aspectScale );
+                outHeight = (int)Math.round( inHeight * aspectScale );
+            } else if( aspectScale < 1.0 ) {
+                outWidth  = (int)Math.round( inWidth / aspectScale );
+                outHeight = inHeight;
             } else {
                 outWidth  = inWidth;
                 outHeight = inHeight;
