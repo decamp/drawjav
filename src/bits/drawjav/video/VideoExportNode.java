@@ -1,0 +1,470 @@
+    package bits.drawjav.video;
+
+import java.io.*;
+import java.nio.*;
+import java.util.*;
+import java.util.logging.Logger;
+
+import javax.media.opengl.*;
+import static javax.media.opengl.GL.*;
+
+import bits.clocks.Clock;
+import bits.data.RingList;
+import bits.draw3d.nodes.DrawNode;
+import bits.jav.util.Rational;
+import bits.langx.ref.*;
+import bits.prototype.Files;
+
+
+/**
+ * Draw node that encodes frame buffer directly to H264/MP4 file. 
+ * Encoding is performed on separate thread for better performance.
+ * Multiple video captures may be run in parallel.
+ * Video captures may be scheduled at any time.
+ * Video captures may be closed at any time using the Closeable handle provided by <code>addColorWriter</code>.
+ * Video captures are closed automatically and safely on system exit events.
+ * 
+ * @author decamp
+ */
+public class VideoExportNode implements DrawNode {
+    
+    public static final int QUALITY_HIGHEST = 100;
+    public static final int QUALITY_LOWEST  = 0;
+    
+    private static final int OVERHEAD  = 1024;
+    private static final int ROW_ALIGN = 4;
+    
+    
+    public static VideoExportNode newInstance() {
+        return null;
+    }
+    
+    
+    private static final int MAX_QUEUE_SIZE = 2;
+    private static Logger sLog = Logger.getLogger( VideoExportNode.class.getName() );
+
+    private final Clock mClock;
+    private final PriorityQueue<Stream> mNewStreams = new PriorityQueue<Stream>();
+    private final List<Stream> mStreams = new ArrayList<Stream>();
+    private final FlushThread mFlusher  = new FlushThread();
+    
+    private Integer mReadTarget     = null;
+    private boolean mDoubleBuffered = false;
+    
+    private int mWidth  = 0;
+    private int mHeight = 0;
+    
+    
+    public VideoExportNode( Clock clock ) {
+        mClock = clock;
+    }
+    
+    
+    /**
+     * @param readTarget Specifies buffer to read data from. Must be GL_FRONT, GL_BACK, <code>null</code>.
+     *                   If <code>null</code>, a buffer will be selected automatically.
+     */
+    public void readTarget( Integer readTarget ) {
+        mReadTarget = readTarget;
+    }
+    
+    /**
+     * Adds video capture. The video capture will terminate upon one of three events: <br/>
+     * 1. The internal clock reaches or exceeds the provided <code>stopMicros</code> param. <br/>
+     * 2. <code>close()</code> is called on the <code>java.io.Closeable</code> object returned by this method. <br/>
+     * 3. System shutdown, in which case a shutdown hook will attemp to terminate the video capture safely. <br/> 
+     * 
+     * @param outFile     File to write video to. IF outFile.exists(), the existing file will not
+     *                    be modified in any way, and a unique number will be added to the 
+     *                    filename used.
+     * @param quality     Quality of encoding. 0 = highest, 100 = lowest. Try 22.
+     * @param startMicros When video catpure should begin. Use Long.MIN_VALUE to begin immediately.
+     * @param stopMicros  When video capture should end. Use Long.MAX_VALUE to capture without set duration.
+     * @return object that may be closed (<code>object.close()</code>) to end video capture. 
+     * 
+     */
+    public Closeable addColorWriter( File outFile,
+                                     int quality,
+                                     long startMicros,
+                                     long stopMicros )
+                                     throws IOException 
+    {
+        outFile = Files.setSuffix( outFile, "mp4" );
+        
+        File outDir = outFile.getParentFile();
+        if( !outDir.exists() && !outDir.mkdirs() ) {
+            throw new IOException( "Failed to create dir: " + outDir.getPath() );
+        }
+        
+        if( outFile.exists() ) {
+            int count = 0;
+            String name = Files.baseName( outFile );
+            do {
+                outFile = new File( outDir, String.format( "%s-%d.mp4", name, count++ ) );
+            } while( outFile.exists() );
+            outFile.createNewFile();
+        }
+        
+        ObjectPool<ByteBuffer> pool = new HardPool<ByteBuffer>( MAX_QUEUE_SIZE + 1 );
+        ColorReader reader = new ColorReader( pool );
+        ColorWriter writer = new ColorWriter( outFile, quality, 24, null, pool, mFlusher );
+        Stream stream      = new Stream( startMicros, stopMicros, reader, writer );
+        mNewStreams.offer( stream );
+        
+        return stream;
+    }    
+    
+    
+    
+    @Override
+    public void init( GLAutoDrawable glad ) {
+        mDoubleBuffered = glad.getChosenGLCapabilities().getDoubleBuffered();
+    }
+    
+    
+    @Override
+    public void reshape( GLAutoDrawable gld, int x, int y, int w, int h ) {
+        mWidth  = w;
+        mHeight = h;
+    }
+
+    
+    @Override
+    public void pushDraw( GL gl ) {}
+    
+    
+    @Override
+    public void popDraw( GL gl ) {
+        long t = mClock.micros();
+        
+        while( !mNewStreams.isEmpty() && mNewStreams.peek().startMicros() <= t ) {
+            Stream s = mNewStreams.remove();
+            mStreams.add( s );
+        }
+        
+        int len = mStreams.size();
+        for( int i = 0; i < len; i++ ) {
+            Stream s = mStreams.get( i );
+            if( s.stopMicros() <= t ) {
+                s.close();
+                mStreams.remove( i-- );
+                len--;
+            } else if( !s.process( gl, mWidth, mHeight ) ) {
+                mStreams.remove( i-- );
+                len--;
+            }
+        }
+    }
+    
+    
+    @Override
+    public void dispose( GLAutoDrawable gld ) {
+        for( Stream s: mStreams ) {
+            s.close();
+        }
+        mStreams.clear();
+        for( Stream s: mNewStreams ) {
+            s.close();
+        }
+        mNewStreams.clear();
+    }
+    
+    
+    
+    private static interface Joinable extends Closeable {
+        public void join() throws InterruptedException;
+    }
+    
+    
+    private static interface FrameReader {
+        public ByteBuffer readFrame( GL gl, int w, int h );
+    }
+    
+    
+    private static interface FrameWriter extends Joinable {
+        public boolean offer( ByteBuffer src, int w, int h ) throws IOException;
+        public void close() throws IOException;
+    }
+
+    
+    private final class ColorReader implements FrameReader {
+        
+        private final ObjectPool<ByteBuffer> mPool;
+        
+        public ColorReader( ObjectPool<ByteBuffer> pool ) {
+            mPool = pool;
+        }
+        
+        public ByteBuffer readFrame( GL gl, int w, int h ) {
+            int rowBytes = ( w * 3 + ROW_ALIGN - 1 ) / ROW_ALIGN * ROW_ALIGN;
+            int cap = rowBytes * h + OVERHEAD;
+            
+            ByteBuffer buf = mPool.poll();
+            if( buf == null || buf.capacity() < cap ) {
+                buf = ByteBuffer.allocateDirect( cap );
+            } else {
+                buf.clear();
+            }
+            
+            buf.order( ByteOrder.nativeOrder() );
+            
+            if( mReadTarget != null ) {
+                gl.glReadBuffer( mReadTarget );
+            } else {
+                gl.glReadBuffer( mDoubleBuffered ? GL_BACK : GL_FRONT );
+            }
+            
+            gl.glPixelStorei( GL_PACK_ALIGNMENT, ROW_ALIGN );
+            gl.glReadPixels( 0, 0, w, h, GL_BGR, GL_UNSIGNED_BYTE, buf );
+            buf.position( 0 ).limit( rowBytes * h );
+            return buf;
+        }
+        
+    }
+    
+    
+    private static final class ColorWriter implements FrameWriter, Runnable {
+        
+        private final File mOutFile;
+        private final Mp4Writer mOut = new Mp4Writer();
+        private final Queue<ByteBuffer> mQueue = new RingList<ByteBuffer>( 4 );
+        private final ObjectPool<ByteBuffer> mPool;
+        private final FlushThread mFlusher;
+        
+        private int mWidth;
+        private int mRowSize;
+        private int mHeight;
+        private Thread mThread = null;
+        private boolean mClosed = false;
+        
+        
+        public ColorWriter( File outFile, 
+                            int quality, 
+                            int gopSize,
+                            Rational optTimeBase,
+                            ObjectPool<ByteBuffer> pool,
+                            FlushThread flusher )
+        {
+            mOutFile    = outFile;
+            mOut.quality( quality );
+            mOut.gopSize( gopSize );
+            if( optTimeBase != null ) {
+                mOut.timeBase( optTimeBase );
+            }
+            mPool = pool;
+            mFlusher = flusher;
+        }
+    
+        
+        public synchronized boolean offer( ByteBuffer buf, int w, int h ) throws IOException {
+            if( mThread == null ) {
+                if( mClosed ) {
+                    return false;
+                }
+
+                mWidth   = w;
+                mHeight  = h;
+                mRowSize = ( w * 3 + ROW_ALIGN - 1 ) / w * w;
+                mOut.size( w, h );
+                mOut.open( mOutFile );
+                mThread = new Thread( this );
+                mThread.setName( "Video Encoder" );
+                mThread.setDaemon( true );
+                mFlusher.add( this );
+                mThread.start();
+            }
+
+            // Wait for opening.
+            while( mQueue.size() >= MAX_QUEUE_SIZE ) {
+                if( mClosed ) {
+                    return false;
+                }
+                try {
+                    wait();
+                } catch( InterruptedException ex ) {}
+            }
+            
+            mQueue.offer( buf );
+            notifyAll();
+            return true;
+        }
+        
+        
+        public synchronized void close() {
+            if( mClosed ) {
+                return;
+            }
+            mClosed = true;
+            notifyAll();
+        }
+        
+        
+        public void join() throws InterruptedException {
+            Thread t = mThread;
+            if( t == null ) {
+                return;
+            }
+            t.join();
+        }
+        
+        
+        public void run() {
+            try {
+                while( process() );
+            } catch( IOException ex ) {
+                ex.printStackTrace();
+                synchronized( this ) {
+                    mClosed = true;
+                    notifyAll();
+                }
+            } finally {
+                mFlusher.remove( this );
+            }
+        }
+        
+        
+        private boolean process() throws IOException {
+            ByteBuffer buf = null;
+            
+            synchronized( this ) {
+                if( !mQueue.isEmpty() ) {
+                    buf = mQueue.remove();
+                    notifyAll();
+                } else if( !mClosed ) {
+                    try {
+                        wait(); 
+                    } catch( InterruptedException ex ) {}
+                    return true;
+                }
+            }
+            
+            if( buf != null ) {
+                mOut.write( buf, mWidth * 3 );
+                if( mPool != null ) {
+                    mPool.offer( buf );
+                }
+                return true;
+            }
+            
+            mOut.close();
+            return false;
+        }
+        
+    }
+    
+    
+    private static final class Stream implements Comparable<Stream>, Closeable { 
+        
+        private final long mStartMicros;
+        private final long mStopMicros;
+        
+        private final FrameReader mReader;
+        private final FrameWriter mWriter;
+        
+        private int mWidth  = 0;
+        private int mHeight = 0;
+
+        
+        Stream( long startMicros, 
+                long stopMicros, 
+                FrameReader reader, 
+                FrameWriter writer ) 
+        {
+            mStartMicros = startMicros;
+            mStopMicros  = stopMicros;
+            mReader      = reader;
+            mWriter      = writer;
+        }
+        
+        
+        
+        public long startMicros() {
+            return mStartMicros;
+        }
+        
+        
+        public long stopMicros() {
+            return mStopMicros;
+        }
+        
+        
+        public boolean process( GL gl, int w, int h ) {
+            ByteBuffer buf = mReader.readFrame( gl, w, h );
+            try {
+                return mWriter.offer( buf, w, h );
+            } catch( IOException ex ) {
+                ex.printStackTrace();
+                return false;
+            }
+        }
+        
+        
+        public void close() {
+            try {
+                mWriter.close();
+            } catch( IOException ex ) {
+                ex.printStackTrace();
+            }
+        }
+        
+        
+        @Override
+        public int compareTo( Stream s ) {
+            return mStartMicros < s.mStartMicros ? -1 : 1;
+        }
+        
+    }
+    
+    
+    private static final class FlushThread extends Thread {
+
+        
+        private final List<Joinable> mList = new ArrayList<Joinable>();
+        
+
+        public FlushThread() {
+            setName( "Video Shutdown Thread" );
+            Runtime.getRuntime().addShutdownHook( this );
+        }
+        
+        
+        synchronized void add( Joinable item ) {
+            mList.add( item );
+        }
+        
+        
+        synchronized void remove( Joinable item ) {
+            mList.remove( item );
+        }
+        
+        
+        public void run() {
+            List<Joinable> list = null;
+            
+            synchronized( this ) {
+                if( mList.isEmpty() ) {
+                    return;
+                }
+                list = new ArrayList<Joinable>( mList );
+            }
+            
+            for( Joinable j: list ) {
+                try {
+                    j.close();
+                } catch( IOException ex ) {
+                    ex.printStackTrace();
+                }
+            }
+            
+            for( Joinable j: list ) {
+                try {
+                    j.join();
+                } catch( InterruptedException ex ) {
+                    break;
+                }
+            }
+        }
+        
+    }
+    
+}

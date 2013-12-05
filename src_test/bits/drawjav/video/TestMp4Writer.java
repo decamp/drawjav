@@ -33,7 +33,8 @@ public class TestMp4Writer {
                 
         Mp4Writer out = new Mp4Writer();
         out.size( w, h );
-        out.bitrate( 400000000 );
+        out.quality( 30 );
+        //out.bitrate( 400000000 );
         out.open( file );
         
         for( int i = 0; i < 255; i++ ) {
@@ -54,6 +55,5 @@ public class TestMp4Writer {
         out.close();
     }
     
-
     
 }

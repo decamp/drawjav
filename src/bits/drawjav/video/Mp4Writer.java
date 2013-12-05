@@ -19,30 +19,34 @@ public class Mp4Writer {
     private static final boolean CONSTANT_QUALITY  = true;
     
     
-    private int mWidth   = 0;
-    private int mHeight  = 0;
+    private int mWidth      = 0;
+    private int mHeight     = 0;
+    private int mFrameCount = 0;
     
     private Rational mTimeBase = new Rational( 1001, 30000 );
-    private int mBitRate = 400000;
-    private int mQuality = 20;
-    private boolean mEncMode = CONSTANT_QUALITY;
-    private int mGopSize = 24;
-    
-    private JavDict mMetadata = null;
+    private int      mBitRate  = 400000;
+    private int      mQuality  = 20;
+    private boolean  mEncMode  = CONSTANT_QUALITY;
+    private int      mGopSize  = 24;
     
     private JavFormatContext mFormat     = null;
     private JavCodecContext  mCc         = null;
-    private JavPacket        mPacket     = JavPacket.alloc();
-    private JavFrame         mSrcFrame   = JavFrame.alloc();
+    private JavPacket        mPacket;
+    private JavFrame         mSrcFrame;
     private JavFrame         mDstFrame   = null;
     private SwsContext       mSws        = null;
     private Rational         mStreamRate = null;
+    private JavDict          mMetadata   = null;
     private final int[]      mBufOffsets = { 0 };
     private final int[]      mLineSizes  = { 0 };
     private final int[]      mGotPacket  = { 0 };
     
     
-    public Mp4Writer() {}
+    public Mp4Writer() {
+        Jav.init();
+        mPacket    = JavPacket.alloc();
+        mSrcFrame  = JavFrame.alloc();
+    }
     
     
     public Mp4Writer size( int w, int h ) {
@@ -139,7 +143,7 @@ public class Mp4Writer {
         mStreamRate = stream.timeBase();
         
         mDstFrame = JavFrame.allocVideo( mWidth, mHeight, Jav.AV_PIX_FMT_YUV420P, null );
-        mSws = SwsContext.allocAndInit( mWidth, mHeight, Jav.AV_PIX_FMT_RGB24, 
+        mSws = SwsContext.allocAndInit( mWidth, mHeight, Jav.AV_PIX_FMT_BGR24, 
                                         mWidth, mHeight, Jav.AV_PIX_FMT_YUV420P, 
                                         Jav.SWS_POINT );
     }
@@ -149,12 +153,15 @@ public class Mp4Writer {
         mLineSizes[0] = bytesPerRow;
         mSrcFrame.fillVideoFrameManually( mWidth, 
                                           mHeight, 
-                                          Jav.AV_PIX_FMT_RGB24,
+                                          Jav.AV_PIX_FMT_BGR24,
                                           1,
                                           buf,
                                           mBufOffsets,
                                           mLineSizes );
         mSws.convert( mSrcFrame, 0, mHeight, mDstFrame );
+        
+        long pts = Rational.rescaleQ( mFrameCount++, mTimeBase, mStreamRate );
+        mDstFrame.pts( pts );
         
         mPacket.init();
         mPacket.freeData();
