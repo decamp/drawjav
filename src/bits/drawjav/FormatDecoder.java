@@ -266,7 +266,7 @@ public class FormatDecoder implements Source {
             mPacketValid = false;
             return null;
         }
-    
+        
         Packet ret = mStreams[idx].process( mPacket, false );
         mPacketValid = mPacket.size() > 0;
         return ret;
@@ -507,6 +507,7 @@ public class FormatDecoder implements Source {
                     throw new JavException( Jav.AVERROR_DECODER_NOT_FOUND,
                                             "Codec not found for stream: " + mStream.index() );
                 }
+                mCodecContext.refcountedFrames( 1 );
                 mCodecContext.open( codec );
             }
 
@@ -560,7 +561,9 @@ public class FormatDecoder implements Source {
             if( ret == null ) {
                 ret = mPool.poll();
                 if( ret == null ) {
-                    ret = VideoPacket.newAutoInstance( mPool );
+                    ret = VideoPacket.alloc( mPool );
+                } else {
+                    ret.freeData();
                 }
             }
             
@@ -575,6 +578,7 @@ public class FormatDecoder implements Source {
                 mCurrentFrame = ret;
                 return null;
             }
+            
             mTimer.packetDecoded( ret.bestEffortTimestamp(), ret.packetDuration(), mRange );
             if( !mHasKeyFrame && !ret.isKeyFrame() ) {
                 ret.deref();
@@ -583,6 +587,7 @@ public class FormatDecoder implements Source {
 
             mHasKeyFrame = true;
             ret.init( this, mPictureFormat, mRange[0], mRange[1] );
+            
             return ret;
         }
         

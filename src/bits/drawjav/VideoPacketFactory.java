@@ -15,7 +15,7 @@ public class VideoPacketFactory implements RefPool<VideoPacket> {
     private int mCapacity;
     
     
-    public VideoPacketFactory(PictureFormat format, int poolSize) {
+    public VideoPacketFactory( PictureFormat format, int poolSize ) {
         mFormat   = format;
         mCapacity = poolSize;
     }
@@ -24,15 +24,16 @@ public class VideoPacketFactory implements RefPool<VideoPacket> {
 
     public synchronized VideoPacket build( StreamHandle stream, long startMicros, long stopMicros ) {
         VideoPacket packet = poll();
+        
         if( packet == null ) {
             if( mFormat != null ) {
                 try {
-                    packet = VideoPacket.newFormattedInstance( this, mFormat );
+                    packet = VideoPacket.allocFill( this, mFormat );
                 } catch( JavException ex ) {
                     throw new RuntimeException( ex );
                 }
-            }else{
-                packet = VideoPacket.newAutoInstance( this );
+            } else {
+                packet = VideoPacket.alloc( this );
             }
         }
         
@@ -41,19 +42,21 @@ public class VideoPacketFactory implements RefPool<VideoPacket> {
     }
     
     
-    public synchronized boolean offer(VideoPacket obj) {
-        if(mCapacity >= 0 && mQueue.size() >= mCapacity)
+    public synchronized boolean offer( VideoPacket obj ) {
+        if( mCapacity >= 0 && mQueue.size() >= mCapacity ) {
             return false;
+        }
         
         PictureFormat form = obj.pictureFormat();
         
-        if(mFormat == null || mFormat.equals(form)) {
-            mQueue.add(obj);
+        if( mFormat == null || mFormat.equals( form ) ) {
+            mQueue.add( obj );
             return true;
         }
         
-        if(form == null)
+        if( form == null ) {
             return false;
+        }
         
         if( form.width() != mFormat.width() ||
             form.height() != mFormat.height() ||
@@ -62,17 +65,18 @@ public class VideoPacketFactory implements RefPool<VideoPacket> {
             return false;
         }
         
-        mQueue.add(obj);
+        mQueue.add( obj );
         return true;
     }
 
     
     public synchronized VideoPacket poll() {
         int n = mQueue.size();
-        if(n == 0)
+        if( n == 0 ) {
             return null;
+        }
         
-        VideoPacket p = mQueue.remove(n - 1);
+        VideoPacket p = mQueue.remove( n - 1 );
         p.ref();
         return p;
     }

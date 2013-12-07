@@ -6,13 +6,13 @@ import java.nio.channels.ClosedChannelException;
 @SuppressWarnings( "unchecked" )
 class TimedMultiQueue<T extends TimedNode> {
     
-    private PrioQueue<Channel<T>> mChannels;
+    private PrioHeap<Channel<T>> mChannels;
     private boolean mClosed   = false;
     private boolean mShutdown = true;
     
     
     public TimedMultiQueue() {
-        mChannels = new PrioQueue<Channel<T>>();
+        mChannels = new PrioHeap<Channel<T>>();
     }
 
     
@@ -23,7 +23,7 @@ class TimedMultiQueue<T extends TimedNode> {
         
         Channel<T> chan = new Channel<T>();
         mChannels.offer( chan );
-        if( chan == mChannels.head() ) {
+        if( chan == mChannels.peek() ) {
             notify();
         }
         
@@ -33,8 +33,8 @@ class TimedMultiQueue<T extends TimedNode> {
 
     public synchronized void clearChannel( Object channel ) {
         Channel<T> q = (Channel<T>)channel;
-        while( q.size() > 0 ) {
-            q.removeHead().deref();
+        while( !q.isEmpty() ) {
+            q.remove().deref();
         }
     }
     
@@ -52,8 +52,8 @@ class TimedMultiQueue<T extends TimedNode> {
         Channel<T> q = (Channel<T>)channel;
         q.mClosed = true;
         mChannels.remove( q );
-        while( q.size() > 0 ) {
-            q.removeHead().deref();
+        while( !q.isEmpty() ) {
+            q.remove().deref();
         }
         notify();
     }
@@ -70,7 +70,7 @@ class TimedMultiQueue<T extends TimedNode> {
             // Check if there is command to return from end of last loop.
             // This is performed here to avoid placing a second synchronization
             // black at end of loop.
-            Channel<T> channel = mChannels.head();
+            Channel<T> channel = mChannels.peek();
 
             if( channel == null ) {
                 // If there are no queues, check if closed, or wait indefinitely.
@@ -86,7 +86,7 @@ class TimedMultiQueue<T extends TimedNode> {
             }
 
             // Find next command to process.
-            T ret = channel.head();
+            T ret = channel.peek();
             if( ret == null ) {
                 if( channel.mClosed || mClosed ) {
                     // Channel is shutdown. Remove.
@@ -114,7 +114,7 @@ class TimedMultiQueue<T extends TimedNode> {
             }
 
             // Remove command from queue.
-            channel.removeHead();
+            channel.remove();
             mChannels.reschedule( channel );
             return ret;
         }
@@ -149,10 +149,10 @@ class TimedMultiQueue<T extends TimedNode> {
     
     public synchronized void forceClose() {
         mClosed = true;
-        while( mChannels.size() > 0 ) {
-            PrioQueue<T> c = mChannels.removeHead();
-            while( c.size() > 0 ) {
-                c.removeHead().deref();
+        while( !mChannels.isEmpty() ) {
+            PrioHeap<T> c = mChannels.remove();
+            while( !c.isEmpty() ) {
+                c.remove().deref();
             }
         }
         notify();
@@ -172,16 +172,15 @@ class TimedMultiQueue<T extends TimedNode> {
     
     private synchronized void reschedule( Channel<T> c ) {
         // Check if head changes during rescheduling. If so, notify scheduling thread.
-        
-        Channel<T> oldHead = mChannels.head();
+        Channel<T> oldHead = mChannels.peek();
         mChannels.reschedule( c );
-        if( oldHead != mChannels.head() || oldHead == c ) {
+        if( oldHead != mChannels.peek() || oldHead == c ) {
             notifyAll();
         }
     }
     
 
-    private static class Channel<T extends TimedNode> extends PrioQueue<T> implements Comparable<Channel<T>> {
+    private static class Channel<T extends TimedNode> extends PrioHeap<T> implements Comparable<Channel<T>> {
         
         boolean mClosed = false;
         
@@ -189,8 +188,8 @@ class TimedMultiQueue<T extends TimedNode> {
 
         @Override
         public int compareTo( Channel<T> c ) {
-            TimedNode ta = head();
-            TimedNode tb = c.head();
+            TimedNode ta = peek();
+            TimedNode tb = c.peek();
             
             return ta == null ? 
                  ( tb == null ?  0 : 1 ) :

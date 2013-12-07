@@ -7,7 +7,6 @@ import bits.drawjav.*;
 import bits.jav.Jav;
 
 
-
 /**
  * TODO: Pretty crappy. Doesn't actually handle multiple format types.
  * @author decamp
@@ -135,7 +134,7 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
         //Create and send new packet.
         dst.init( packet.stream(), mDestFormat, startMicros, stopMicros );
         
-        System.out.println( dst.channels() + "\t" + dst.nbSamples() );
+        //System.out.println( dst.channels() + "\t" + dst.nbSamples() );
         
         return dst;
     }

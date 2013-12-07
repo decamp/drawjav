@@ -22,9 +22,7 @@ public class VideoPacketResampler {
 
     private Rational           mSampleAspect    = null;
     private int                mConversionFlags = Jav.SWS_FAST_BILINEAR;
-    private int                mCropTop         = 0;
-    private int                mCropBottom      = 0;
-
+    
     private boolean            mNeedsInit       = false;
     private SwsContext         mConverter       = null;
 
@@ -51,10 +49,9 @@ public class VideoPacketResampler {
         }
         
         VideoPacket dest = mFactory.build( source.stream(), source.startMicros(), source.stopMicros() );
-        mConverter.convert( source, mCropTop, mSourceFormat.height() - mCropBottom - mCropTop, dest );
+        mConverter.convert( source, 0, mSourceFormat.height(), dest );
         return dest;
     }
-    
     
 
     public void setSourceFormat( PictureFormat format ) {
@@ -78,20 +75,6 @@ public class VideoPacketResampler {
     }
 
 
-    public void setCrop( int top, int bottom ) {
-        if( top == mCropTop && bottom == mCropBottom ) {
-            return;
-        }
-        mCropTop = top;
-        mCropBottom = bottom;
-        mNeedsInit = true;
-        
-        // Source format map affect destination format if requested format is
-        // partially defined.
-        updateDestFormat();
-    }
-
-
     public void setConversionFlags( int flags ) {
         if( flags == mConversionFlags ) {
             return;
@@ -111,14 +94,17 @@ public class VideoPacketResampler {
             mFactory.close();
             mFactory = null;
         }
-        mConverter = null;
+        if( mConverter != null ) {
+            mConverter.release();
+            mConverter = null;
+        }
         mNeedsInit = true;
     }
 
     
     
     private void updateDestFormat() {
-        PictureFormat format = PictureFormats.merge( mSourceFormat, mCropTop, mCropBottom, mRequestedFormat );
+        PictureFormat format = PictureFormats.merge( mSourceFormat, mRequestedFormat );
         if( format == null || !PictureFormats.isFullyDefined( format ) ) {
             return;
         }
@@ -141,10 +127,6 @@ public class VideoPacketResampler {
             return;
         }
 
-        if( mCropTop != 0 || mCropBottom != 0 ) {
-            src = new PictureFormat( src.width(), src.height() - mCropBottom, src.pixelFormat() );
-        }
-        
         if( dst.equals( src ) ) {
             return;
         }

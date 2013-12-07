@@ -3,7 +3,7 @@ package bits.drawjav;
 import bits.langx.ref.Refable;
 
 
-public abstract class TimedNode extends DoubleLinkedNode implements Refable, Comparable<TimedNode> {
+abstract class TimedNode extends HeapNode implements Refable, Comparable<TimedNode> {
     
     public abstract int compareTo( TimedNode t );
     

@@ -25,6 +25,9 @@ public class DriverTest {
     
     public static void main( String[] args ) throws Exception {
         testRealtime();
+        //testSynced();
+        //testMultiRealtime();
+        //testMultiSynced();
     }
     
     
@@ -48,7 +51,7 @@ public class DriverTest {
         //driver.openAudioStream(sh, sh.audioFormat(), player);
         
         VideoFrame frame = new VideoFrame( null, tex );
-        playCont.control().seek( 2000000L );
+        playCont.control().seek( 0000000L );
         driver.start();
         playCont.control().playStart();
 

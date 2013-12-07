@@ -13,7 +13,7 @@ import bits.langx.ref.*;
 public class VideoPacket extends JavFrame implements Packet {
     
     
-    public static VideoPacket newAutoInstance( RefPool<? super VideoPacket> pool ) {
+    public static VideoPacket alloc( RefPool<? super VideoPacket> pool ) {
         long p = nAllocFrame();
         if( p == 0 ) {
             throw new OutOfMemoryError( "Allocation failed." );
@@ -22,21 +22,21 @@ public class VideoPacket extends JavFrame implements Packet {
     }
     
     
-    public static VideoPacket newFormattedInstance( RefPool<? super VideoPacket> pool,
-                                                    PictureFormat format )
-                                                    throws JavException
+    public static VideoPacket allocFill( RefPool<? super VideoPacket> pool,
+                                         PictureFormat format )
+                                         throws JavException
     {
         int size = nComputeVideoBufferSize( format.width(), format.height(), format.pixelFormat() );
         ByteBuffer buf = ByteBuffer.allocateDirect( size );
         buf.order( ByteOrder.nativeOrder() );
-        return newFormattedInstance( pool, format, buf );
+        return allocFill( pool, format, buf );
     }
     
     
-    public static VideoPacket newFormattedInstance( RefPool<? super VideoPacket> pool, 
-                                                    PictureFormat format,
-                                                    ByteBuffer buf )
-                                                    throws JavException
+    public static VideoPacket allocFill( RefPool<? super VideoPacket> pool, 
+                                         PictureFormat format,
+                                         ByteBuffer buf )
+                                         throws JavException
     {
         long pointer = nAllocFrame();
         if( pointer == 0 ) {
@@ -116,4 +116,5 @@ public class VideoPacket extends JavFrame implements Packet {
         pictureFormat(format);
     }
 
+        
 }

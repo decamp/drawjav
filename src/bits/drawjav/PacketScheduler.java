@@ -327,8 +327,7 @@ public class PacketScheduler {
                     
                     if( mPoolSize < mPoolCap ) {
                         mPoolSize++;
-                        c.mPrev = null;
-                        c.mNext = mPool;
+                        c.mPoolNext = mPool;
                         mPool = c;
                     }
                 }
@@ -347,7 +346,7 @@ public class PacketScheduler {
             }
 
             Command c = mPool;
-            mPool = (Command)c.mNext;
+            mPool = (Command)c.mPoolNext;
             mPoolSize--;
             c.ref();
             return c;
@@ -406,6 +405,7 @@ public class PacketScheduler {
         public Packet mPacket;
         public long mDataMicros;
         
+        private Command mPoolNext = null;
         private int mRefCount = 1;
         
         

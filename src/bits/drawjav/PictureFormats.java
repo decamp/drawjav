@@ -50,36 +50,22 @@ public final class PictureFormats {
     }
 
     
-    public static PictureFormat merge( PictureFormat fmt, PictureFormat req ) {
-        return merge( fmt, 0, 0, req );
-    }
-    
-    
-    public static PictureFormat merge( PictureFormat fmt, 
-                                       int cropTop,
-                                       int cropBottom,
-                                       PictureFormat req ) 
-    {
+    public static PictureFormat merge( PictureFormat fmt, PictureFormat req ) { 
         PictureFormat format = null;
         
         if( fmt == null ) {
             if( req == null ) {
                 return new PictureFormat( -1, -1, Jav.AV_PIX_FMT_NONE );
             }
-            
             return req;
         }
         
         if( req == null ) {
-            int inHeight = Math.max( 0, fmt.height() - cropTop - cropBottom );
-            if( inHeight == fmt.height() ) {
-                return fmt;
-            }
-            return new PictureFormat( fmt.width(), inHeight, fmt.pixelFormat(), fmt.sampleAspect() );
+            return fmt;
         }
         
         int inWidth        = fmt.width();
-        int inHeight       = Math.max( 0, fmt.height() - cropTop - cropBottom );
+        int inHeight       = Math.max( 0, fmt.height() );
         int inFmt          = fmt.pixelFormat();
         Rational inAspect  = fmt.sampleAspect();
         int outWidth       = req.width();

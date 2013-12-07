@@ -137,7 +137,7 @@ public class OneToManyFormatter implements Sink<Packet> {
         
         return openStream( Jav.AVMEDIA_TYPE_VIDEO,
                            mSource.pictureFormat(),
-                           destFormat,
+                           ret,
                            sink );
     }
     
@@ -234,10 +234,7 @@ public class OneToManyFormatter implements Sink<Packet> {
                     VideoResamplerPipe conv = new VideoResamplerPipe( caster, 
                                                                       (PictureFormat)sourceFormat,
                                                                       mVideoPoolCap );
-                    conv.setPictureConversion( (PictureFormat)destFormat, 
-                                               Jav.SWS_FAST_BILINEAR,
-                                               0,
-                                               0 );
+                    conv.setPictureConversion( (PictureFormat)destFormat, Jav.SWS_FAST_BILINEAR ); 
                     
                     // As an extra precaution, use the destination format determined
                     // by the video resampler. It should be exactly the same.

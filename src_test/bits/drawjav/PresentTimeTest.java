@@ -11,7 +11,7 @@ import bits.jav.util.Rational;
 /**
  * @author decamp
  */
-public class TestPresentTime {
+public class PresentTimeTest {
     
     public static void main( String[] args ) throws Exception {
         test1();

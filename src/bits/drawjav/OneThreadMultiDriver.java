@@ -40,8 +40,7 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
     
     private final Map<Source,SourceData> mSourceMap       = new HashMap<Source,SourceData>();
     private final Map<StreamHandle,SourceData> mStreamMap = new HashMap<StreamHandle,SourceData>();
-    
-    private final PrioQueue<SourceData> mSources = new PrioQueue<SourceData>();
+    private final PrioHeap<SourceData> mSources           = new PrioHeap<SourceData>();
     
     private Thread mThread;
     
@@ -247,7 +246,7 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
                     mSources.reschedule( s );
                 }
                 
-                s = mSources.head();
+                s = mSources.peek();
                 if( s == null ) {
                     // Nothing to do.
                     if( mClosing ) {
@@ -265,7 +264,7 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
                 
                 if( !s.mDriver.hasNext() ) {
                     if( !s.mDriver.isOpen() ) {
-                        mSources.remove( s );
+                        mSources.remove();
                         continue;
                     }
                     
@@ -327,7 +326,7 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
     }
     
     
-    private static final class SourceData extends DoubleLinkedNode implements Comparable<SourceData> {
+    private static final class SourceData extends HeapNode implements Comparable<SourceData> {
 
         final Source mSource;
         final List<StreamHandle> mStreams;

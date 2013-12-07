@@ -28,14 +28,9 @@ public class VideoResamplerPipe implements Sink<VideoPacket> {
     
     
     
-    public void setPictureConversion( PictureFormat format, 
-                                      int swsFlags,
-                                      int cropTop,
-                                      int cropBottom )
-    {
-        mConverter.setDestFormat(format);
-        mConverter.setConversionFlags(swsFlags);
-        mConverter.setCrop(cropTop, cropBottom);
+    public void setPictureConversion( PictureFormat format, int swsFlags ) {
+        mConverter.setDestFormat( format );
+        mConverter.setConversionFlags( swsFlags );
     }
 
     

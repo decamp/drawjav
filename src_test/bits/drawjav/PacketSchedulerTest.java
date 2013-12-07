@@ -71,7 +71,6 @@ public class PacketSchedulerTest {
     }
     
     
-    
     private static final class LongSource implements PlayControl {
         
         private final PlayController mPlayCont;
@@ -189,7 +188,6 @@ public class PacketSchedulerTest {
         
         
     }
-    
     
     
     private static final class LongPacket extends AbstractRefable implements Packet {
