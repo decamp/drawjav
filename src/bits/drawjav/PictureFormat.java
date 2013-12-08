@@ -43,7 +43,12 @@ public class PictureFormat {
         mWidth        = width >= 0 ? width : -1;
         mHeight       = height >= 0 ? height : -1;
         mPixelFormat  = pixelFormat;
-        mSampleAspect = sampleAspect == null ? null : sampleAspect.reduce();
+        
+        if( sampleAspect == null || sampleAspect.num() == 0 || sampleAspect.den() == 0 ) {
+            mSampleAspect = null;
+        } else {
+            mSampleAspect = sampleAspect;
+        }
     }
     
     
