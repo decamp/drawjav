@@ -72,7 +72,7 @@ public class FormatDecoder implements Source {
     
     private FormatDecoder( JavFormatContext format, 
                            boolean overrideStartMicros, 
-                           long startMicros ) 
+                           long startMicros )
     {
         mFormat     = format;
         mPacket     = JavPacket.alloc();
@@ -764,8 +764,9 @@ public class FormatDecoder implements Source {
             
             long pts      = packet.pts();
             long duration = packet.duration();
-            
             mTimer.packetSkipped( pts, duration, mRange );
+            packet.moveDataPointer( packet.size() );
+            
             return null;
         }
         
