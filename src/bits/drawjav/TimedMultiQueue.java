@@ -1,9 +1,6 @@
 package bits.drawjav;
 
 import java.nio.channels.ClosedChannelException;
-import java.util.*;
-
-import bits.math3d.Arr;
 
 
 @SuppressWarnings( "unchecked" )
@@ -19,8 +16,8 @@ class TimedMultiQueue<T extends TimedNode> {
     }
 
     
+    
     public synchronized Object openChannel() throws ClosedChannelException {
-        checkHeap();
         if( mClosed ) {
             throw new ClosedChannelException();
         }
@@ -31,13 +28,11 @@ class TimedMultiQueue<T extends TimedNode> {
             notify();
         }
         
-        checkHeap();
         return chan;
     }
     
 
     public synchronized void clearChannel( Object channel ) {
-        checkHeap();
         Channel<T> q = (Channel<T>)channel;
         if( q.isEmpty() ) {
             return;
@@ -47,31 +42,25 @@ class TimedMultiQueue<T extends TimedNode> {
             q.remove().deref();
         }
         mChannels.offer( q );
-        checkHeap();
     }
     
     
     public synchronized void closeChannel( Object channel ) {
-        checkHeap();
         Channel<T> q = (Channel<T>)channel;
         if( q.mClosed ) {
             return;
         }
         q.mClosed = true;
-        checkHeap();
     }
     
     
     public synchronized void forceCloseChannel( Object channel ) {
-        checkHeap();
         Channel<T> q = (Channel<T>)channel;
         q.mClosed = true;
         mChannels.remove( q );
         while( !q.isEmpty() ) {
             q.remove().deref();
         }
-        notify();
-        checkHeap();
     }
 
     
@@ -82,8 +71,6 @@ class TimedMultiQueue<T extends TimedNode> {
     
     public synchronized T remove() {
         while( true ) {
-            checkHeap();
-            
             // Check if there is command to return from end of last loop.
             // This is performed here to avoid placing a second synchronization
             // black at end of loop.
@@ -119,6 +106,7 @@ class TimedMultiQueue<T extends TimedNode> {
             
             // Determine execution time of command.
             long t = ret.presentationMicros();
+           
             // Objects with presentationMicros == Long.MIN_VALUE are executed immediately.
             if( t > Long.MIN_VALUE ) {
                 long waitMillis = t / 1000L - System.currentTimeMillis();
@@ -133,14 +121,12 @@ class TimedMultiQueue<T extends TimedNode> {
             // Remove command from queue.
             channel.remove();
             mChannels.reschedule( channel );
-            checkHeap();
             return ret;
         }
     }
 
     
     public synchronized void offer( Object channel, T item ) throws ClosedChannelException {
-        checkHeap();
         Channel<T> c = (Channel<T>)channel;
         if( c.mClosed ) {
             throw new ClosedChannelException();
@@ -149,7 +135,6 @@ class TimedMultiQueue<T extends TimedNode> {
         c.offer( item );
         item.ref();
         reschedule( c );
-        checkHeap();
     }
         
     
@@ -188,57 +173,14 @@ class TimedMultiQueue<T extends TimedNode> {
         return mShutdown;
     }
     
-
-    private void checkHeap() {
-        checkHeap( null );
-    }
-    
-    
-    private void checkHeap( Channel<T> c ) {
-        int s = mChannels.size();
-        for( int i = s - 1; i > 1; i-- ) {
-            if( mChannels.get( i ).size() > 0 && mChannels.get( (i-1)/2 ).size() == 0 ) {
-                System.out.println( "??????????????" );
-                checkHeap2( c );
-                return;
-            }
-        }
-
-        Arrays.fill( BACKUP.mArr, null );
-        Arrays.fill( BACKUP_INT.mArr, null );
-        for( int i = 0; i < s; i++ ) {
-            BACKUP.mArr[i]     = mChannels.mArr[i];
-            BACKUP_INT.mArr[i] = new Val( ((Channel<T>)mChannels.mArr[i]).size() );
-        }
-        
-        BACKUP.mSize = s;
-        BACKUP_INT.mSize = s;
-    }
-
-    
-    private PrioHeap<Channel<T>> BACKUP = new PrioHeap<Channel<T>>();
-    private PrioHeap<Val> BACKUP_INT    = new PrioHeap<Val>();
-    
-    
-    private void checkHeap2( Channel<T> c ) {
-        int s = BACKUP.size();
-        for( int i = 0; i < s; i++ ) {
-            BACKUP.mArr[i].mHeapIndex = i;
-        }
-        
-        BACKUP.reschedule( c );
-    }
-    
-    
     
     private synchronized void reschedule( Channel<T> c ) {
         // Check if head changes during rescheduling. If so, notify scheduling thread.
         Channel<T> oldHead = mChannels.peek();
         mChannels.reschedule( c );
         if( oldHead != mChannels.peek() || oldHead == c ) {
-            notifyAll();
+            notify();
         }
-        checkHeap( c );
     }
     
 
