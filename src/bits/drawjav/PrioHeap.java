@@ -12,8 +12,8 @@ import java.util.*;
 class PrioHeap<T extends HeapNode> extends HeapNode {
     
     private final Comparator mComp;
-    private HeapNode[] mArr;
-    private int mSize = 0;
+    public HeapNode[] mArr;
+    public int mSize = 0;
     
     
     public PrioHeap() {
@@ -159,31 +159,72 @@ class PrioHeap<T extends HeapNode> extends HeapNode {
 
     
     private HeapNode deleteNode( int idx ) {
-        int size = --mSize;
-        HeapNode ret  = mArr[idx];
-        HeapNode item = mArr[size];
-        mArr[size] = null;
+        int size       = --mSize;
+        HeapNode ret   = mArr[idx];
         ret.mHeapIndex = -1;
+        HeapNode last  = mArr[size];
+        mArr[size] = null;
         
         if( idx == size ) {
             return ret;
+        } else if( idx > 0 ) {
+            int j = bubbleUp( last, idx );
+            if( j != idx ) {
+                // Bubble up was succesful.
+                mArr[j] = last;
+                last.mHeapIndex = j;
+                return ret;
+            }
         }
         
         // Trickle down.
+        int j = bubbleDown( last, idx );
+        mArr[j] = last;
+        last.mHeapIndex = j;
+        
+        return ret;
+    }
+
+    
+    private void insertNode( HeapNode node ) {
+        int idx = bubbleUp( node, mSize++ );
+        mArr[idx] = node;
+        node.mHeapIndex = idx;
+    }
+    
+    
+    private int bubbleUp( HeapNode node, int idx ) {
+        while( idx > 0 ) {
+            int j = (idx-1)>>1;
+            HeapNode parent = mArr[j];
+            if( comp( parent, node ) <= 0 ) {
+                break;
+            }
+            
+            mArr[idx] = parent;
+            parent.mHeapIndex = idx;
+            idx = j;
+        }
+        
+        return idx;
+    }
+
+    
+    private int bubbleDown( HeapNode node, int idx ) {
+        // Trickle down.
         int j = (idx<<1)+2;
-        while( j < size ) {
+        while( j < mSize ) {
             // Determine the smaller of the two children.
             if( comp( mArr[j-1], mArr[j] ) <= 0 ) {
                 j--;
             }
             
-            // If item is smaller than smallest child, insert.
-            if( comp( item, mArr[j] ) <= 0 ) {
-                mArr[idx] = item;
-                item.mHeapIndex = idx;
-                return ret;
+            // If node is smaller than smallest child, insert.
+            if( comp( node, mArr[j] ) <= 0 ) {
+                return idx;
             }
             
+            // Move item j->idx.
             HeapNode tmp = mArr[j];
             mArr[idx] = tmp;
             tmp.mHeapIndex = idx;
@@ -193,37 +234,14 @@ class PrioHeap<T extends HeapNode> extends HeapNode {
         }
 
         // Special case in which node only has one child.
-        
-        if( j < size+1 && comp( item, mArr[j-1] ) > 0 ) {
-            HeapNode tmp = mArr[--j];
+        if( --j < mSize && comp( node, mArr[j] ) > 0 ) {
+            HeapNode tmp = mArr[j];
             mArr[idx] = tmp;
             tmp.mHeapIndex = idx;
             idx = j;
         }
         
-        mArr[idx] = item;
-        item.mHeapIndex = idx;
-        
-        return ret;
-    }
-
-    
-    private void insertNode( HeapNode node ) {
-        int idx = mSize++;
-        while( idx > 0 ) {
-            HeapNode parent = mArr[(idx-1)>>1];
-            
-            if( comp( parent, node ) <= 0 ) {
-                break;
-            }
-            
-            mArr[idx] = parent;
-            parent.mHeapIndex = idx;
-            idx = (idx-1)>>1;
-        }
-        
-        mArr[idx] = node;
-        node.mHeapIndex = idx;
+        return idx;
     }
     
 }

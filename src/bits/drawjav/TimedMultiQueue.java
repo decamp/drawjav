@@ -1,6 +1,9 @@
 package bits.drawjav;
 
 import java.nio.channels.ClosedChannelException;
+import java.util.*;
+
+import bits.math3d.Arr;
 
 
 @SuppressWarnings( "unchecked" )
@@ -17,6 +20,7 @@ class TimedMultiQueue<T extends TimedNode> {
 
     
     public synchronized Object openChannel() throws ClosedChannelException {
+        checkHeap();
         if( mClosed ) {
             throw new ClosedChannelException();
         }
@@ -27,28 +31,39 @@ class TimedMultiQueue<T extends TimedNode> {
             notify();
         }
         
+        checkHeap();
         return chan;
     }
     
 
     public synchronized void clearChannel( Object channel ) {
+        checkHeap();
         Channel<T> q = (Channel<T>)channel;
+        if( q.isEmpty() ) {
+            return;
+        }
+        mChannels.remove( q );
         while( !q.isEmpty() ) {
             q.remove().deref();
         }
+        mChannels.offer( q );
+        checkHeap();
     }
     
     
     public synchronized void closeChannel( Object channel ) {
+        checkHeap();
         Channel<T> q = (Channel<T>)channel;
         if( q.mClosed ) {
             return;
         }
         q.mClosed = true;
+        checkHeap();
     }
     
     
     public synchronized void forceCloseChannel( Object channel ) {
+        checkHeap();
         Channel<T> q = (Channel<T>)channel;
         q.mClosed = true;
         mChannels.remove( q );
@@ -56,9 +71,9 @@ class TimedMultiQueue<T extends TimedNode> {
             q.remove().deref();
         }
         notify();
+        checkHeap();
     }
 
-    
     
     public synchronized boolean hasChannel() {
         return mChannels.size() > 0;
@@ -67,6 +82,8 @@ class TimedMultiQueue<T extends TimedNode> {
     
     public synchronized T remove() {
         while( true ) {
+            checkHeap();
+            
             // Check if there is command to return from end of last loop.
             // This is performed here to avoid placing a second synchronization
             // black at end of loop.
@@ -116,12 +133,14 @@ class TimedMultiQueue<T extends TimedNode> {
             // Remove command from queue.
             channel.remove();
             mChannels.reschedule( channel );
+            checkHeap();
             return ret;
         }
     }
 
     
     public synchronized void offer( Object channel, T item ) throws ClosedChannelException {
+        checkHeap();
         Channel<T> c = (Channel<T>)channel;
         if( c.mClosed ) {
             throw new ClosedChannelException();
@@ -130,6 +149,7 @@ class TimedMultiQueue<T extends TimedNode> {
         c.offer( item );
         item.ref();
         reschedule( c );
+        checkHeap();
     }
         
     
@@ -168,6 +188,47 @@ class TimedMultiQueue<T extends TimedNode> {
         return mShutdown;
     }
     
+
+    private void checkHeap() {
+        checkHeap( null );
+    }
+    
+    
+    private void checkHeap( Channel<T> c ) {
+        int s = mChannels.size();
+        for( int i = s - 1; i > 1; i-- ) {
+            if( mChannels.get( i ).size() > 0 && mChannels.get( (i-1)/2 ).size() == 0 ) {
+                System.out.println( "??????????????" );
+                checkHeap2( c );
+                return;
+            }
+        }
+
+        Arrays.fill( BACKUP.mArr, null );
+        Arrays.fill( BACKUP_INT.mArr, null );
+        for( int i = 0; i < s; i++ ) {
+            BACKUP.mArr[i]     = mChannels.mArr[i];
+            BACKUP_INT.mArr[i] = new Val( ((Channel<T>)mChannels.mArr[i]).size() );
+        }
+        
+        BACKUP.mSize = s;
+        BACKUP_INT.mSize = s;
+    }
+
+    
+    private PrioHeap<Channel<T>> BACKUP = new PrioHeap<Channel<T>>();
+    private PrioHeap<Val> BACKUP_INT    = new PrioHeap<Val>();
+    
+    
+    private void checkHeap2( Channel<T> c ) {
+        int s = BACKUP.size();
+        for( int i = 0; i < s; i++ ) {
+            BACKUP.mArr[i].mHeapIndex = i;
+        }
+        
+        BACKUP.reschedule( c );
+    }
+    
     
     
     private synchronized void reschedule( Channel<T> c ) {
@@ -177,6 +238,7 @@ class TimedMultiQueue<T extends TimedNode> {
         if( oldHead != mChannels.peek() || oldHead == c ) {
             notifyAll();
         }
+        checkHeap( c );
     }
     
 
@@ -197,8 +259,33 @@ class TimedMultiQueue<T extends TimedNode> {
         }
         
         
+        public String toString() {
+            return "" + size(); 
+        }
+        
     }
     
+
+
+    private static class Val extends HeapNode implements Comparable<Val> {
+        
+        public int mNum;
+        
+        public Val( int num ) {
+            mNum = num;
+        }
+        
+        public int compareTo( Val v ) {
+            return mNum < v.mNum ? -1 :
+                   mNum > v.mNum ?  1 : 0;
+            
+        }
+
+        public String toString() {
+            return "" + mNum;
+        }
+        
+    }
 
 }
 

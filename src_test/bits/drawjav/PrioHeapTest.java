@@ -10,7 +10,7 @@ import static org.junit.Assert.*;
  * @author decamp
  */
 public class PrioHeapTest {
-
+    
     
     @Test
     public void testOrder() throws Exception {
@@ -102,6 +102,25 @@ public class PrioHeapTest {
         }
     }
 
+
+    @Test
+    public void testDelete() {
+        PrioHeap<Node> heap = new PrioHeap<Node>();
+        
+        for( int j = 0; j < 100; j++ ) {
+            Random rand = new Random( j );
+            for( int i = 0; i < 1000; i++ ) {
+                heap.offer( new Node( rand.nextInt( 10000 ) ) );
+            }
+            
+            for( int i = 0; i < 1000; i++ ) {
+                int r = rand.nextInt( heap.size() );
+                heap.remove( r );
+                check( heap, 1000 - i - 1 );
+            }
+        }
+    }
+    
     
 
     static List<Node> nodeList( int len ) {
@@ -114,9 +133,17 @@ public class PrioHeapTest {
 
 
     static void check( PrioHeap<Node> q, int size ) {
+        int s = q.size();
+        for( int i = s - 1; i > 1; i-- ) {
+            Node node   = q.get( i );
+            Node parent = q.get( (i-1)>>1 );
+            assertTrue( parent.compareTo( node ) <= 0 );
+        }
+        
         //System.out.println( q );
         assertEquals( q.size(), size );
     }
+    
 
 
     static class Node extends HeapNode implements Comparable<Node> {
