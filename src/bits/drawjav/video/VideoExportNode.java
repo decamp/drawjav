@@ -231,6 +231,7 @@ public class VideoExportNode implements DrawNode {
         private final ObjectPool<ByteBuffer> mPool;
         private final FlushThread mFlusher;
         
+        private ByteBuffer mFlipBuf = null;
         private int mWidth;
         private int mRowSize;
         private int mHeight;
@@ -325,6 +326,9 @@ public class VideoExportNode implements DrawNode {
         
         private boolean process() throws IOException {
             ByteBuffer buf = null;
+            int w;
+            int h;
+            int stride;
             
             synchronized( this ) {
                 if( !mQueue.isEmpty() ) {
@@ -336,10 +340,27 @@ public class VideoExportNode implements DrawNode {
                     } catch( InterruptedException ex ) {}
                     return true;
                 }
+                
+                w = mWidth;
+                h = mHeight;
+                stride = mRowSize;
+            }
+            
+            ByteBuffer flip = mFlipBuf;
+            if( flip == null || flip.capacity() < h * stride ) {
+                flip = mFlipBuf = ByteBuffer.allocateDirect( h * stride );
             }
             
             if( buf != null ) {
-                mOut.write( buf, mWidth * 3 );
+                flip.clear().limit( h*stride );
+
+                for( int y = 0; y < h; y++ ) {
+                    buf.limit( buf.position() + stride );
+                    flip.position( ( h - y - 1 ) * stride );
+                    flip.put( buf );
+                }
+                
+                mOut.write( flip, stride );
                 if( mPool != null ) {
                     mPool.offer( buf );
                 }

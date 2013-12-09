@@ -87,6 +87,14 @@ public class TestVideoExportNode {
             }
             
             gl.glClear( GL_COLOR_BUFFER_BIT );
+
+            gl.glColor3f( 0f, 0f, 0f );
+            gl.glBegin( GL_TRIANGLES );
+            gl.glVertex2f( 1.0f, 0.5f );
+            gl.glVertex2f( 1.0f, 1.0f );
+            gl.glVertex2f( 0.5f, 1.0f );
+            gl.glEnd();
+            
             mExporter.pushDraw( gl );
             mExporter.popDraw( gl );
         }
