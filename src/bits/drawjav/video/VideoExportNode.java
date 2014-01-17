@@ -13,6 +13,7 @@ import bits.data.RingList;
 import bits.draw3d.nodes.DrawNode;
 import bits.jav.util.Rational;
 import bits.langx.ref.*;
+import bits.microtime.TimeRanged;
 import bits.prototype.Files;
 
 
@@ -83,7 +84,7 @@ public class VideoExportNode implements DrawNode {
      * @return object that may be closed (<code>object.close()</code>) to end video capture. 
      * 
      */
-    public Closeable addColorWriter( File outFile,
+    public Job addColorWriter( File outFile,
                                      int quality,
                                      long startMicros,
                                      long stopMicros )
@@ -145,11 +146,8 @@ public class VideoExportNode implements DrawNode {
         int len = mStreams.size();
         for( int i = 0; i < len; i++ ) {
             Stream s = mStreams.get( i );
-            if( s.stopMicros() <= t ) {
+            if( s.stopMicros() <= t || !s.process( gl, mWidth, mHeight ) ) {
                 s.close();
-                mStreams.remove( i-- );
-                len--;
-            } else if( !s.process( gl, mWidth, mHeight ) ) {
                 mStreams.remove( i-- );
                 len--;
             }
@@ -169,6 +167,10 @@ public class VideoExportNode implements DrawNode {
         mNewStreams.clear();
     }
     
+
+    public static interface Job extends Closeable, TimeRanged {
+        public void registerCompletionCallback( Runnable r );
+    }
     
     
     private static interface Joinable extends Closeable {
@@ -374,7 +376,7 @@ public class VideoExportNode implements DrawNode {
     }
     
     
-    private static final class Stream implements Comparable<Stream>, Closeable { 
+    private static final class Stream implements Comparable<Stream>, Job { 
         
         private final long mStartMicros;
         private final long mStopMicros;
@@ -384,6 +386,8 @@ public class VideoExportNode implements DrawNode {
         
         private int mWidth  = 0;
         private int mHeight = 0;
+        
+        private final List<Runnable> mCompletionCallbacks = new ArrayList<Runnable>( 1 ); 
 
         
         Stream( long startMicros, 
@@ -426,6 +430,19 @@ public class VideoExportNode implements DrawNode {
             } catch( IOException ex ) {
                 ex.printStackTrace();
             }
+
+            List<Runnable> list = null;
+            synchronized( this ) {
+                if( mCompletionCallbacks.isEmpty() ) {
+                    return;
+                }
+                list = new ArrayList<Runnable>( mCompletionCallbacks );
+                mCompletionCallbacks.clear();
+            }
+            
+            for( Runnable r: list ) {
+                r.run();
+            }
         }
         
         
@@ -434,6 +451,10 @@ public class VideoExportNode implements DrawNode {
             return mStartMicros < s.mStartMicros ? -1 : 1;
         }
         
+        
+        public synchronized void registerCompletionCallback( Runnable r ) {
+            mCompletionCallbacks.add( r );
+        }
     }
     
     
