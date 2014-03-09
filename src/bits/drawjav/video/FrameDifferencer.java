@@ -7,67 +7,67 @@ import bits.langx.ref.*;
 
 
 /**
- * Computes linear difference between two frames, storing difference in the alpha channel.
+ * Computes linear difference between two frames, storing difference in the
+ * alpha channel.
  * 
  * @author decamp
  */
 public class FrameDifferencer implements Sink<IntFrame> {
-    
-    private final RefPool<IntFrame> mPool = new SoftRefPool<IntFrame>(8);
+
+    private final RefPool<IntFrame> mPool = new SoftRefPool<IntFrame>( 8 );
     private final Sink<? super IntFrame> mSink;
     private final double mGamma;
     private final double mThresh;
-    
+
     private IntFrame mPrev = null;
     private double[] mDiff = null;
-    
-    
-    
-    public FrameDifferencer(Sink<? super IntFrame> sink) {
-        this(sink, 0.6, 0.0);
+
+
+
+    public FrameDifferencer( Sink<? super IntFrame> sink ) {
+        this( sink, 0.6, 0.0 );
     }
-    
-    
-    public FrameDifferencer(Sink<? super IntFrame> sink, double gamma, double thresh) {
-        mSink   = sink;
-        mGamma  = gamma;
+
+
+    public FrameDifferencer( Sink<? super IntFrame> sink, double gamma, double thresh ) {
+        mSink = sink;
+        mGamma = gamma;
         mThresh = thresh;
     }
-    
-    
-    
-    public void consume(IntFrame frame) throws IOException {
+
+
+
+    public void consume( IntFrame frame ) throws IOException {
         frame.ref();
-        
-        if(mPrev == null) {
+
+        if( mPrev == null ) {
             mPrev = frame;
             return;
         }
-        
-        mDiff = VideoUtil.computeDifference(mPrev, frame, mDiff);
-        
-        if(mGamma != 1.0) {
-            VideoUtil.pow(mDiff, 0, frame.mWidth * frame.mHeight, mGamma);
+
+        mDiff = IntFrames.computeDifference( mPrev, frame, mDiff );
+
+        if( mGamma != 1.0 ) {
+            IntFrames.pow( mDiff, 0, frame.mWidth * frame.mHeight, mGamma );
         }
-        
-        if(mThresh > 0) {
-            VideoUtil.clampDown(mDiff, 0, frame.mWidth * frame.mHeight, mThresh, 0.0);
+
+        if( mThresh > 0 ) {
+            IntFrames.clampDown( mDiff, 0, frame.mWidth * frame.mHeight, mThresh, 0.0 );
         }
 
         IntFrame out = mPool.poll();
-        if(out == null) {
-            out = new IntFrame(mPool, frame.mWidth, frame.mHeight);
+        if( out == null ) {
+            out = new IntFrame( mPool, frame.mWidth, frame.mHeight );
         }
-        
-        VideoUtil.setAlpha(frame, mDiff, out);
-        
+
+        IntFrames.setAlpha( frame, mDiff, out );
         mPrev.deref();
         mPrev = frame;
 
-        mSink.consume(out);
+        mSink.consume( out );
         out.deref();
     }
-
+    
 
     public void clear() {
         doClear();
@@ -80,18 +80,18 @@ public class FrameDifferencer implements Sink<IntFrame> {
         mSink.close();
     }
 
-    
+
     public boolean isOpen() {
         return true;
     }
-    
-    
+
+
 
     private void doClear() {
-        if(mPrev != null) {
+        if( mPrev != null ) {
             mPrev.deref();
             mPrev = null;
         }
     }
-    
+
 }
