@@ -2,12 +2,11 @@ package bits.drawjav;
 
 import java.io.*;
 import java.util.*;
-import java.util.logging.*;
 
 import javax.media.opengl.GL;
 
-import bits.clocks.*;
 import bits.draw3d.nodes.*;
+import bits.microtime.*;
 
 
 
@@ -24,8 +23,6 @@ public class MultiSyncedDriver extends DrawNodeAdapter implements MultiSourceDri
     }
 
     
-    
-    private static Logger sLog = Logger.getLogger(MultiSyncedDriver.class.getName());
     
     private final PlayController mPlayCont;
     

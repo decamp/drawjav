@@ -7,11 +7,11 @@ import java.io.File;
 import javax.media.opengl.*;
 import javax.swing.JFrame;
 
-import bits.clocks.PlayController;
 import bits.draw3d.nodes.*;
 import bits.drawjav.video.VideoTexture;
 import bits.jav.Jav;
 import bits.jav.util.Rational;
+import bits.microtime.PlayController;
 
 import com.sun.opengl.util.Animator;
 
@@ -49,8 +49,8 @@ public class DriverTest {
         //AudioLinePlayer player = new AudioLinePlayer(sh.audioFormat(), playCont.masterClock());
         //playCont.caster().addListener(player);
         //driver.openAudioStream(sh, sh.audioFormat(), player);
+        new VideoFrame( null, tex );
         
-        VideoFrame frame = new VideoFrame( null, tex );
         playCont.control().seek( 0000000L );
         driver.start();
         playCont.control().playStart();
@@ -103,7 +103,7 @@ public class DriverTest {
             }
         };
         
-        VideoFrame frame = new VideoFrame( update, tex );
+        new VideoFrame( update, tex );
         
         try {
             Thread.sleep( 1000L );
@@ -146,7 +146,8 @@ public class DriverTest {
         //playCont.caster().addListener(player);
         //driver.openAudioStream(sh, sh.audioFormat(), player);
         
-        VideoFrame frame = new VideoFrame( null, tex1, tex2 );
+        new VideoFrame( null, tex1, tex2 );
+        
         playCont.control().seek( 0L );
         driver.start();
         playCont.control().playStart();
@@ -199,7 +200,8 @@ public class DriverTest {
             }
         };
         
-        VideoFrame frame = new VideoFrame( update, tex1, tex2 );
+        new VideoFrame( update, tex1, tex2 );
+        
         playCont.control().seek( 0L );
         driver.start();
         playCont.control().playStart();

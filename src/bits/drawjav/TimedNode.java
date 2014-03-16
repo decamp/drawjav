@@ -1,6 +1,6 @@
 package bits.drawjav;
 
-import bits.langx.ref.Refable;
+import bits.util.ref.Refable;
 
 
 abstract class TimedNode extends HeapNode implements Refable, Comparable<TimedNode> {

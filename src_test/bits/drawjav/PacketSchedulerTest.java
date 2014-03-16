@@ -4,9 +4,9 @@ import java.io.*;
 import java.nio.channels.ClosedChannelException;
 import java.util.*;
 
-import bits.clocks.*;
 import bits.jav.Jav;
-import bits.langx.ref.*;
+import bits.microtime.*;
+import bits.util.ref.*;
 
 
 public class PacketSchedulerTest {
@@ -71,11 +71,11 @@ public class PacketSchedulerTest {
     }
     
     
-    private static final class LongSource implements PlayControl {
+    private static final class LongSource implements PlayControl, Closeable {
         
         private final PlayController mPlayCont;
         private final StreamHandle mStream;
-        private final RefPool<LongPacket> mPool;
+        private final ObjectPool<LongPacket> mPool;
         private final Sink<LongPacket> mSink;
         private final ThreadLock mLock;
         
@@ -95,7 +95,7 @@ public class PacketSchedulerTest {
                                               null, 
                                               null );
             
-            mPool = new HardRefPool<LongPacket>( 16 );
+            mPool = new HardPool<LongPacket>( 16 );
             mLock = new ThreadLock();
             mSink = exec.openPipe( sink, mLock, 4 );
             mPlayCont.caster().addListener( this );
@@ -110,16 +110,15 @@ public class PacketSchedulerTest {
             thread.start();
         }
         
-
+        
         public void close() {
             try {
                 mSink.close();
             } catch( Exception ex ) {}
         }
-        
+
         
         private void runLoop() {
-            int count = 0;
             boolean needClear = false;
             
             while( true ) {
@@ -158,7 +157,6 @@ public class PacketSchedulerTest {
             }
         }
 
-
         
         @Override
         public void playStart( long execMicros ) {}
@@ -167,7 +165,6 @@ public class PacketSchedulerTest {
         @Override
         public void playStop( long execMicros ) {}
 
-        
         
         @Override
         public void seek( long execMicros, long gotoMicros ) {
@@ -178,14 +175,10 @@ public class PacketSchedulerTest {
                 mLock.interrupt();
             }
         }
-
-
-        
+       
         
         @Override
         public void setRate( long execMicros, double rate ) {}
-        
-        
         
     }
     
@@ -194,8 +187,8 @@ public class PacketSchedulerTest {
         
         private final StreamHandle mStream;
         long mMicros;
-        
-        public LongPacket( RefPool<LongPacket> pool,
+            
+        public LongPacket( ObjectPool<LongPacket> pool,
                            StreamHandle stream,
                            long micros ) 
         {

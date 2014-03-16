@@ -1,7 +1,8 @@
 package bits.drawjav;
 
 import java.nio.channels.Channel;
-import bits.clocks.PlayController;
+
+import bits.microtime.PlayController;
 
 /**
  * @author decamp

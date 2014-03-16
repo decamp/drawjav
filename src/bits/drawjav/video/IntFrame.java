@@ -1,6 +1,6 @@
 package bits.drawjav.video;
 
-import bits.langx.ref.*;
+import bits.util.ref.*;
 
 /**
  * Buffered format for video frame that can be easily modified.
@@ -9,7 +9,7 @@ import bits.langx.ref.*;
  */
 public class IntFrame extends AbstractRefable {
     
-    private final RefPool<? super IntFrame> mPool;
+    private final ObjectPool<? super IntFrame> mPool;
     
     public int[] mPix;
     public int mWidth;
@@ -17,17 +17,17 @@ public class IntFrame extends AbstractRefable {
     public int mStride;
     
 
-    public IntFrame( RefPool<? super IntFrame> pool ) {
+    public IntFrame( ObjectPool<? super IntFrame> pool ) {
         mPool = pool;
     }
 
 
-    public IntFrame( RefPool<? super IntFrame> pool, int w, int h ) {
+    public IntFrame( ObjectPool<? super IntFrame> pool, int w, int h ) {
         this( pool, new int[w * h], w, h, w );
     }
 
 
-    public IntFrame( RefPool<? super IntFrame> pool, int[] pix, int w, int h, int s ) {
+    public IntFrame( ObjectPool<? super IntFrame> pool, int[] pix, int w, int h, int s ) {
         mPool = pool;
         mPix = pix;
         mWidth = w;

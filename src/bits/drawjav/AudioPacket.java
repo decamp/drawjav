@@ -3,7 +3,7 @@ package bits.drawjav;
 import java.nio.*;
 
 import bits.jav.codec.JavFrame;
-import bits.langx.ref.*;
+import bits.util.ref.*;
 
 
 
@@ -18,7 +18,7 @@ public class AudioPacket extends JavFrame implements Packet {
     }
     
     
-    public static AudioPacket newAutoInstance( RefPool<? super AudioPacket> pool ) {
+    public static AudioPacket newAutoInstance( ObjectPool<? super AudioPacket> pool ) {
         long p = nAllocFrame();
         if( p == 0 ) {
             throw new OutOfMemoryError("Allocation failed.");
@@ -27,7 +27,7 @@ public class AudioPacket extends JavFrame implements Packet {
     }
     
     
-    public static AudioPacket newFormattedInstance( RefPool<? super AudioPacket> pool,
+    public static AudioPacket newFormattedInstance( ObjectPool<? super AudioPacket> pool,
                                                     AudioFormat format,
                                                     int samplesPerChannel,
                                                     int align ) 
@@ -43,7 +43,7 @@ public class AudioPacket extends JavFrame implements Packet {
     }
     
     
-    public static AudioPacket newFormattedInstance( RefPool<? super AudioPacket> pool, 
+    public static AudioPacket newFormattedInstance( ObjectPool<? super AudioPacket> pool, 
                                                     AudioFormat format,
                                                     int samplesPerChannel,
                                                     int align,
@@ -74,9 +74,9 @@ public class AudioPacket extends JavFrame implements Packet {
     
     @SuppressWarnings( { "unchecked", "rawtypes" } )
     public AudioPacket( long pointer, 
-                        RefPool<? super AudioPacket> pool )
+                        ObjectPool<? super AudioPacket> pool )
     {
-        super( pointer, (RefPool)pool );
+        super( pointer, (ObjectPool)pool );
     }
     
     

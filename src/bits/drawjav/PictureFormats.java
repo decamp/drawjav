@@ -51,8 +51,6 @@ public final class PictureFormats {
 
     
     public static PictureFormat merge( PictureFormat fmt, PictureFormat req ) { 
-        PictureFormat format = null;
-        
         if( fmt == null ) {
             if( req == null ) {
                 return new PictureFormat( -1, -1, Jav.AV_PIX_FMT_NONE );

@@ -1,7 +1,7 @@
 package bits.drawjav;
 
-import bits.langx.ref.Refable;
 import bits.microtime.TimeRanged;
+import bits.util.ref.Refable;
 
 /**
  * @author decamp

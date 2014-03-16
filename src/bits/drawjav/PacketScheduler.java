@@ -5,8 +5,8 @@ import java.nio.channels.ClosedChannelException;
 import java.util.*;
 import java.util.logging.*;
 
-import bits.clocks.*;
-import bits.langx.ref.*;
+import bits.microtime.*;
+import bits.util.ref.*;
 
 
 /**
@@ -181,7 +181,8 @@ public class PacketScheduler {
     private static final class Pipe extends DoubleLinkedNode implements Sink, ObjectPool<Command> {
         
         static int sIndex = 0;
-        
+
+        @SuppressWarnings( "unused" )
         final int mIndex;
         final PlayClock mClock;
         final TimedMultiQueue mQueue;
@@ -189,6 +190,8 @@ public class PacketScheduler {
         final Object mChannel;
         final Sink mSink;
         final ThreadLock mLock;
+        
+        @SuppressWarnings( "unused" )
         final boolean mRushFirstVideoFrame;
         
         boolean mClosed = false;
@@ -266,6 +269,8 @@ public class PacketScheduler {
                     return;
                 }
 
+                //TODO: Check if this should be:
+                // mNeedRush = mRushFirstVideoFrame;
                 mNeedRush = true;
                 Command command = poll();
                 command.mCommandCode = COMMAND_CLEAR;
@@ -346,7 +351,7 @@ public class PacketScheduler {
             }
 
             Command c = mPool;
-            mPool = (Command)c.mPoolNext;
+            mPool = c.mPoolNext;
             mPoolSize--;
             c.ref();
             return c;

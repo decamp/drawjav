@@ -1,6 +1,6 @@
 package bits.drawjav;
 
-import bits.data.Guid;
+import bits.util.Guid;
 
 /**
  * @author decamp

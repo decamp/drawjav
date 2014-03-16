@@ -207,27 +207,5 @@ class TimedMultiQueue<T extends TimedNode> {
         
     }
     
-
-
-    private static class Val extends HeapNode implements Comparable<Val> {
-        
-        public int mNum;
-        
-        public Val( int num ) {
-            mNum = num;
-        }
-        
-        public int compareTo( Val v ) {
-            return mNum < v.mNum ? -1 :
-                   mNum > v.mNum ?  1 : 0;
-            
-        }
-
-        public String toString() {
-            return "" + mNum;
-        }
-        
-    }
-
 }
 

@@ -241,7 +241,7 @@ public class OneToManyFormatter implements Sink<Packet> {
                     // If not, we may end up doing redundant conversions, but 
                     // better than breaking.
                     destFormat = conv.destFormat();
-                    formatNode = new FormatNode( destFormat, conv, caster );
+                    formatNode = new FormatNode( conv, caster );
                     addNode( destFormat, formatNode );
                     
                 } else {
@@ -250,7 +250,7 @@ public class OneToManyFormatter implements Sink<Packet> {
                                                                       (AudioFormat)destFormat,
                                                                       mAudioPoolCap );
                     destFormat = conv.destFormat();
-                    formatNode = new FormatNode( destFormat, conv, caster );
+                    formatNode = new FormatNode( conv, caster );
                     addNode( destFormat, formatNode );
                 }
             }
@@ -282,18 +282,14 @@ public class OneToManyFormatter implements Sink<Packet> {
     
     private static class FormatNode<T> {
         
-        final Object mDestFormat;
         final Sink<T> mSink;
         final SinkCaster<T> mCaster;
         
-        
-        FormatNode( Object destFormat,
-                    Sink<T> sink, 
+        FormatNode( Sink<T> sink, 
                     SinkCaster<T> caster )
         {
-            mDestFormat    = destFormat;
-            mSink          = sink;
-            mCaster        = caster;
+            mSink   = sink;
+            mCaster = caster;
         }
     }        
     

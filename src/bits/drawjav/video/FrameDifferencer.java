@@ -3,7 +3,7 @@ package bits.drawjav.video;
 import java.io.IOException;
 
 import bits.drawjav.Sink;
-import bits.langx.ref.*;
+import bits.util.ref.*;
 
 
 /**
@@ -14,7 +14,7 @@ import bits.langx.ref.*;
  */
 public class FrameDifferencer implements Sink<IntFrame> {
 
-    private final RefPool<IntFrame> mPool = new SoftRefPool<IntFrame>( 8 );
+    private final ObjectPool<IntFrame> mPool = new SoftPool<IntFrame>( 8 );
     private final Sink<? super IntFrame> mSink;
     private final double mGamma;
     private final double mThresh;

@@ -3,7 +3,6 @@ package bits.drawjav.video;
 import bits.drawjav.*;
 import bits.jav.*;
 import bits.jav.swscale.*;
-import bits.jav.util.Rational;
 
 
 /**
@@ -19,8 +18,6 @@ public class VideoPacketResampler {
     private PictureFormat      mSourceFormat    = null;
     private PictureFormat      mRequestedFormat = null;
     private PictureFormat      mDestFormat      = null;
-
-    private Rational           mSampleAspect    = null;
     private int                mConversionFlags = Jav.SWS_FAST_BILINEAR;
     
     private boolean            mNeedsInit       = false;

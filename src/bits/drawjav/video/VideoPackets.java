@@ -29,7 +29,6 @@ public class VideoPackets {
         final PictureFormat format = frame.pictureFormat();
         final int w = format.width();
         final int h = ( yStart < yStop ) ? yStop - yStart : yStart - yStop;
-        final int inHeight = format.height();
         
         RowReader reader = readerFor( format.pixelFormat() );
         if( reader == null ) {

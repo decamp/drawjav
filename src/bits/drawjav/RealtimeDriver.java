@@ -2,7 +2,8 @@ package bits.drawjav;
 
 import java.io.*;
 import java.util.logging.*;
-import bits.clocks.*;
+
+import bits.microtime.*;
 
 /**
  * Handles realtime processing of one source.

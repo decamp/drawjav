@@ -198,7 +198,7 @@ public class VideoTexture implements TextureNode, Sink<VideoPacket> {
             return;
         }
         
-        boolean buffer = queueBuffer( gl );
+        boolean buffer = queueBuffer();
         gl.glBindTexture( GL_TEXTURE_2D, mId[0] );
         if( buffer ) {
             doBuffer( gl );
@@ -220,7 +220,7 @@ public class VideoTexture implements TextureNode, Sink<VideoPacket> {
             return;
         }
         
-        boolean buffer = queueBuffer( gl );
+        boolean buffer = queueBuffer();
         gl.glBindTexture( GL_TEXTURE_2D, mId[0] );
         gl.glEnable( GL_TEXTURE_2D );
         if( buffer ) {
@@ -282,7 +282,7 @@ public class VideoTexture implements TextureNode, Sink<VideoPacket> {
     }
     
     
-    private synchronized boolean queueBuffer( GL gl ) {
+    private synchronized boolean queueBuffer() {
         if( mNextFrame == null || mCurrentFrame == mNextFrame ) {
             return false;
         }

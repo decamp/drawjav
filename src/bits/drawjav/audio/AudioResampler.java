@@ -196,17 +196,13 @@ public class AudioResampler {
 
     
     
-    private int checkLength( int sourceLength ) {
-        if( mPools[0].mFill < mTaps ) {
-            sourceLength -= mTaps - mPools[0].mFill;
-        }
-        return ( sourceLength * mOutFreq - mPools[0].mOffset + mInFreq - 1 ) / mInFreq;
-    }
-    
-    
     private int push( Pool pool,
-                      float[] source, int sourceOff, int sourceStep,
-                      float[] dest, int destOff, int destStep, 
+                      float[] source, 
+                      int sourceOff, 
+                      int sourceStep,
+                      float[] dest, 
+                      int destOff, 
+                      int destStep, 
                       int sourceLength )
     {
 //      assert(pool->mFill);
@@ -406,5 +402,4 @@ public class AudioResampler {
         }
     }
 
-    
 }

@@ -1,9 +1,9 @@
 package bits.drawjav.audio;
 
-import bits.clocks.*;
 import bits.drawjav.*;
 import bits.drawjav.AudioFormat;
 import bits.jav.Jav;
+import bits.microtime.*;
 
 import java.io.*;
 import java.nio.FloatBuffer;
@@ -30,7 +30,7 @@ public class AudioLinePlayer implements Sink<AudioPacket>, PlayControl {
     private int mBufIndex;
     private int mBufSize;
 
-    private final PlayClockChanger mState;
+    private final FullClock mState;
     private boolean mClosed = false;
     private boolean mStateChanged = false;
     
@@ -62,7 +62,7 @@ public class AudioLinePlayer implements Sink<AudioPacket>, PlayControl {
             clock = Clock.SYSTEM_CLOCK;
         }
             
-        mState = new PlayClockChanger( clock );
+        mState = new FullClock( clock );
         DataLine.Info info = new DataLine.Info( SourceDataLine.class, mFormat, LINE_BUFFER_SIZE );
         
         try {
@@ -99,6 +99,7 @@ public class AudioLinePlayer implements Sink<AudioPacket>, PlayControl {
     }
     
     
+    @SuppressWarnings( "unused" )    
     public synchronized void close( long execTimeMicros ) {
         mClosed = true;
         mStateChanged = true;
@@ -119,7 +120,8 @@ public class AudioLinePlayer implements Sink<AudioPacket>, PlayControl {
         notifyAll();
     }
 
-    
+
+    @SuppressWarnings( "unused" )
     public synchronized void setVolume( long execTimeMicros, double volume ) {
         double gain = 20.0 * Math.log10( volume );
         mGainControl.setValue( (float) gain );

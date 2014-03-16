@@ -21,8 +21,6 @@ public class VideoPanel extends JPanel implements Sink<VideoPacket> {
 
     private final VideoPacketResampler mResampler = new VideoPacketResampler( 8 );
     private VideoPacket mSrc         = null;
-    private PictureFormat mSrcFormat = null;
-    private PictureFormat mDstFormat = null;
     private BufferedImage mImage     = null;
     private int[] mRow               = null;
     

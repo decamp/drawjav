@@ -4,7 +4,7 @@ import java.nio.*;
 
 import bits.jav.JavException;
 import bits.jav.codec.*;
-import bits.langx.ref.*;
+import bits.util.ref.*;
 
 
 /**
@@ -13,7 +13,7 @@ import bits.langx.ref.*;
 public class VideoPacket extends JavFrame implements Packet {
     
     
-    public static VideoPacket alloc( RefPool<? super VideoPacket> pool ) {
+    public static VideoPacket alloc( ObjectPool<? super VideoPacket> pool ) {
         long p = nAllocFrame();
         if( p == 0 ) {
             throw new OutOfMemoryError( "Allocation failed." );
@@ -22,7 +22,7 @@ public class VideoPacket extends JavFrame implements Packet {
     }
     
     
-    public static VideoPacket allocFill( RefPool<? super VideoPacket> pool,
+    public static VideoPacket allocFill( ObjectPool<? super VideoPacket> pool,
                                          PictureFormat format )
                                          throws JavException
     {
@@ -33,7 +33,7 @@ public class VideoPacket extends JavFrame implements Packet {
     }
     
     
-    public static VideoPacket allocFill( RefPool<? super VideoPacket> pool, 
+    public static VideoPacket allocFill( ObjectPool<? super VideoPacket> pool, 
                                          PictureFormat format,
                                          ByteBuffer buf )
                                          throws JavException
@@ -59,8 +59,8 @@ public class VideoPacket extends JavFrame implements Packet {
     
     
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    private VideoPacket( long pointer, RefPool<? super VideoPacket> pool ) {
-        super( pointer, (RefPool)pool );
+    private VideoPacket( long pointer, ObjectPool<? super VideoPacket> pool ) {
+        super( pointer, (ObjectPool)pool );
     }
 
     

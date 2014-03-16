@@ -1,13 +1,10 @@
 package bits.drawjav;
 
 import java.io.*;
-import java.util.logging.*;
-
 import javax.media.opengl.GL;
 
-import bits.clocks.*;
 import bits.draw3d.nodes.DrawNodeAdapter;
-
+import bits.microtime.*;
 
 /**
  * Handles realtime processing of one source.
@@ -16,8 +13,6 @@ import bits.draw3d.nodes.DrawNodeAdapter;
  */
 public class SyncedDriver extends DrawNodeAdapter implements StreamDriver {
     
-        
-    private static Logger sLog = Logger.getLogger( SyncedDriver.class.getName() );
     
     private final PlayController mPlayCont;
     private final PassiveDriver mDriver;

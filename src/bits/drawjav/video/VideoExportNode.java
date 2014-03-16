@@ -3,18 +3,16 @@
 import java.io.*;
 import java.nio.*;
 import java.util.*;
-import java.util.logging.Logger;
 
 import javax.media.opengl.*;
 import static javax.media.opengl.GL.*;
 
-import bits.clocks.Clock;
-import bits.data.RingList;
+import bits.collect.RingList;
 import bits.draw3d.nodes.DrawNode;
 import bits.jav.util.Rational;
-import bits.langx.ref.*;
-import bits.microtime.TimeRanged;
-import bits.prototype.Files;
+import bits.microtime.*;
+import bits.util.Files;
+import bits.util.ref.*;
 
 
 /**
@@ -42,8 +40,7 @@ public class VideoExportNode implements DrawNode {
     
     
     private static final int MAX_QUEUE_SIZE = 2;
-    private static Logger sLog = Logger.getLogger( VideoExportNode.class.getName() );
-
+    
     private final Clock mClock;
     private final PriorityQueue<Stream> mNewStreams = new PriorityQueue<Stream>();
     private final List<Stream> mStreams = new ArrayList<Stream>();
@@ -234,7 +231,6 @@ public class VideoExportNode implements DrawNode {
         private final FlushThread mFlusher;
         
         private ByteBuffer mFlipBuf = null;
-        private int mWidth;
         private int mRowSize;
         private int mHeight;
         private Thread mThread = null;
@@ -265,7 +261,6 @@ public class VideoExportNode implements DrawNode {
                     return false;
                 }
 
-                mWidth   = w;
                 mHeight  = h;
                 mRowSize = ( w * 3 + ROW_ALIGN - 1 ) / w * w;
                 mOut.size( w, h );
@@ -328,7 +323,6 @@ public class VideoExportNode implements DrawNode {
         
         private boolean process() throws IOException {
             ByteBuffer buf = null;
-            int w;
             int h;
             int stride;
             
@@ -343,7 +337,6 @@ public class VideoExportNode implements DrawNode {
                     return true;
                 }
                 
-                w = mWidth;
                 h = mHeight;
                 stride = mRowSize;
             }
@@ -372,7 +365,6 @@ public class VideoExportNode implements DrawNode {
             mOut.close();
             return false;
         }
-        
     }
     
     
@@ -383,9 +375,6 @@ public class VideoExportNode implements DrawNode {
         
         private final FrameReader mReader;
         private final FrameWriter mWriter;
-        
-        private int mWidth  = 0;
-        private int mHeight = 0;
         
         private final List<Runnable> mCompletionCallbacks = new ArrayList<Runnable>( 1 ); 
 

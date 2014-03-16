@@ -4,7 +4,8 @@ import java.io.*;
 import java.nio.channels.ClosedChannelException;
 import java.util.*;
 import java.util.logging.*;
-import bits.clocks.*;
+
+import bits.microtime.*;
 
 
 /**
@@ -49,6 +50,8 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
     private int mAudioQueueCap     = 16;
     
     private boolean mClosing       = false;
+    
+    @SuppressWarnings( "unused" )
     private boolean mCloseComplete = false;
     
     
@@ -328,12 +331,10 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
     
     private static final class SourceData extends HeapNode implements Comparable<SourceData> {
 
-        final Source mSource;
         final List<StreamHandle> mStreams;
         final PassiveDriver mDriver;
         
         SourceData( Source source ) {
-            mSource  = source;
             mStreams = source.streams();
             mDriver  = new PassiveDriver( source );
         }

@@ -51,8 +51,7 @@ public class AudioFormat {
     }
 
     /**
-     * @return sample format as found in JavConstants.AV_SAMPLE_FMT_NONE to
-     *         JavConstants.AV_SAMPLE_FMT_NB.
+     * @return sample format as found in JavConstants.AV_SAMPLE_FMT_NONE to JavConstants.AV_SAMPLE_FMT_NB.
      */
     public int sampleFormat() {
         return mSampleFormat;

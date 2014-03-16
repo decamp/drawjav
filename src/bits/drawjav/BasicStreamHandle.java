@@ -1,7 +1,8 @@
 package bits.drawjav;
 
 import java.io.IOException;
-import bits.data.Guid;
+
+import bits.util.Guid;
 
 /**
  * @author decamp
@@ -18,7 +19,7 @@ public class BasicStreamHandle implements StreamHandle {
                               PictureFormat pictureFormat, 
                               AudioFormat audioFormat ) 
     {
-        mGuid          = Guid.newInstance();
+        mGuid          = Guid.create();
         mType          = type;
         mPictureFormat = pictureFormat;
         mAudioFormat   = audioFormat;

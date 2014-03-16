@@ -6,7 +6,7 @@ import java.util.Random;
 import javax.media.opengl.*;
 import javax.swing.JFrame;
 
-import bits.clocks.*;
+import bits.microtime.*;
 
 import com.sun.opengl.util.Animator;
 
@@ -43,12 +43,8 @@ public class TestVideoExportNode {
     
     
     private static final class EventHandler implements GLEventListener {
-
         private final PlayController mPlayCont  = PlayController.newSteppingInstance( 0, 1001000000 / 30000 );
         private final VideoExportNode mExporter = new VideoExportNode( mPlayCont.clock() );
-        
-        private int mWidth = 0;
-        private int mHeight = 0;
         
         private final Random mRand = new Random( 0 );
 
@@ -104,8 +100,6 @@ public class TestVideoExportNode {
 
         @Override
         public void reshape( GLAutoDrawable glad, int x, int y, int w, int h ) {
-            mWidth  = w;
-            mHeight = h;
             mExporter.reshape( glad, x, y, w, h );
         }
 

@@ -3,9 +3,9 @@ package bits.drawjav.video;
 import java.io.*;
 import javax.swing.JFrame;
 
-import bits.clocks.PlayController;
 import bits.drawjav.*;
 import bits.jav.Jav;
+import bits.microtime.PlayController;
 
 
 /**
@@ -50,12 +50,11 @@ public class VideoPanelTest {
     
     
 
-    @SuppressWarnings( { "unchecked", "rawtypes" } )
+    @SuppressWarnings( { "unchecked", "rawtypes", "unused" } )
     private static final class DumbDriver extends Thread {
 
         private final Source mSource;
         private final Sink<Packet> mSink;
-        
         
         public DumbDriver( Source source, Sink sink ) {
             mSource = source;
@@ -83,9 +82,7 @@ public class VideoPanelTest {
                 }
             }
         }
-        
     }
-        
 
 }
 

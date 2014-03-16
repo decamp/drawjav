@@ -3,12 +3,12 @@ package bits.drawjav;
 import java.util.*;
 
 import bits.jav.JavException;
-import bits.langx.ref.RefPool;
+import bits.util.ref.ObjectPool;
 
 /**
  * @author decamp
  */
-public class VideoPacketFactory implements RefPool<VideoPacket> {
+public class VideoPacketFactory implements ObjectPool<VideoPacket> {
     
     private final PictureFormat mFormat;
     private final List<VideoPacket> mQueue = new ArrayList<VideoPacket>();

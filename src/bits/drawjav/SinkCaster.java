@@ -1,7 +1,8 @@
 package bits.drawjav;
 
 import java.io.*;
-import bits.data.ConcurrentBag;
+
+import bits.collect.ConcurrentBag;
 
 /**
  * Threadsafe structure for sending method calls to multiple sinks.

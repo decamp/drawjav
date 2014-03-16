@@ -4,7 +4,7 @@ import java.io.*;
 import java.nio.channels.ClosedChannelException;
 import java.util.logging.*;
 
-import bits.clocks.*;
+import bits.microtime.*;
 
 
 /**

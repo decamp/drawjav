@@ -3,9 +3,7 @@ package bits.drawjav.video;
 import java.io.IOException;
 
 import bits.drawjav.*;
-import bits.langx.ref.*;
-
-
+import bits.util.ref.*;
 
 /**
  * Converts JavFrames to IntFrames in video pipeline.
@@ -14,7 +12,7 @@ import bits.langx.ref.*;
  */
 public class JavToIntPipe implements Sink<VideoPacket> {
 
-    private final RefPool<IntFrame> mPool = new SoftRefPool<IntFrame>( 3 );
+    private final ObjectPool<IntFrame> mPool = new SoftPool<IntFrame>( 3 );
     private final Sink<? super IntFrame> mSink;
     private final int mCropTop;
     private final int mCropBottom;

@@ -17,7 +17,6 @@ public class PresentTimeTest {
         test1();
     }
     
-    
     static void test1() throws Exception {
         File file = new File( "resources_ext/video.mp4" );
         
@@ -39,7 +38,7 @@ public class PresentTimeTest {
             }
             
             int[] gotFrame = { 0 };
-            int n = codec.decodeVideo( packet, frame, gotFrame );
+            codec.decodeVideo( packet, frame, gotFrame );
             if( gotFrame[0] == 0 ) {
                 i--;
                 continue;

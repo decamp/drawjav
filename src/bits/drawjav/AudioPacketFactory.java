@@ -4,14 +4,14 @@ import java.io.Closeable;
 import java.util.*;
 
 import bits.jav.codec.JavFrame;
-import bits.langx.ref.RefPool;
+import bits.util.ref.ObjectPool;
 
 
 
 /**
  * @author decamp
  */
-public class AudioPacketFactory implements RefPool<AudioPacket>, Closeable {
+public class AudioPacketFactory implements ObjectPool<AudioPacket>, Closeable {
 
     
     private final List<AudioPacket> mQueue;
