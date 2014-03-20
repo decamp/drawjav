@@ -93,7 +93,6 @@ public class AudioPacketFactory implements ObjectPool<AudioPacket>, Closeable {
             return null;
         }
         AudioPacket p = mQueue.remove( n - 1 );
-        p.ref();
         return p;
     }
     
@@ -106,5 +105,4 @@ public class AudioPacketFactory implements ObjectPool<AudioPacket>, Closeable {
         mQueue.clear();
     }
     
-
 }

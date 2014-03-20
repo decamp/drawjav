@@ -73,9 +73,7 @@ public class AudioPacket extends JavFrame implements Packet {
     
     
     @SuppressWarnings( { "unchecked", "rawtypes" } )
-    public AudioPacket( long pointer, 
-                        ObjectPool<? super AudioPacket> pool )
-    {
+    public AudioPacket( long pointer, ObjectPool<? super AudioPacket> pool ) {
         super( pointer, (ObjectPool)pool );
     }
     

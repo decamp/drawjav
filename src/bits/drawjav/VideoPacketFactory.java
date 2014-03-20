@@ -48,7 +48,6 @@ public class VideoPacketFactory implements ObjectPool<VideoPacket> {
         }
         
         PictureFormat form = obj.pictureFormat();
-        
         if( mFormat == null || mFormat.equals( form ) ) {
             mQueue.add( obj );
             return true;
@@ -77,7 +76,6 @@ public class VideoPacketFactory implements ObjectPool<VideoPacket> {
         }
         
         VideoPacket p = mQueue.remove( n - 1 );
-        p.ref();
         return p;
     }
     

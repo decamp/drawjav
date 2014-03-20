@@ -9,8 +9,6 @@ import bits.util.ref.*;
  */
 public class IntFrame extends AbstractRefable {
     
-    private final ObjectPool<? super IntFrame> mPool;
-    
     public int[] mPix;
     public int mWidth;
     public int mHeight;
@@ -18,7 +16,7 @@ public class IntFrame extends AbstractRefable {
     
 
     public IntFrame( ObjectPool<? super IntFrame> pool ) {
-        mPool = pool;
+        super( pool );
     }
 
 
@@ -28,7 +26,7 @@ public class IntFrame extends AbstractRefable {
 
 
     public IntFrame( ObjectPool<? super IntFrame> pool, int[] pix, int w, int h, int s ) {
-        mPool = pool;
+        super( pool );
         mPix = pix;
         mWidth = w;
         mHeight = h;
@@ -48,10 +46,6 @@ public class IntFrame extends AbstractRefable {
     }
 
 
-    protected void freeObject() {
-        if( mPool != null ) {
-            mPool.offer( this );
-        }
-    }
+    protected void freeObject() {}
     
 }

@@ -195,7 +195,6 @@ public class PacketSchedulerTest {
             super( pool );
             mStream = stream;
             mMicros = micros;
-            //System.out.println( "alloc: PACKET" );
         }
         
         

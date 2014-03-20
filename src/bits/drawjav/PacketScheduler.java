@@ -353,7 +353,6 @@ public class PacketScheduler {
             Command c = mPool;
             mPool = c.mPoolNext;
             mPoolSize--;
-            c.ref();
             return c;
         }
         
@@ -436,7 +435,7 @@ public class PacketScheduler {
                     return;
                 }
                 
-                mRefCount = 0;
+                mRefCount = 1;
                 
                 if( mPacket != null ) {
                     mPacket.deref();
