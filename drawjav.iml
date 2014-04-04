@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="EclipseModuleManager">
+    <libelement value="jar://$MODULE_DIR$/lib/gluegen-rt.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/jogl.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/bits_collect.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/bits_util.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/bits_microtime.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/bits_math3d.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/bits_png.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/bits_draw3d.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/bits_jav.jar!/" />
+    <src_description expected_position="0">
+      <src_folder value="file://$MODULE_DIR$/src" expected_position="0" />
+      <src_folder value="file://$MODULE_DIR$/src_test" expected_position="1" />
+    </src_description>
+  </component>
+  <component name="NewModuleRootManager" inherit-compiler-output="false">
+    <output url="file://$MODULE_DIR$/build" />
+    <output-test url="file://$MODULE_DIR$/build_test" />
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src_test" isTestSource="true" />
+    </content>
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module-library">
+      <library name="gluegen-rt.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/gluegen-rt.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="jogl.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/jogl.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="bits_collect.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/bits_collect.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="bits_util.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/bits_util.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="bits_microtime.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/bits_microtime.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="bits_math3d.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/bits_math3d.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="bits_png.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/bits_png.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="bits_draw3d.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/bits_draw3d.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="module-library">
+      <library name="junit4">
+        <CLASSES>
+          <root url="jar://$APPLICATION_HOME_DIR$/lib/junit-4.10.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="bits_jav.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/bits_jav.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+  </component>
+</module>
+

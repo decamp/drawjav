@@ -55,8 +55,8 @@ public class TestVideoExportNode {
         EventHandler() {
             mPlayCont.control().playStart();
             try {
-                mExporter.addColorWriter( new File( "/tmp/testA.mp4" ), 20, mStartMicros, Long.MAX_VALUE );
-                mExporter.addColorWriter( new File( "/tmp/testB.mp4" ), 20, 2000000L, 4000000L );
+                mExporter.addColorWriter( new File( "/tmp/testA.mp4" ), 20, -1, mStartMicros, Long.MAX_VALUE );
+                mExporter.addColorWriter( new File( "/tmp/testB.mp4" ), -1, 10*1024*1024, 2000000L, 4000000L );
             } catch( IOException ex ) {
                 ex.printStackTrace();
             }

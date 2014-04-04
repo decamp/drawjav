@@ -70,22 +70,32 @@ public class VideoExportNode implements DrawNode {
      * Adds video capture. The video capture will terminate upon one of three events: <br/>
      * 1. The internal clock reaches or exceeds the provided <code>stopMicros</code> param. <br/>
      * 2. <code>close()</code> is called on the <code>java.io.Closeable</code> object returned by this method. <br/>
-     * 3. System shutdown, in which case a shutdown hook will attemp to terminate the video capture safely. <br/> 
-     * 
+     * 3. System shutdown, in which case a shutdown hook will attemp to terminate the video capture safely. <br/>
+     * <p>
+     * Encodings may have constant quality or constant bitrate, specified by the <code>quality</code> and
+     * <code>bitrate</code> parameters: <br/>
+     * quality &ge; 0 : Constant quality. <br/>
+     * quality &lt; 0, bitrate &ge; 0 : Constant bitrate. <br/>
+     * quality &lt; 0, bitrate &lt; 0 : Constant quality of 30.
+     *
      * @param outFile     File to write video to. IF outFile.exists(), the existing file will not
      *                    be modified in any way, and a unique number will be added to the 
      *                    filename used.
-     * @param quality     Quality of encoding. 0 = highest, 100 = lowest. Try 22.
+     * @param quality     Quality of encoding.  0 = highest, 100 = lowest. Negative = use constant bitrate.
+     *                    Default is 30 if both <code>quality</code> and <code>bitrate</code> parameters are negative.
+     * @param bitrate     Bit rate of encoding. Only used if quality is negative.
      * @param startMicros When video catpure should begin. Use Long.MIN_VALUE to begin immediately.
      * @param stopMicros  When video capture should end. Use Long.MAX_VALUE to capture without set duration.
      * @return object that may be closed (<code>object.close()</code>) to end video capture. 
      * 
      */
     public Job addColorWriter( File outFile,
-                                     int quality,
-                                     long startMicros,
-                                     long stopMicros )
-                                     throws IOException 
+                               int quality,
+                               int bitrate,
+                               long startMicros,
+                               long stopMicros )
+
+                               throws IOException
     {
         outFile = Files.setSuffix( outFile, "mp4" );
         
@@ -100,7 +110,9 @@ public class VideoExportNode implements DrawNode {
             do {
                 outFile = new File( outDir, String.format( "%s-%d.mp4", name, count++ ) );
             } while( outFile.exists() );
-            outFile.createNewFile();
+            if( !outFile.createNewFile() ) {
+                throw new IOException();
+            }
         }
         
         ObjectPool<ByteBuffer> pool = new HardPool<ByteBuffer>( MAX_QUEUE_SIZE + 1 );
@@ -279,7 +291,7 @@ public class VideoExportNode implements DrawNode {
                 }
                 try {
                     wait();
-                } catch( InterruptedException ex ) {}
+                } catch( InterruptedException ignored ) {}
             }
             
             mQueue.offer( buf );
@@ -308,7 +320,7 @@ public class VideoExportNode implements DrawNode {
         
         public void run() {
             try {
-                while( process() );
+                while( process() ) {}
             } catch( IOException ex ) {
                 ex.printStackTrace();
                 synchronized( this ) {
@@ -333,7 +345,7 @@ public class VideoExportNode implements DrawNode {
                 } else if( !mClosed ) {
                     try {
                         wait(); 
-                    } catch( InterruptedException ex ) {}
+                    } catch( InterruptedException ignored ) {}
                     return true;
                 }
                 
