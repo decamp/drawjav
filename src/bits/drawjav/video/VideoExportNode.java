@@ -2,6 +2,7 @@
 
 import java.io.*;
 import java.nio.*;
+import java.nio.channels.FileChannel;
 import java.util.*;
 
 import javax.media.opengl.*;
@@ -11,7 +12,10 @@ import bits.collect.RingList;
 import bits.draw3d.nodes.DrawNode;
 import bits.jav.util.Rational;
 import bits.microtime.*;
+import bits.png.NativeZLib;
+import bits.png.PngBufferWriter;
 import bits.util.Files;
+import bits.util.OutputFileNamer;
 import bits.util.ref.*;
 
 
@@ -20,7 +24,7 @@ import bits.util.ref.*;
  * Encoding is performed on separate thread for better performance.
  * Multiple video captures may be run in parallel.
  * Video captures may be scheduled at any time.
- * Video captures may be closed at any time using the Closeable handle provided by <code>addColorWriter</code>.
+ * Video captures may be closed at any time using the Closeable handle provided by <code>addVideoWriter</code>.
  * Video captures are closed automatically and safely on system exit events.
  * 
  * @author decamp
@@ -30,9 +34,16 @@ public class VideoExportNode implements DrawNode {
     public static final int QUALITY_HIGHEST = 100;
     public static final int QUALITY_LOWEST  = 0;
     public static final int QUALITY_DEFAULT = 30;
-    
+
+    public static final int PNG_COMPRESSION_NONE             = NativeZLib.Z_NO_COMPRESSION;
+    public static final int PNG_COMPRESSION_BEST_SPEED       = NativeZLib.Z_BEST_SPEED;
+    public static final int PNG_COMPRESSION_BEST_COMPRESSION = NativeZLib.Z_BEST_COMPRESSION;
+    public static final int PNG_COMPRESSION_DEFAULT          = NativeZLib.Z_DEFAULT_COMPRESSION;
+
     private static final int OVERHEAD  = 1024;
     private static final int ROW_ALIGN = 4;
+
+    private static final Double GAMMA = 1.0 / 2.2;
     
     
     public static VideoExportNode newInstance() {
@@ -90,7 +101,7 @@ public class VideoExportNode implements DrawNode {
      * @return object that may be closed (<code>object.close()</code>) to end video capture. 
      * 
      */
-    public Job addColorWriter( File outFile,
+    public Job addVideoWriter( File outFile,
                                int quality,
                                int bitrate,
                                long startMicros,
@@ -116,16 +127,56 @@ public class VideoExportNode implements DrawNode {
         }
         
         ObjectPool<ByteBuffer> pool = new HardPool<ByteBuffer>( MAX_QUEUE_SIZE + 1 );
-        ColorReader reader = new ColorReader( pool );
+        BgrReader reader = new BgrReader( pool );
         ColorWriter writer = new ColorWriter( outFile, quality, bitrate, 24, null, pool, mFlusher );
         Stream stream      = new Stream( startMicros, stopMicros, reader, writer );
         mNewStreams.offer( stream );
         
         return stream;
-    }    
-    
-    
-    
+    }
+
+
+    /**
+     * Adds video capture. The video capture will terminate upon one of three events: <br/>
+     * 1. The internal clock reaches or exceeds the provided <code>stopMicros</code> param. <br/>
+     * 2. <code>close()</code> is called on the <code>java.io.Closeable</code> object returned by this method. <br/>
+     * 3. System shutdown, in which case a shutdown hook will attemp to terminate the video capture safely. <br/>
+     * <p>
+     * Encodings may have constant quality or constant bitrate, specified by the <code>quality</code> and
+     * <code>bitrate</code> parameters: <br/>
+     * quality &ge; 0 : Constant quality. <br/>
+     * quality &lt; 0, bitrate &ge; 0 : Constant bitrate. <br/>
+     * quality &lt; 0, bitrate &lt; 0 : Constant quality of 30.
+     *
+     * @param outDir      Directory to store images in.
+     * @param compLevel   Compression level.
+     * @param startMicros When video catpure should begin. Use Long.MIN_VALUE to begin immediately.
+     * @param stopMicros  When video capture should end. Use Long.MAX_VALUE to capture without set duration.
+     * @return object that may be closed (<code>object.close()</code>) to end video capture.
+     *
+     */
+    public Job addPngWriter( File outDir,
+                             String fileName,
+                             int compLevel,
+                             long startMicros,
+                             long stopMicros )
+                             throws IOException
+    {
+        if( !outDir.exists() && !outDir.mkdirs() ) {
+            throw new IOException( "Failed to create dir: " + outDir.getPath() );
+        }
+
+        OutputFileNamer namer       = new OutputFileNamer( outDir, fileName, ".png", 5 );
+        ObjectPool<ByteBuffer> pool = new HardPool<ByteBuffer>( MAX_QUEUE_SIZE + 1 );
+        RgbReader reader            = new RgbReader( pool );
+        PngEncoder writer           = new PngEncoder( pool, namer, compLevel, mFlusher );
+        Stream stream               = new Stream( startMicros, stopMicros, reader, writer );
+        mNewStreams.offer( stream );
+
+        return stream;
+    }
+
+
     @Override
     public void init( GLAutoDrawable glad ) {
         mDoubleBuffered = glad.getChosenGLCapabilities().getDoubleBuffered();
@@ -198,11 +249,11 @@ public class VideoExportNode implements DrawNode {
     }
 
     
-    private final class ColorReader implements FrameReader {
+    private final class BgrReader implements FrameReader {
         
         private final ObjectPool<ByteBuffer> mPool;
         
-        public ColorReader( ObjectPool<ByteBuffer> pool ) {
+        public BgrReader( ObjectPool<ByteBuffer> pool ) {
             mPool = pool;
         }
         
@@ -231,6 +282,42 @@ public class VideoExportNode implements DrawNode {
             return buf;
         }
         
+    }
+
+
+    private final class RgbReader implements FrameReader {
+
+        private final ObjectPool<ByteBuffer> mPool;
+
+        public RgbReader( ObjectPool<ByteBuffer> pool ) {
+            mPool = pool;
+        }
+
+        public ByteBuffer readFrame( GL gl, int w, int h ) {
+            int rowBytes = ( w * 3 + ROW_ALIGN - 1 ) / ROW_ALIGN * ROW_ALIGN;
+            int cap = rowBytes * h + OVERHEAD;
+
+            ByteBuffer buf = mPool.poll();
+            if( buf == null || buf.capacity() < cap ) {
+                buf = ByteBuffer.allocateDirect( cap );
+            } else {
+                buf.clear();
+            }
+
+            buf.order( ByteOrder.nativeOrder() );
+
+            if( mReadTarget != null ) {
+                gl.glReadBuffer( mReadTarget );
+            } else {
+                gl.glReadBuffer( mDoubleBuffered ? GL_BACK : GL_FRONT );
+            }
+
+            gl.glPixelStorei( GL_PACK_ALIGNMENT, ROW_ALIGN );
+            gl.glReadPixels( 0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, buf );
+            buf.position( 0 ).limit( rowBytes * h );
+            return buf;
+        }
+
     }
     
     
@@ -386,7 +473,175 @@ public class VideoExportNode implements DrawNode {
             return false;
         }
     }
-    
+
+
+    private static final class PngEncoder implements FrameWriter, Runnable {
+
+        private final PngBufferWriter mComp = new PngBufferWriter();
+        private final ObjectPool<ByteBuffer> mPool;
+        private final OutputFileNamer mNamer;
+        private final int mCompLevel;
+        private final FlushThread mFlusher;
+
+        private Thread mThread = null;
+        private boolean mClosed = false;
+
+        private final Queue<ByteBuffer> mQueue = new RingList<ByteBuffer>( 4 );
+        private int mWidth;
+        private int mRowSize;
+        private int mHeight;
+        private ByteBuffer mDstBuf;
+
+
+        PngEncoder( ObjectPool<ByteBuffer> pool,
+                    OutputFileNamer namer,
+                    int compLevel,
+                    FlushThread flusher )
+
+        {
+            mNamer     = namer;
+            mPool      = pool;
+            mCompLevel = compLevel;
+            mFlusher   = flusher;
+        }
+
+
+        public synchronized boolean offer( ByteBuffer buf, int w, int h ) throws IOException {
+            if( mThread == null ) {
+                if( mClosed ) {
+                    return false;
+                }
+
+                mWidth  = w;
+                mHeight = h;
+                mRowSize = ( w * 3 + ROW_ALIGN - 1 ) / w * w;
+                mThread = new Thread( this );
+                mThread.setName( "Png Encoder" );
+                mThread.setDaemon( true );
+                mFlusher.add( this );
+                mThread.start();
+            }
+
+            // Wait for opening.
+            while( mQueue.size() >= MAX_QUEUE_SIZE ) {
+                if( mClosed ) {
+                    return false;
+                }
+                try {
+                    wait();
+                } catch( InterruptedException ignored ) {}
+            }
+
+            mQueue.offer( buf );
+            notifyAll();
+            return true;
+        }
+
+
+        public synchronized void close() {
+            if( mClosed ) {
+                return;
+            }
+            mClosed = true;
+            notifyAll();
+        }
+
+
+        public void join() throws InterruptedException {
+            Thread t = mThread;
+            if( t == null ) {
+                return;
+            }
+            t.join();
+        }
+
+
+        public void run() {
+            try {
+                while( process() );
+            } catch( IOException ex ) {
+                ex.printStackTrace();
+                synchronized( this ) {
+                    mClosed = true;
+                    notifyAll();
+                }
+            } finally {
+                mFlusher.remove( this );
+            }
+        }
+
+        private boolean process() throws IOException {
+            ByteBuffer buf = null;
+            int w;
+            int h;
+            int rowSize;
+
+            synchronized( this ) {
+                if( !mQueue.isEmpty() ) {
+                    buf = mQueue.remove();
+                    notifyAll();
+                } else if( !mClosed ) {
+                    try {
+                        wait();
+                    } catch( InterruptedException ignored ){}
+                    return true;
+                }
+
+                w = mWidth;
+                h = mHeight;
+                rowSize = mRowSize;
+            }
+
+            if( buf == null ) {
+                return false;
+            }
+
+            int p0  = buf.position();
+            //int p1  = p0 + w * h * 3;
+            int cap = rowSize * h * 3;
+            ByteBuffer dst = mDstBuf;
+
+            if( dst == null || dst.capacity() < cap ) {
+                dst = ByteBuffer.allocateDirect( cap + OVERHEAD );
+                dst.order( ByteOrder.BIG_ENDIAN );
+                mDstBuf = dst;
+            }else{
+                dst.clear();
+            }
+
+            mComp.open( dst, w, h, PngBufferWriter.COLOR_TYPE_RGB, 8, mCompLevel, GAMMA );
+            for( int y = 0; y < h; y++ ) {
+                int m0 = p0 + (h - y - 1) * rowSize;
+                int m1 = m0 + w * 3;
+                buf.position( 0 ).limit( m1 ).position( m0 );
+                mComp.writeData( buf );
+            }
+            mComp.close();
+            dst.flip();
+
+            if( mPool != null ) {
+                mPool.offer( buf );
+            }
+
+            File outFile = mNamer.next();
+            if( !outFile.getParentFile().exists() ) {
+                outFile.getParentFile().mkdirs();
+            }
+
+            FileChannel out = new FileOutputStream( outFile ).getChannel();
+            while( dst.remaining() > 0 ) {
+                int n = out.write( dst );
+                if( n <= 0 ) {
+                    throw new IOException( "Write failed." );
+                }
+            }
+            out.close();
+
+            return true;
+        }
+
+    }
+
     
     private static final class Stream implements Comparable<Stream>, Job { 
         
@@ -519,3 +774,6 @@ public class VideoExportNode implements DrawNode {
     }
     
 }
+
+
+

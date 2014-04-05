@@ -74,7 +74,7 @@ public class Mp4Writer {
         mEncMode = CONSTANT_BIT_RATE;
         return this;
     }
-    
+
     /**
      * @param quality Number between 0 (highest quality) and 100 (lowest quality). <br/> 
      *                Sets Mp4Writer to use encode using constant quality (Variable Bit Rate). <br/>
@@ -85,7 +85,7 @@ public class Mp4Writer {
         mQuality = quality;
         return this;
     }
-        
+
     /**
      * @param gopSize  Number of frames in group before new keyframe. Default is 24.
      * @return this
@@ -117,20 +117,25 @@ public class Mp4Writer {
         mCc.gopSize( mGopSize );
         mCc.maxBFrames( 0 );
         mCc.pixelFormat( Jav.AV_PIX_FMT_YUV420P );
-        
+
         if( ( outFmt.flags() & Jav.AVFMT_GLOBALHEADER ) != 0 ) {
             mCc.flags( mCc.flags() | Jav.CODEC_FLAG_GLOBAL_HEADER );
         }
         
         {   // Codec specific settings.
             JavClass priv = mCc.privData();
-        
             if( mEncMode == CONSTANT_BIT_RATE ) {
+                mCc.qmin( 20 );
+                mCc.qmax( 60 );
                 mCc.bitRate( mBitRate );
+                mCc.rcMaxRate( mBitRate * 3 / 2 );
+                mCc.rcBufferSize( mBitRate * 3 ) ;
+                JavOption.setOptionString( priv, "preset", "slow", 0 );
             } else {
                 JavOption.setOptionDouble( priv, "crf", mQuality, 0 );
+                JavOption.setOptionString( priv, "preset", "slow", 0 );
             }
-            JavOption.setOptionString( priv, "preset", "slow", 0 );
+
         }
         
         mCc.open( codec );
@@ -221,6 +226,6 @@ public class Mp4Writer {
         }
         
     }
-    
+
     
 }

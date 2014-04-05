@@ -17,7 +17,6 @@ import static javax.media.opengl.GL.*;
 */
 public class TestVideoExportNode {
 
-
     public static void main( String[] args ) throws Exception {
         test1();
     }
@@ -55,8 +54,13 @@ public class TestVideoExportNode {
         EventHandler() {
             mPlayCont.control().playStart();
             try {
-                mExporter.addColorWriter( new File( "/tmp/testA.mp4" ), 20, -1, mStartMicros, Long.MAX_VALUE );
-                mExporter.addColorWriter( new File( "/tmp/testB.mp4" ), -1, 10*1024*1024, 2000000L, 4000000L );
+                mExporter.addVideoWriter( new File( "/tmp/testA.mp4" ), 20, -1, mStartMicros, Long.MAX_VALUE );
+                //mExporter.addVideoWriter( new File( "/tmp/testB.mp4" ), -1, 10*1024*1024, 2000000L, 4000000L );
+                mExporter.addPngWriter( new File( "/tmp/testC" ),
+                                        "cc",
+                                        VideoExportNode.PNG_COMPRESSION_BEST_SPEED,
+                                        mStartMicros,
+                                        mStartMicros + 30000000L );
             } catch( IOException ex ) {
                 ex.printStackTrace();
             }
