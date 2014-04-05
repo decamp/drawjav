@@ -94,7 +94,6 @@ public class VideoExportNode implements DrawNode {
                                int bitrate,
                                long startMicros,
                                long stopMicros )
-
                                throws IOException
     {
         outFile = Files.setSuffix( outFile, "mp4" );
@@ -103,7 +102,7 @@ public class VideoExportNode implements DrawNode {
         if( !outDir.exists() && !outDir.mkdirs() ) {
             throw new IOException( "Failed to create dir: " + outDir.getPath() );
         }
-        
+
         if( outFile.exists() ) {
             int count = 0;
             String name = Files.baseName( outFile );
@@ -117,7 +116,7 @@ public class VideoExportNode implements DrawNode {
         
         ObjectPool<ByteBuffer> pool = new HardPool<ByteBuffer>( MAX_QUEUE_SIZE + 1 );
         ColorReader reader = new ColorReader( pool );
-        ColorWriter writer = new ColorWriter( outFile, quality, 24, null, pool, mFlusher );
+        ColorWriter writer = new ColorWriter( outFile, quality, bitrate, 24, null, pool, mFlusher );
         Stream stream      = new Stream( startMicros, stopMicros, reader, writer );
         mNewStreams.offer( stream );
         
@@ -250,14 +249,22 @@ public class VideoExportNode implements DrawNode {
         
         
         public ColorWriter( File outFile, 
-                            int quality, 
+                            int quality,
+                            int bitrate,
                             int gopSize,
                             Rational optTimeBase,
                             ObjectPool<ByteBuffer> pool,
                             FlushThread flusher )
         {
             mOutFile    = outFile;
-            mOut.quality( quality );
+            if( bitrate >= 0 ) {
+                mOut.bitrate( bitrate );
+            } else if( quality >= 0 ) {
+                mOut.quality( quality );
+            } else {
+                mOut.quality( 30 );
+            }
+
             mOut.gopSize( gopSize );
             if( optTimeBase != null ) {
                 mOut.timeBase( optTimeBase );
