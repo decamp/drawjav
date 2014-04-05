@@ -29,6 +29,7 @@ public class VideoExportNode implements DrawNode {
     
     public static final int QUALITY_HIGHEST = 100;
     public static final int QUALITY_LOWEST  = 0;
+    public static final int QUALITY_DEFAULT = 30;
     
     private static final int OVERHEAD  = 1024;
     private static final int ROW_ALIGN = 4;
@@ -262,7 +263,7 @@ public class VideoExportNode implements DrawNode {
             } else if( quality >= 0 ) {
                 mOut.quality( quality );
             } else {
-                mOut.quality( 30 );
+                mOut.quality( QUALITY_DEFAULT );
             }
 
             mOut.gopSize( gopSize );
