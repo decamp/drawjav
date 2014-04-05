@@ -258,10 +258,10 @@ public class VideoExportNode implements DrawNode {
                             FlushThread flusher )
         {
             mOutFile    = outFile;
-            if( bitrate >= 0 ) {
-                mOut.bitrate( bitrate );
-            } else if( quality >= 0 ) {
+            if( quality >= 0 ) {
                 mOut.quality( quality );
+            } else if( bitrate >= 0 ) {
+                mOut.bitrate( bitrate );
             } else {
                 mOut.quality( QUALITY_DEFAULT );
             }
