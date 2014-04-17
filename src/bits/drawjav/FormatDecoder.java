@@ -143,12 +143,10 @@ public class FormatDecoder implements Source {
         return mStreams.length;
     }
 
-
     @Override
     public StreamHandle stream( int index ) {
         return mStreams[index];
     }
-
 
     @Override
     public StreamHandle stream( Guid guid ) {
@@ -173,7 +171,6 @@ public class FormatDecoder implements Source {
         return null;
     }
 
-
     @Override
     @SuppressWarnings( { "rawtypes", "unchecked" } )
     public List<StreamHandle> streams() {
@@ -184,7 +181,6 @@ public class FormatDecoder implements Source {
     public JavFormatContext formatContext() {
         return mFormat;
     }
-
 
     @Override
     public void openStream( StreamHandle stream ) throws JavException {
@@ -204,7 +200,6 @@ public class FormatDecoder implements Source {
         }
     }
 
-
     @Override
     public void closeStream( StreamHandle stream ) throws IOException {
         Stream ss = mStreams[((Stream)stream).index()];
@@ -216,7 +211,6 @@ public class FormatDecoder implements Source {
             updateDefaultStream();
         }
     }
-
 
     @Override
     public void seek( long micros ) throws JavException {
@@ -244,7 +238,6 @@ public class FormatDecoder implements Source {
         mPacketValid = false;
         mFlushStream = 0;
     }
-
 
     @Override
     public Packet readNext() throws IOException {
@@ -278,12 +271,10 @@ public class FormatDecoder implements Source {
         return ret;
     }
 
-
     @Override
     public boolean isOpen() {
         return mDefaultStream != null;
     }
-
 
     @Override
     public void close() throws IOException {

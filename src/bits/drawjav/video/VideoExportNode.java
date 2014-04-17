@@ -24,7 +24,7 @@ import bits.util.ref.*;
  * Encoding is performed on separate thread for better performance.
  * Multiple video captures may be run in parallel.
  * Video captures may be scheduled at any time.
- * Video captures may be closed at any time using the Closeable handle provided by <code>addVideoWriter</code>.
+ * Video captures may be closed at any time using the Closeable handle provided by {@code stopMicros}.
  * Video captures are closed automatically and safely on system exit events.
  * 
  * @author decamp
@@ -71,8 +71,8 @@ public class VideoExportNode implements DrawNode {
     
     
     /**
-     * @param readTarget Specifies buffer to read data from. Must be GL_FRONT, GL_BACK, <code>null</code>.
-     *                   If <code>null</code>, a buffer will be selected automatically.
+     * @param readTarget Specifies buffer to read data from. Must be GL_FRONT, GL_BACK, {@code stopMicros}.
+     *                   If {@code stopMicros}, a buffer will be selected automatically.
      */
     public void readTarget( Integer readTarget ) {
         mReadTarget = readTarget;
@@ -80,25 +80,25 @@ public class VideoExportNode implements DrawNode {
     
     /**
      * Adds video capture. The video capture will terminate upon one of three events: <br/>
-     * 1. The internal clock reaches or exceeds the provided <code>stopMicros</code> param. <br/>
-     * 2. <code>close()</code> is called on the <code>java.io.Closeable</code> object returned by this method. <br/>
+     * 1. The internal clock reaches or exceeds the provided {@code stopMicros} param. <br/>
+     * 2. {@code close()} is called on the {@link java.io.Closeable} object returned by this method. <br/>
      * 3. System shutdown, in which case a shutdown hook will attemp to terminate the video capture safely. <br/>
      * <p>
-     * Encodings may have constant quality or constant bitrate, specified by the <code>quality</code> and
-     * <code>bitrate</code> parameters: <br/>
-     * quality &ge; 0 : Constant quality. <br/>
-     * quality &lt; 0, bitrate &ge; 0 : Constant bitrate. <br/>
-     * quality &lt; 0, bitrate &lt; 0 : Constant quality of 30.
+     * Encodings may have constant quality or constant bitrate, specified by the {@code quality} and
+     * {@code bitrate} parameters: <br/>
+     * {@code quality >= 0 } : Constant quality. <br/>
+     * {@code quality <  0, bitrate >= 0 }: Constant bitrate. <br/>
+     * {@code quality <  0, bitrate <  0 }: Constant quality of 30.
      *
      * @param outFile     File to write video to. IF outFile.exists(), the existing file will not
      *                    be modified in any way, and a unique number will be added to the 
      *                    filename used.
      * @param quality     Quality of encoding.  0 = highest, 100 = lowest. Negative = use constant bitrate.
-     *                    Default is 30 if both <code>quality</code> and <code>bitrate</code> parameters are negative.
+     *                    Default is 30 if both {@code quality} and {@code bitrate} parameters are negative.
      * @param bitrate     Bit rate of encoding. Only used if quality is negative.
      * @param startMicros When video catpure should begin. Use Long.MIN_VALUE to begin immediately.
      * @param stopMicros  When video capture should end. Use Long.MAX_VALUE to capture without set duration.
-     * @return object that may be closed (<code>object.close()</code>) to end video capture. 
+     * @return object that may be closed ({@link java.io.Closeable#close() object.close()}) to end video capture.
      * 
      */
     public Job addVideoWriter( File outFile,
@@ -138,21 +138,21 @@ public class VideoExportNode implements DrawNode {
 
     /**
      * Adds video capture. The video capture will terminate upon one of three events: <br/>
-     * 1. The internal clock reaches or exceeds the provided <code>stopMicros</code> param. <br/>
-     * 2. <code>close()</code> is called on the <code>java.io.Closeable</code> object returned by this method. <br/>
+     * 1. The internal clock reaches or exceeds the provided {@code stopMicros} param. <br/>
+     * 2. {@code close()} is called on the {@code java.io.Closeable} object returned by this method. <br/>
      * 3. System shutdown, in which case a shutdown hook will attemp to terminate the video capture safely. <br/>
      * <p>
-     * Encodings may have constant quality or constant bitrate, specified by the <code>quality</code> and
-     * <code>bitrate</code> parameters: <br/>
-     * quality &ge; 0 : Constant quality. <br/>
-     * quality &lt; 0, bitrate &ge; 0 : Constant bitrate. <br/>
-     * quality &lt; 0, bitrate &lt; 0 : Constant quality of 30.
+     * Encodings may have constant quality or constant bitrate, specified by the {@code quality} and
+     * {@code bitrate} parameters: <br/>
+     * {@code quality >= 0 }: Constant quality. <br/>
+     * {@code quality < 0, bitrate >= 0 }: Constant bitrate. <br/>
+     * {@code quality < 0, bitrate < 0 }: Constant quality of 30.
      *
      * @param outDir      Directory to store images in.
      * @param compLevel   Compression level.
      * @param startMicros When video catpure should begin. Use Long.MIN_VALUE to begin immediately.
      * @param stopMicros  When video capture should end. Use Long.MAX_VALUE to capture without set duration.
-     * @return object that may be closed (<code>object.close()</code>) to end video capture.
+     * @return object that may be closed ({@code object.close()}) to end video capture.
      *
      */
     public Job addPngWriter( File outDir,

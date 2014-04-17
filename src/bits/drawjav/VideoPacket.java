@@ -99,7 +99,7 @@ public class VideoPacket extends JavFrame implements Packet {
     /**
      * Initializes packet object. 
      * 
-     * @param frame
+     * @param stream
      * @param format
      * @param startMicros
      * @param stopMicros

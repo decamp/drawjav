@@ -19,12 +19,21 @@ public class BasicStreamHandle implements StreamHandle {
                               PictureFormat pictureFormat, 
                               AudioFormat audioFormat ) 
     {
-        mGuid          = Guid.create();
+        this( null, type, pictureFormat, audioFormat );
+    }
+
+
+    public BasicStreamHandle( Guid optGuid,
+                              int type,
+                              PictureFormat pictureFormat,
+                              AudioFormat audioFormat )
+    {
+        mGuid          = optGuid != null ? optGuid : Guid.create();
         mType          = type;
         mPictureFormat = pictureFormat;
         mAudioFormat   = audioFormat;
     }
-    
+
     
     public Guid guid() {
         return mGuid;

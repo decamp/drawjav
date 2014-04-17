@@ -28,13 +28,13 @@ public class AudioResampler {
     }
     
     /**
-     * @param inFreq        Input frequency of resampler. Must be greater than zero.
-     * @param outFreq       Output frequency of resampler. Must be greater than zero.
-     * @param numChannels   Number of channels of audio signal. All audio sample arres are interleaved. Must be greater than zero.
-     * @param gainMult      Amount by which to amplify audio signal.  Gain is multiplier, not decibels. Default is 1.0.
-     * @param cutoff        Not entirely sure. <code> 0.01 &lt; cutoff &lt;= 1.0 </code>  Default is 0.80.
-     * @param taps          Not entirely sure. <code> 2 &lt taps &lt;= 1000 </code> Default is 45.
-     * @param beta          Not entirely sure. <code> beta &gt 16.0 </code> Default is 16.0.
+     * @param inFreq       Input frequency of resampler. Must be greater than zero.
+     * @param outFreq      Output frequency of resampler. Must be greater than zero.
+     * @param numChannels  Number of channels of audio signal. All audio sample arres are interleaved. Must be greater than zero.
+     * @param gain         Amount by which to amplify audio signal.  Gain is multiplier, not decibels. Default is 1.0.
+     * @param cutoff       Not entirely sure. {@code  0.01 < cutoff <= 1.0 }  Default is 0.80.
+     * @param taps         Not entirely sure. {@code  2 < taps <= 1000 } Default is 45.
+     * @param beta         Not entirely sure. {@code  beta > 16.0 } Default is 16.0.
      */
     public AudioResampler( int inFreq, 
                            int outFreq, 
@@ -125,7 +125,7 @@ public class AudioResampler {
     }
         
     /**
-     * @param maxOutput Size of an output buffer.
+     * @param outSize Size of an output buffer.
      * @return the maximum number of input samples that can be processed and
      * stored in a buffer of maxOutput samples.
      */

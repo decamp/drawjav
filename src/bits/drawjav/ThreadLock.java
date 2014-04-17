@@ -17,7 +17,7 @@ public class ThreadLock {
     
     
     /**
-     * Equivalent to <code>wait()</code>.
+     * Equivalent to {@code wait()}.
      * 
      * @throws InterruptedIOException
      */
@@ -38,7 +38,7 @@ public class ThreadLock {
     }
     
     /**
-     * Equivalent to <code>wait()</code>.
+     * Equivalent to {@code wait()}.
      * 
      * @param micros  Max number of milliseconds to wait.
      * @throws InterruptedIOException
@@ -60,7 +60,7 @@ public class ThreadLock {
     }
 
     /**
-     * Equivalent to <code>notify()</code>.
+     * Equivalent to {@code notify()}.
      */
     public synchronized void unblock() {
         notifyAll();
