@@ -3,18 +3,20 @@ package bits.drawjav;
 import bits.jav.Jav;
 import bits.jav.util.Rational;
 
-public class PacketTimer {
+class PacketTimer {
 
     private static final long NAN = Jav.AV_NOPTS_VALUE;
-    
+    private static final Rational MICROS = new Rational( 1, 1000000 );
+
+    private final Rational mTimeBase;
     private final Rational mMicrosPerPts;
-    
+
     // Changed only on init()
     private long mStartPts;
     private long mStartMicros;
     private long mSyncThreshPts;
     private long mSyncThreshMicros = 2000000L;
-    
+
     // Estimates of acutal start pts and micros.
     private long mOffsetPts;
     private long mOffsetMicros;
@@ -25,16 +27,16 @@ public class PacketTimer {
     // Indicates seek was performed and timestamps need to be recomputed.
     private boolean mNeedSync = true;
     private long mSyncPts;
-    
-    
-    
+
+
     public PacketTimer( Rational timeBase ) {
         this( timeBase, 0, 0 );
     }
-    
+
     
     public PacketTimer( Rational timeBase, long startPts, long startMicros ) {
-        mMicrosPerPts  = Rational.reduce( timeBase.num() * 1000000, timeBase.den() );
+        mTimeBase     = timeBase.reduce();
+        mMicrosPerPts = Rational.reduce( timeBase.num() * 1000000, timeBase.den() );
         init( startPts, startMicros );
     }
     
@@ -64,7 +66,7 @@ public class PacketTimer {
         if( pts == NAN ) {
             return Long.MIN_VALUE;
         }
-        return ( pts - mStartPts ) * mMicrosPerPts.num() / mMicrosPerPts.den() + mStartMicros;
+        return Rational.rescaleQ( pts - mStartPts, mTimeBase, MICROS ) + mStartMicros;
     }
     
     
@@ -72,7 +74,7 @@ public class PacketTimer {
         if( micros == Long.MIN_VALUE ) {
             return NAN;
         }
-        return ( micros - mStartMicros ) * mMicrosPerPts.den() / mMicrosPerPts.num() + mStartPts;
+        return Rational.rescaleQ( micros - mStartMicros, MICROS, mTimeBase ) + mStartPts;
     }
     
     
@@ -80,7 +82,7 @@ public class PacketTimer {
         if( pts == NAN ) {
             return Long.MIN_VALUE;
         }
-        return ( pts - mOffsetPts ) * mMicrosPerPts.num() / mMicrosPerPts.den() + mOffsetMicros;
+        return Rational.rescaleQ( pts - mOffsetPts, mTimeBase, MICROS ) + mOffsetMicros;
     }
     
 
@@ -88,7 +90,7 @@ public class PacketTimer {
         if( micros == Long.MIN_VALUE ) {
             return NAN;
         }
-        return ( micros - mOffsetMicros ) * mMicrosPerPts.den() / mMicrosPerPts.num() + mOffsetPts;
+        return Rational.rescaleQ( micros - mOffsetMicros, MICROS, mTimeBase ) + mOffsetMicros;
     }
     
     

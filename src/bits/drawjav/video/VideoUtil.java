@@ -1,7 +1,6 @@
 package bits.drawjav.video;
 
 import java.nio.*;
-import bits.drawjav.*;
 
 
 /**

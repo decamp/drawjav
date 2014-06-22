@@ -12,38 +12,40 @@ import bits.jav.Jav;
  * @author decamp
  */
 public class AudioPacketResampler implements PacketConverter<AudioPacket> {
-    
+
+    private static final float SAMP_SCALE = -1f / Short.MIN_VALUE;
+
     private final AudioFormat mSourceFormat;
     private final AudioFormat mDestFormat;
-    
-    private final AudioPacketFactory mFactory;
+
+    private final AudioAllocator mAlloc;
     private final AudioResampler mResampler;
-    
+
     private boolean mInitMicros  = true;
-    private long mStartMicros    = 0;
-    private long mSampleCount    = 0;
-    
+    private long    mStartMicros = 0;
+    private long    mFrameCount  = 0;
+
     private ByteBuffer mSrcBuf = null;
-    private float[] mSrcArr  = null;
-    private float[] mDstArr = null;
-    
-    
+    private float[]    mSrcArr = null;
+    private float[]    mDstArr = null;
+
+    private boolean mClosed = false;
+
+
     public AudioPacketResampler( AudioFormat sourceFormat,
                                  AudioFormat destFormat,
-                                 int poolSize ) 
+                                 AudioAllocator alloc )
     {
-        assert( sourceFormat.sampleFormat() == Jav.AV_SAMPLE_FMT_FLT );
-        
+        assert sourceFormat.sampleFormat() == Jav.AV_SAMPLE_FMT_FLT;
+        mAlloc        = alloc;
         mSourceFormat = sourceFormat;
         mDestFormat   = new AudioFormat( sourceFormat.channels(), 
                                          destFormat.sampleRate() <= 0 ? sourceFormat.sampleRate() : destFormat.sampleRate(),
                                          Jav.AV_SAMPLE_FMT_FLT );
-        
+
         if( mDestFormat.sampleRate() == mSourceFormat.sampleRate() ) {
-            mFactory   = null;
             mResampler = null;
         } else {
-            mFactory   = new AudioPacketFactory( poolSize );
             mResampler = new AudioResampler( sourceFormat.sampleRate(),
                                              destFormat.sampleRate(),
                                              sourceFormat.channels() );
@@ -63,79 +65,79 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
     
     
     public AudioPacket convert( AudioPacket packet ) throws IOException {
-        if( mResampler == null ) {
-            packet.ref();
-            return packet;
+        final int chans     = mSourceFormat.channels();
+        final int srcFrames = packet.nbSamples();
+        final int srcVals   = srcFrames * chans;
+
+        if( mSrcArr == null || mSrcArr.length < srcVals ) {
+            int allocLen = srcVals * 4 / 3;
+            mSrcBuf = ByteBuffer.allocateDirect( 2 * allocLen / chans ).order( ByteOrder.nativeOrder() );
+            mSrcArr = new float[allocLen];
         }
-        
-        int chans  = mSourceFormat.channels();
-        int frames = packet.nbSamples();
-        int samps  = frames * chans;
-        
-        ByteBuffer srcBuf = mSrcBuf;
-        float[] srcArr = mSrcArr;
-        if( srcArr == null || srcArr.length < samps ) {
-            mSrcBuf = srcBuf = ByteBuffer.allocateDirect( samps * 2 * 4 / 3 ).order( ByteOrder.nativeOrder() );
-            mSrcArr = srcArr = new float[samps * 4 / 3];
-        }
-        
-        srcBuf.clear().limit( samps * 2 );
+        final ByteBuffer srcBuf = mSrcBuf;
+        final float[] srcArr    = mSrcArr;
+
+        srcBuf.clear();
         for( int i = 0; i < chans; i++ ) {
+            srcBuf.clear().limit( 2 * srcFrames );
             packet.readData( i, srcBuf );
-        }
-        srcBuf.flip();
-        
-        float scale = -1f / Short.MIN_VALUE;
-        
-        for( int i = 0; i < frames; i++ ) {
-            for( int j = 0; j < chans; j++ ) {
-                srcArr[ i*chans+j ] = srcBuf.getShort( i+j*frames ) * scale; 
+            srcBuf.flip();
+
+            for( int j = 0; j < srcFrames; j++ ) {
+                srcArr[ j*chans + i ] = SAMP_SCALE * srcBuf.getShort();
             }
         }
-        
-        int dstLen = mResampler.recommendOutBufferSize( samps );
-        float[] dstArr = mDstArr;
-        if( dstArr == null || dstArr.length < dstLen ) {
-            dstArr = new float[dstLen * 4 / 3];
-            mDstArr = dstArr;
+
+        float[] dstArr;
+        int dstFrames;
+
+        if( mResampler == null ) {
+            dstFrames = srcFrames;
+            dstArr    = srcArr;
+
+        } else {
+            int dstCap = mResampler.recommendOutBufferSize( srcFrames );
+            dstArr = mDstArr;
+            if( dstArr == null || dstArr.length < dstCap ) {
+                dstArr = new float[dstCap];
+                mDstArr = dstArr;
+            }
+
+            dstFrames = mResampler.process( srcArr, 0, dstArr, 0, srcFrames );
+            if( dstFrames <= 0 ) {
+                return null;
+            }
         }
-        
-        dstLen = mResampler.processSamples( srcArr, 0, dstArr, 0, frames );
-        if( dstLen <= 0 ) {
-            return null;
+
+        AudioPacket dst = mAlloc.alloc( mDestFormat, dstFrames );
+        ByteBuffer dstBuf = dst.directBuffer();
+        dstBuf.order( ByteOrder.nativeOrder() );
+        int dstVals = dstFrames * chans;
+
+        for( int i = 0; i < dstVals; i++ ) {
+            dstBuf.putFloat( dstArr[i] );
         }
-        
-        AudioPacket dst = mFactory.build( packet.stream(),
-                                          packet.startMicros(),
-                                          packet.stopMicros(),
-                                          mDestFormat,
-                                          dstLen / mDestFormat.channels() );
-        
-        FloatBuffer dstBuf = dst.directBuffer().asFloatBuffer();
-        dstBuf.put( dstArr, 0, dstLen );
-        dst.nbSamples( dstLen );
-        
+        dstBuf.flip();
+        dst.nbSamples( dstFrames );
+
         if( mInitMicros ) {
             mInitMicros  = false;
             mStartMicros = packet.startMicros();
-            mSampleCount = 0;
+            mFrameCount = 0;
         }
         
         long freq        = mDestFormat.sampleRate();
-        chans            = mDestFormat.channels();
-        long startMicros = mStartMicros + mSampleCount * 1000000L / ( chans * freq );
-        mSampleCount += dstLen;
-        long stopMicros  = mStartMicros + mSampleCount * 1000000L / ( chans * freq );
+        long startMicros = mStartMicros + mFrameCount * 1000000L / freq;
+        mFrameCount += dstFrames;
+        long stopMicros  = mStartMicros + mFrameCount * 1000000L / freq;
         
-        // Update mStartMicros and mSampleCount at integer boundaries to avoid huge multiplies.
-        mStartMicros += ( mSampleCount / ( chans * freq ) ) * 1000000L;
-        mSampleCount %= ( chans * freq );
+        // Update mStartMicros and mFrameCount at integer boundaries to avoid huge multiplies.
+        mStartMicros += ( mFrameCount / freq ) * 1000000L;
+        mFrameCount %= freq;
         
         //Create and send new packet.
         dst.init( packet.stream(), mDestFormat, startMicros, stopMicros );
-        
-        //System.out.println( dst.channels() + "\t" + dst.nbSamples() );
-        
+
         return dst;
     }
 
@@ -155,8 +157,13 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
     
     
     public void close() {
-        if( mFactory != null ) {
-            mFactory.close();
+        if( mClosed ) {
+            return;
+        }
+        mClosed = true;
+
+        if( mAlloc != null ) {
+            mAlloc.deref();
         }
         if( mResampler != null ) {
             mResampler.clear();

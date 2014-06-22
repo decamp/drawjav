@@ -4,31 +4,31 @@ import java.io.Serializable;
 
 
 /**
- * Box is a utility class based by the Pygame Rect module.
- * <p>
- * Box objects are immutable. Boxes always define positive spaces and will
- * never return a negative width or height.  Attempting to define a Box
- * with a negative dimension will result in a Box with positive dimensions
- * that covers the same region of space.
- * <p>
- * Both the horizontal and vertical ranges of a Box are computed as
- * half-open sets. That is, the left and top edges are on the Box
- * interior, whereas the right and bottom edges are on the Box exterior.
- * As is standard, if the box has zero size, it does not intersect with
- * any point or other box.
- * 
- * @author Philip DeCamp
- */
+* Box is a utility class based by the Pygame Rect module.
+* <p>
+* Box objects are immutable. Boxes always define positive spaces and will
+* never return a negative width or height.  Attempting to define a Box
+* with a negative dimension will result in a Box with positive dimensions
+* that covers the same region of space.
+* <p>
+* Both the horizontal and vertical ranges of a Box are computed as
+* half-open sets. That is, the left and top edges are on the Box
+* interior, whereas the right and bottom edges are on the Box exterior.
+* As is standard, if the box has zero size, it does not intersect with
+* any point or other box.
+*
+* @author Philip DeCamp
+*/
 public class Box implements Serializable {
 
-    
+
     static final long serialVersionUID = 4624999276134559686L;
-    
-    
+
+
     /**
      * Create a new Box by specifying left and top edges and width and height
      * dimensions.
-     * 
+     *
      * @param minX   The left edge of the Box.
      * @param minY   The top edge of the Box.
      * @param spanX  The width of the Box.
@@ -41,7 +41,7 @@ public class Box implements Serializable {
 
     /**
      * Create a new Box by specifying location of all four edges.
-     * 
+     *
      * @param minX   The left edge of the Box.
      * @param minY   The top edge of the Box.
      * @param maxX   The right edge of the Box.
@@ -54,7 +54,7 @@ public class Box implements Serializable {
 
     /**
      * Creates a new Box by specifying center and size.
-     * 
+     *
      * @param centerX
      * @param centerY
      * @param spanX
@@ -67,14 +67,14 @@ public class Box implements Serializable {
 
         return new Box(centerX, centerY, centerX + spanX, centerY + spanY);
     }
-    
-    
+
+
     private final int mMinX;
     private final int mMinY;
     private final int mMaxX;
     private final int mMaxY;
 
-    
+
     private Box(int minX, int minY, int maxX, int maxY) {
         if(minX <= maxX) {
             mMinX = minX;
@@ -83,7 +83,7 @@ public class Box implements Serializable {
             mMinX = maxX;
             mMaxX = minX;
         }
-        
+
         if(minY <= maxY) {
             mMinY = minY;
             mMaxY = maxY;
@@ -93,9 +93,9 @@ public class Box implements Serializable {
         }
     }
 
-    
+
     /****** POSITION ******/
-    
+
     /**
      * @returns the X-coordinate of this Box's position; the minimum X value in the box.
      */
@@ -109,21 +109,21 @@ public class Box implements Serializable {
     public int y() {
         return mMinY;
     }
-    
+
     /**
      * @returns the max X value of this box.
      */
     public int maxX() {
         return mMaxX;
     }
-    
+
     /**
      * @returns the max Y value of this Box.
      */
     public int maxY() {
         return mMaxY;
     }
-    
+
     /**
      * @returns the center point between the left and right edges.
      */
@@ -137,17 +137,17 @@ public class Box implements Serializable {
     public int centerY() {
         return (mMinY + mMaxY) / 2;
     }
-    
+
     /**
      * Creates new Box with same dimensions but with the specified position.
      */
     public Box position(int x, int y) {
         return new Box(x, y, x + mMaxX - mMinX, y + mMaxY - mMinY);
     }
-    
+
     /**
      * Creates new box with same dimensions but different center point.
-     * 
+     *
      * @param x X-coord of center point.
      * @param y Y-coord of center point.
      * @returns new box object with specified center point.
@@ -155,8 +155,8 @@ public class Box implements Serializable {
     public Box center(int x, int y) {
         return Box.fromCenter(x, y, width(), height());
     }
-    
-    
+
+
     /****** SIZE ******/
 
     /**
@@ -190,7 +190,7 @@ public class Box implements Serializable {
         return Box.fromBounds(mMinX, mMinY, mMinX + width, mMinY + height);
     }
 
-    
+
     /****** TRANSFORMATIONS ******/
 
     /**
@@ -198,7 +198,7 @@ public class Box implements Serializable {
      * moved completely inside the argument Box. If the Box is too large
      * to fit inside, it is centered inside the argument Box, but its size is
      * not changed.
-     * 
+     *
      * @param box Box in which to fit {@code this} Box.
      * @returns a new Box.
      */
@@ -260,16 +260,16 @@ public class Box implements Serializable {
      *          size is returned.
      */
     public Box clip(Box box) {
-        return new Box( Math.max(mMinX, box.mMinX), 
-                        Math.max(mMinY, box.mMinY), 
-                        Math.min(mMaxX, box.mMaxX), 
+        return new Box( Math.max(mMinX, box.mMinX),
+                        Math.max(mMinY, box.mMinY),
+                        Math.min(mMaxX, box.mMaxX),
                         Math.min(mMaxY, box.mMaxY));
     }
 
     /**
      * Centers this Box inside another Box and scales the size until the two
      * Boxs share borders, but does not affect the aspect ratio.
-     * 
+     *
      * @param box  Boxangle into which to fit this Box.
      * @returns new Box object that fits inside bounds.
      */
@@ -279,32 +279,32 @@ public class Box implements Serializable {
             int margin = (box.height() - height) / 2;
 
             return new Box(box.x(), box.y() + margin, box.maxX(), box.y() + margin + height);
-            
+
         }else{
             int width = (int)((double)(width() * box.height()) / height() + 0.5);
             int margin = (box.width() - width) / 2;
-            
+
             return new Box(box.x() + margin, box.y(), box.x() + margin + width, box.maxY());
         }
     }
 
     /**
      * Scales the size of the Box without changing the center point.
-     * 
+     *
      * @param scaleX  Horizontal scale factor.
      * @param scaleY  Vertical scale factor.
      * @returns new Box with scaled width and height.
      */
     public Box inflate(double scaleX, double scaleY) {
-        return Box.fromCenter( centerX(), 
+        return Box.fromCenter( centerX(),
                                centerY(),
                                (int)Math.round(width() * scaleX),
                                (int)Math.round(height() * scaleY) );
     }
-    
+
     /**
      * Scales the size of the box without changing the center point.
-     * 
+     *
      * @param scaleX  Horizontal scale factor.
      * @param scaleY  Vertical scale factor.
      * @returns new Box with scaled width and height.
@@ -312,23 +312,23 @@ public class Box implements Serializable {
     public Box inflate(int scaleX, int scaleY) {
         return Box.fromCenter(centerX(), centerY(), width() * scaleX, height() * scaleY);
     }
-    
+
     /**
-     * Computes the smallest box which contains completely this Box and 
+     * Computes the smallest box which contains completely this Box and
      * the specified Box.
-     * 
+     *
      * @returns Box representing union of {@code this} and {@code box}.
      */
     public Box union(Box box) {
-        return new Box( Math.min(mMinX, box.mMinX), 
+        return new Box( Math.min(mMinX, box.mMinX),
                         Math.min(mMinY, box.mMinY),
-                        Math.max(mMaxX, box.mMaxX), 
+                        Math.max(mMaxX, box.mMaxX),
                         Math.max(mMaxY, box.mMaxY) );
     }
 
     /**
      * Multiplies location and size.
-     * 
+     *
      * @param multX Amount to multiply the width and left edge.
      * @param multY Amount to multiply the height and top edge.
      * @returns new Box object.
@@ -339,7 +339,7 @@ public class Box implements Serializable {
 
     /**
      * Moves the Box.
-     * 
+     *
      * @param dx Amount to move the Box horizantally.
      * @param dy Amount to move the Box vertically.
      * @returns a new Box.
@@ -348,26 +348,26 @@ public class Box implements Serializable {
         return new Box(mMinX + dx, mMinY + dy, mMaxX + dx, mMaxY + dy);
     }
 
-    
+
     /****** TESTS ******/
 
     /**
      * Tests if Box intersects with a given point.
-     * 
+     *
      * @param x  The x coordinate of a point.
      * @param y  The y coordinate of a point.
      * @returns true iff the point lies within the Box.
      */
     public boolean intersects(int x, int y) {
-        return x >= mMinX && 
-               x < mMaxX && 
-               y >= mMinY && 
+        return x >= mMinX &&
+               x < mMaxX &&
+               y >= mMinY &&
                y < mMaxY;
     }
 
     /**
      * Tests if this Box has any intersection with other Box.
-     * 
+     *
      * @param box A box to check for overlap.
      * @returns true if Boxes have any intersection.
      */
@@ -378,8 +378,8 @@ public class Box implements Serializable {
                mMinY < box.mMaxY;
     }
 
-    
-    
+
+
     public boolean equals(Object obj) {
         if(!(obj instanceof Box))
             return false;
@@ -387,14 +387,14 @@ public class Box implements Serializable {
         Box b = (Box)obj;
         return mMinX == b.mMinX && mMinY == b.mMinY && mMaxX == b.mMaxX && mMaxY == b.mMaxY;
     }
-    
-    
+
+
     @Override
     public int hashCode() {
         return (mMinX ^ mMaxX ^ mMinY ^ mMaxY);
     }
 
-        
+
     public String toString() {
         StringBuilder b = new StringBuilder("Box [");
         b.append(mMinX);

@@ -1,5 +1,10 @@
 package bits.drawjav;
 
+import bits.drawjav.audio.AudioFormat;
+import bits.drawjav.audio.AudioPacket;
+import bits.drawjav.video.PictureFormat;
+import bits.drawjav.video.VideoPacket;
+
 import java.io.*;
 
 

@@ -1,7 +1,10 @@
-package bits.drawjav;
+package bits.drawjav.audio;
 
 import java.nio.*;
 
+import bits.drawjav.Packet;
+import bits.drawjav.StreamHandle;
+import bits.jav.JavException;
 import bits.jav.codec.JavFrame;
 import bits.util.ref.*;
 
@@ -13,12 +16,12 @@ import bits.util.ref.*;
 public class AudioPacket extends JavFrame implements Packet {
     
     
-    public static AudioPacket newAutoInstance() {
-        return newAutoInstance( null );
+    public static AudioPacket createAuto() {
+        return createAuto( null );
     }
     
     
-    public static AudioPacket newAutoInstance( ObjectPool<? super AudioPacket> pool ) {
+    public static AudioPacket createAuto( ObjectPool<? super AudioPacket> pool ) {
         long p = nAllocFrame();
         if( p == 0 ) {
             throw new OutOfMemoryError("Allocation failed.");
@@ -27,27 +30,34 @@ public class AudioPacket extends JavFrame implements Packet {
     }
     
     
-    public static AudioPacket newFormattedInstance( ObjectPool<? super AudioPacket> pool,
-                                                    AudioFormat format,
-                                                    int samplesPerChannel,
-                                                    int align ) 
+    public static AudioPacket createFilled( ObjectPool<? super AudioPacket> pool,
+                                            AudioFormat format,
+                                            int samplesPerChannel,
+                                            int align )
     {
+        assert samplesPerChannel >= 0;
+
         int size = nComputeAudioBufferSize( format.channels(),
                                             samplesPerChannel,
                                             format.sampleFormat(),
                                             align,
                                             null );
+
+        if( size < 0 ) {
+            throw new RuntimeException( new JavException( size ) );
+        }
+
         ByteBuffer buf = ByteBuffer.allocateDirect( size );
         buf.order( ByteOrder.nativeOrder() );
-        return newFormattedInstance( pool, format, samplesPerChannel, align, buf );
+        return createFilled( pool, format, samplesPerChannel, align, buf );
     }
     
     
-    public static AudioPacket newFormattedInstance( ObjectPool<? super AudioPacket> pool, 
-                                                    AudioFormat format,
-                                                    int samplesPerChannel,
-                                                    int align,
-                                                    ByteBuffer buf )
+    public static AudioPacket createFilled( ObjectPool<? super AudioPacket> pool,
+                                            AudioFormat format,
+                                            int samplesPerChannel,
+                                            int align,
+                                            ByteBuffer buf )
     {
         long pointer = nAllocFrame();
         if( pointer == 0 ) {
@@ -64,68 +74,65 @@ public class AudioPacket extends JavFrame implements Packet {
         return ret;
     }
 
-    
-    
+
     private StreamHandle mStream;
-    private long mStartMicros;
-    private long mStopMicros;
-    private AudioFormat mFormat;
-    
-    
-    @SuppressWarnings( { "unchecked", "rawtypes" } )
+    private long         mStartMicros;
+    private long         mStopMicros;
+    private AudioFormat  mFormat;
+
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public AudioPacket( long pointer, ObjectPool<? super AudioPacket> pool ) {
         super( pointer, (ObjectPool)pool );
     }
-    
-    
-    
+
+
     public StreamHandle stream() {
         return mStream;
     }
-    
-    
+
+
     public long startMicros() {
         return mStartMicros;
     }
 
-    
+
     public long stopMicros() {
         return mStopMicros;
     }
 
-    
+
     public AudioFormat audioFormat() {
         return mFormat;
     }
-    
+
     /**
      * Associates frame with a different audio format object.
-     * 
+     *
      * @param audioFormat
      */
     public void audioFormat( AudioFormat audioFormat ) {
         mFormat = audioFormat;
         format( audioFormat.sampleFormat() );
     }
-    
+
     /**
      * Initializes packet object.
-     * 
-     * @param frame
+     *
+     * @param stream
      * @param format
      * @param startMicros
      * @param stopMicros
      */
     public void init( StreamHandle stream,
-                      AudioFormat format, 
-                      long startMicros, 
-                      long stopMicros) 
+                      AudioFormat format,
+                      long startMicros,
+                      long stopMicros )
     {
-        mStream      = stream;
+        mStream = stream;
         mStartMicros = startMicros;
-        mStopMicros  = stopMicros;
+        mStopMicros = stopMicros;
         audioFormat( format );
     }
 
-    
 }

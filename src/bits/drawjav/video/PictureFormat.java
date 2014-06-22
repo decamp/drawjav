@@ -1,4 +1,4 @@
-package bits.drawjav;
+package bits.drawjav.video;
 
 import bits.jav.codec.JavCodecContext;
 import bits.jav.util.Rational;

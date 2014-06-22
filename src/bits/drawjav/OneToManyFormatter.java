@@ -11,7 +11,6 @@ import bits.drawjav.video.*;
 import bits.jav.Jav;
 
 
-
 /**
  * Handles reformatting of a single stream and 
  * distribution to multiple sinks. MultiOuputFormatter
@@ -19,48 +18,41 @@ import bits.jav.Jav;
  * a single stream can be formatted in multiple ways.
  * 
  * @author decamp
- *
  */
 @SuppressWarnings( { "rawtypes", "unchecked" } )
 public class OneToManyFormatter implements Sink<Packet> {
 
     private static final Logger sLog = Logger.getLogger( OneToManyFormatter.class.getName() );
-    
+
     private final StreamHandle mSource;
-    private final Map<Object,FormatNode> mNodeMap = new HashMap<Object,FormatNode>();
-    
-    private int mVideoPoolCap;
-    private int mAudioPoolCap;
+    private final Map<Object, FormatNode> mNodeMap = new HashMap<Object, FormatNode>();
+
+    private MemoryManager      mMem;
     private SinkCaster<Packet> mCaster = new SinkCaster<Packet>();
-    private boolean mClosed = false;
-    
-    
-    public OneToManyFormatter( StreamHandle source, 
-                                  int videoPoolCap,
-                                  int audioPoolCap )
-    {
-        mSource       = source;
-        mVideoPoolCap = videoPoolCap;
-        mAudioPoolCap = audioPoolCap;
+    private boolean            mClosed = false;
+
+
+    public OneToManyFormatter( StreamHandle source, MemoryManager mem ) {
+        mSource = source;
+        mMem    = mem;
     }
-    
-    
-    
+
+
     public boolean hasSink() {
         return mCaster != null;
     }
-    
-    
+
+
     public synchronized boolean hasSinkOtherThan( StreamHandle handle ) {
         int formats = mNodeMap.size();
-        if( formats < 1 ) { 
+        if( formats < 1 ) {
             return false;
         } else if( formats > 1 ) {
             return true;
         }
-        
+
         // There is at least one output format. Must get more specific.
-        if( !( handle instanceof SinkNode ) ) {
+        if( !(handle instanceof SinkNode ) ) {
             return false;
         }
         
@@ -120,7 +112,17 @@ public class OneToManyFormatter implements Sink<Packet> {
     public boolean isOpen() {
         return !mClosed;
     }
-    
+
+
+    public MemoryManager memoryManeger() {
+        return mMem;
+    }
+
+
+    public void memoryManager( MemoryManager mem ) {
+        mMem = mem;
+    }
+
     
     public StreamHandle openVideoStream( PictureFormat destFormat, 
                                          Sink<? super VideoPacket> sink )
@@ -226,29 +228,34 @@ public class OneToManyFormatter implements Sink<Packet> {
             }
             
             formatNode = mNodeMap.get( destFormat );
-            
+
             if( formatNode == null ) {
                 SinkCaster caster = new SinkCaster();
                 
                 if( type == Jav.AVMEDIA_TYPE_VIDEO ) {
-                    VideoResamplerPipe conv = new VideoResamplerPipe( caster, 
-                                                                      (PictureFormat)sourceFormat,
-                                                                      mVideoPoolCap );
-                    conv.setPictureConversion( (PictureFormat)destFormat, Jav.SWS_FAST_BILINEAR ); 
-                    
+                    PictureFormat fmt       = PictureFormats.merge( (PictureFormat)sourceFormat, (PictureFormat)destFormat );
+                    VideoAllocator alloc    = mMem.videoAllocator( null, fmt );
+                    VideoResamplerPipe conv = new VideoResamplerPipe( caster, (PictureFormat)sourceFormat, alloc );
+                    alloc.deref();
+                    conv.setPictureConversion( (PictureFormat)destFormat, Jav.SWS_FAST_BILINEAR );
+
                     // As an extra precaution, use the destination format determined
                     // by the video resampler. It should be exactly the same.
                     // If not, we may end up doing redundant conversions, but 
                     // better than breaking.
-                    destFormat = conv.destFormat();
+                    fmt = conv.destFormat();
                     formatNode = new FormatNode( conv, caster );
-                    addNode( destFormat, formatNode );
+                    addNode( fmt, formatNode );
                     
                 } else {
-                    AudioResamplerPipe conv = new AudioResamplerPipe( caster, 
+                    AudioFormat fmt         = AudioFormats.merge( (AudioFormat)sourceFormat, (AudioFormat)destFormat );
+                    AudioAllocator alloc    = mMem.audioAllocator( null, fmt );
+                    AudioResamplerPipe conv = new AudioResamplerPipe( caster,
                                                                       (AudioFormat)sourceFormat,
                                                                       (AudioFormat)destFormat,
-                                                                      mAudioPoolCap );
+                                                                      alloc );
+
+                    alloc.deref();
                     destFormat = conv.destFormat();
                     formatNode = new FormatNode( conv, caster );
                     addNode( destFormat, formatNode );
@@ -276,9 +283,8 @@ public class OneToManyFormatter implements Sink<Packet> {
         mCaster.removeSink( node.mSink );
         mNodeMap.remove( key );
     }
-    
-        
-    
+
+
     
     private static class FormatNode<T> {
         
@@ -309,6 +315,14 @@ public class OneToManyFormatter implements Sink<Packet> {
             mSink = new WeakReference<Sink<?>>( sink );
         }
     }
-    
-        
+
+
+
+    @Deprecated public OneToManyFormatter( StreamHandle source,
+                                           int videoPoolCap,
+                                           int audioPoolCap )
+    {
+        mSource = source;
+        mMem    = new PoolMemoryManager( audioPoolCap, -1, videoPoolCap, -1 );
+    }
 }

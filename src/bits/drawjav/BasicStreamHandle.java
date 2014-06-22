@@ -2,22 +2,24 @@ package bits.drawjav;
 
 import java.io.IOException;
 
+import bits.drawjav.audio.AudioFormat;
+import bits.drawjav.video.PictureFormat;
 import bits.util.Guid;
 
 /**
  * @author decamp
  */
 public class BasicStreamHandle implements StreamHandle {
-    
-    private final Guid mGuid;
-    private final int mType; 
+
+    private final Guid          mGuid;
+    private final int           mType;
     private final PictureFormat mPictureFormat;
-    private final AudioFormat mAudioFormat;
-    
-    
-    public BasicStreamHandle( int type, 
-                              PictureFormat pictureFormat, 
-                              AudioFormat audioFormat ) 
+    private final AudioFormat   mAudioFormat;
+
+
+    public BasicStreamHandle( int type,
+                              PictureFormat pictureFormat,
+                              AudioFormat audioFormat )
     {
         this( null, type, pictureFormat, audioFormat );
     }

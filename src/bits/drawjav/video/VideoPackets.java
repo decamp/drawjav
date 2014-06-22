@@ -3,7 +3,6 @@ package bits.drawjav.video;
 import java.awt.image.BufferedImage;
 import java.nio.*;
 
-import bits.drawjav.*;
 import bits.jav.Jav;
 
 

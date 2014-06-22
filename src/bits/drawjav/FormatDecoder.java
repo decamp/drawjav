@@ -3,13 +3,14 @@ package bits.drawjav;
 import java.io.*;
 import java.util.*;
 
+import bits.drawjav.audio.*;
+import bits.drawjav.video.*;
 import bits.jav.*;
 import static bits.jav.Jav.*;
 import bits.jav.codec.*;
 import bits.jav.format.*;
 import bits.jav.util.Rational;
 import bits.util.Guid;
-import bits.util.ref.*;
 
 
 /**
@@ -28,7 +29,7 @@ public class FormatDecoder implements Source {
     public static FormatDecoder openFile( File file,
                                           boolean overrideStartMicros,
                                           long startMicros )
-                                                            throws IOException
+                                          throws IOException
     {
         Jav.init();
         if( !file.exists() ) {
@@ -47,82 +48,75 @@ public class FormatDecoder implements Source {
     public static FormatDecoder open( JavFormatContext format,
                                       boolean overrideStartMicros,
                                       long startMicros )
-                                                        throws IOException
+                                      throws IOException
     {
-        Jav.init();
         return new FormatDecoder( format, overrideStartMicros, startMicros );
     }
 
+
+    private static final Rational MICROS = new Rational( 1000000, 1 );
 
 
     private final JavFormatContext mFormat;
     private final JavPacket mPacket;
     private final JavPacket mNullPacket;
-    private final Stream[] mStreams;
+    private final Stream[]  mStreams;
 
-    private int mFirstStreamIndex = -1;
-    private Stream mDefaultStream = null;
+    private int    mFirstStreamIndex = -1;
+    private Stream mDefaultStream    = null;
 
     private boolean mPacketValid = false;
-    private boolean mEof = false;
-    private int mFlushStream = -1;
+    private boolean mEof         = false;
+    private int mFlushStream     = -1;
 
 
     private FormatDecoder( JavFormatContext format,
                            boolean overrideStartMicros,
                            long startMicros )
     {
-        mFormat = format;
-        mPacket = JavPacket.alloc();
+        mFormat     = format;
+        mPacket     = JavPacket.alloc();
         mNullPacket = JavPacket.alloc();
-        mStreams = new Stream[format.streamCount()];
+        mStreams    = new Stream[format.streamCount()];
 
-        long firstMicros = Long.MAX_VALUE;
-        long firstPts = Long.MAX_VALUE;
+        long firstMicros       = Long.MAX_VALUE;
+        long firstPts          = Long.MAX_VALUE;
         Rational firstTimeBase = null;
 
         for( int i = 0; i < mStreams.length; i++ ) {
             JavStream s = format.stream( i );
-            long pts = s.startTime();
+            long pts    = s.startTime();
             Rational tb = s.timeBase();
-            Rational conv = Rational.reduce( tb.num() * 1000000, tb.den() );
-            long micros = pts * conv.num() / conv.den();
-            int type = s.codecContext().codecType();
+            long micros = Rational.rescaleQ( pts, MICROS, tb );
+            int type    = s.codecContext().codecType();
 
             if( type == AVMEDIA_TYPE_VIDEO || type == AVMEDIA_TYPE_AUDIO ) {
-                if( i == 0 || micros < firstMicros ) {
-                    firstPts = pts;
-                    firstTimeBase = tb;
-                    firstMicros = micros;
+                if( mFirstStreamIndex < 0 || micros < firstMicros ) {
+                    firstPts          = pts;
+                    firstTimeBase     = tb;
+                    firstMicros       = micros;
                     mFirstStreamIndex = i;
                 }
             }
         }
 
         for( int i = 0; i < mStreams.length; i++ ) {
-            JavStream s = format.stream( i );
-            Stream ss = null;
+            JavStream s   = format.stream( i );
+            Stream ss     = null;
             long startPts = 0;
 
             if( overrideStartMicros ) {
                 Rational tb = s.timeBase();
-
-                if( tb.equals( firstTimeBase ) ) {
-                    startPts = firstPts;
-                } else {
-                    startPts = firstPts * firstTimeBase.num() * tb.den() / (firstTimeBase.den() * tb.num());
-                }
+                startPts = Rational.rescaleQ( firstPts, firstTimeBase, tb );
             }
 
             switch( s.codecContext().codecType() ) {
             case AVMEDIA_TYPE_VIDEO:
                 ss = new VideoStream( s, startPts, startMicros );
                 break;
-
             case AVMEDIA_TYPE_AUDIO:
                 ss = new AudioStream( s, startPts, startMicros );
                 break;
-
             default:
                 ss = new NullStream( s );
                 break;
@@ -190,15 +184,48 @@ public class FormatDecoder implements Source {
 
     public void openStream( StreamHandle stream, int poolSize ) throws JavException {
         Stream ss = mStreams[((Stream)stream).index()];
-
         synchronized( this ) {
             if( ss.isOpen() ) {
                 return;
             }
-            ss.open( poolSize );
-            updateDefaultStream();
+
+            switch( ss.type() ) {
+            case AVMEDIA_TYPE_AUDIO:
+            {
+                AudioStream s = (AudioStream)ss;
+                s.open( new OneStreamAudioAllocator( poolSize, -1, -1 ) );
+                return;
+            }
+            case AVMEDIA_TYPE_VIDEO:
+            {
+
+                VideoStream s = (VideoStream)ss;
+                s.open( new OneStreamVideoAllocator( poolSize, -1 ) );
+                return;
+            }
+            default:
+            }
         }
     }
+
+
+    public void openVideoStream( StreamHandle stream, VideoAllocator alloc ) throws JavException {
+        Stream ss = mStreams[((Stream)stream).index()];
+        if( ss.type() != Jav.AVMEDIA_TYPE_VIDEO ) {
+            throw new IllegalArgumentException( "Not a video stream." );
+        }
+        ((VideoStream)ss).open( alloc );
+    }
+
+
+    public void openAudioStream( StreamHandle stream, AudioAllocator alloc ) throws JavException {
+        Stream ss = mStreams[((Stream)stream).index()];
+        if( ss.type() != Jav.AVMEDIA_TYPE_AUDIO ) {
+            throw new IllegalArgumentException( "Not an audio stream." );
+        }
+        ((AudioStream)ss).open( alloc );
+    }
+
 
     @Override
     public void closeStream( StreamHandle stream ) throws IOException {
@@ -208,35 +235,12 @@ public class FormatDecoder implements Source {
                 return;
             }
             ss.close();
-            updateDefaultStream();
         }
     }
 
     @Override
     public void seek( long micros ) throws JavException {
-        Stream stream = mDefaultStream;
-        if( stream == null ) {
-            return;
-        }
-
-        Rational timeBase = stream.timeBase();
-        long pts = stream.microsToPts( micros );
-        long startPts = stream.javStream().startTime();
-
-        mFormat.seek( stream.index(), pts, 0 );
-
-        for( int i = 0; i < mStreams.length; i++ ) {
-            Stream ss = mStreams[i];
-            if( timeBase.equals( ss.timeBase() ) ) {
-                ss.seekPts( pts - startPts + ss.javStream().startTime() );
-            } else {
-                ss.seekMicros( micros );
-            }
-        }
-
-        mEof = false;
-        mPacketValid = false;
-        mFlushStream = 0;
+        doSeek( micros, Jav.AVSEEK_FLAG_BACKWARD );
     }
 
     @Override
@@ -284,12 +288,9 @@ public class FormatDecoder implements Source {
                 if( ss == null || !ss.isOpen() ) {
                     continue;
                 }
-
                 ss.close();
-            } catch( Exception ex ) {}
+            } catch( Exception ignored ) {}
         }
-
-        updateDefaultStream();
     }
 
 
@@ -298,20 +299,12 @@ public class FormatDecoder implements Source {
             return;
         }
 
-        JavStream ss = mFormat.stream( mFirstStreamIndex );
+        JavStream ss       = mFormat.stream( mFirstStreamIndex );
         Rational firstBase = ss.timeBase();
-        long firstPts = ss.startTime();
+        long firstPts      = ss.startTime();
 
         for( Stream s : mStreams ) {
-            Rational tb = s.timeBase();
-            long startPts = firstPts;
-
-            if( tb.equals( firstBase ) ) {
-                startPts = firstPts;
-            } else {
-                startPts = firstPts * firstBase.num() * tb.den() / (firstBase.den() * tb.num());
-            }
-
+            long startPts = Rational.rescaleQ( firstPts, s.timeBase(), firstBase );
             s.initTimer( startPts, mediaStartMicros );
         }
     }
@@ -337,42 +330,30 @@ public class FormatDecoder implements Source {
     }
 
 
+    private void doSeek( long micros, int flags ) {
+        Stream stream = mDefaultStream;
+        if( stream == null ) {
+            return;
+        }
 
-    /**
-     * Determines which stream should be used by default.
-     */
-    private synchronized void updateDefaultStream() {
-        // Stream stream = null;
-        // int score = 0;
-        //
-        // for(Stream ss: mStreams) {
-        // if(ss == null || !ss.isOpen())
-        // continue;
-        //
-        // int type = ss.javStream().codecContext().codecType();
-        // int sc = 1;
-        //
-        // switch(type) {
-        // case AVMEDIA_TYPE_VIDEO:
-        // mDefaultStream = ss;
-        // return;
-        //
-        // case AVMEDIA_TYPE_AUDIO:
-        // sc = 2;
-        // break;
-        //
-        // default:
-        // sc = 1;
-        // break;
-        // }
-        //
-        // if(sc > score) {
-        // stream = ss;
-        // score = sc;
-        // }
-        // }
-        //
-        // mDefaultStream = stream;
+        Rational timeBase = stream.timeBase();
+        long pts          = stream.microsToPts( micros );
+        long startPts     = stream.javStream().startTime();
+
+        mFormat.seek( stream.index(), pts, flags );
+
+        for( int i = 0; i < mStreams.length; i++ ) {
+            Stream ss = mStreams[i];
+            if( timeBase.equals( ss.timeBase() ) ) {
+                ss.seekPts( pts - startPts + ss.javStream().startTime() );
+            } else {
+                ss.seekMicros( micros );
+            }
+        }
+
+        mEof         = false;
+        mPacketValid = false;
+        mFlushStream = 0;
     }
 
 
@@ -420,25 +401,24 @@ public class FormatDecoder implements Source {
         }
 
 
-        JavStream javStream() {
+        public JavStream javStream() {
             return mStream;
         }
 
 
-        int index() {
+        public int index() {
             return mIndex;
         }
 
 
-        Rational timeBase() {
+        public Rational timeBase() {
             return mTimeBase;
         }
 
 
-        void initTimer( long startSrcPts, long startDstMicros ) {
+        public void initTimer( long startSrcPts, long startDstMicros ) {
             mTimer.init( startSrcPts, startDstMicros );
         }
-
 
         @SuppressWarnings( "unused" )
         public long ptsToMicros( long pts ) {
@@ -460,8 +440,6 @@ public class FormatDecoder implements Source {
 
         public abstract void close() throws IOException;
 
-        abstract void open( int poolSize ) throws JavException;
-
         abstract Packet process( JavPacket packet, boolean flushing ) throws IOException;
 
         abstract void seekPts( long pts );
@@ -471,19 +449,18 @@ public class FormatDecoder implements Source {
     }
 
 
-
     private static class VideoStream extends Stream {
 
         private final JavCodecContext mCodecContext;
-        private final PictureFormat mPictureFormat;
+        private final PictureFormat   mFormat;
 
-        private final long[] mRange = new long[2];
-        private final int[] mGotFrame = new int[1];
+        private final long[] mRange    = new long[2];
+        private final int[]  mGotFrame = new int[1];
 
-        private boolean mIsOpen = false;
-        private HardPool<VideoPacket> mPool = null;
-        private boolean mHasKeyFrame = false;
-        private VideoPacket mCurrentFrame = null;
+        private boolean        mIsOpen       = false;
+        private VideoAllocator mAlloc        = null;
+        private boolean        mHasKeyFrame  = false;
+        private VideoPacket    mCurrentFrame = null;
 
 
         public VideoStream( JavStream stream,
@@ -492,20 +469,18 @@ public class FormatDecoder implements Source {
         {
             super( stream );
             mCodecContext = stream.codecContext();
-            mPictureFormat = PictureFormat.fromCodecContext( mCodecContext );
+            mFormat = PictureFormat.fromCodecContext( mCodecContext );
             initTimer( startPts, startMicros );
         }
 
 
-
         @Override
         public PictureFormat pictureFormat() {
-            return mPictureFormat;
+            return mFormat;
         }
 
 
-        @Override
-        public void open( int poolSize ) throws JavException {
+        public void open( VideoAllocator alloc ) throws JavException {
             if( mIsOpen ) {
                 return;
             }
@@ -520,16 +495,15 @@ public class FormatDecoder implements Source {
                 mCodecContext.open( codec );
             }
 
-            mPool = new HardPool<VideoPacket>( poolSize );
+            mAlloc = alloc;
+            alloc.ref();
             mIsOpen = true;
         }
-
 
         @Override
         public boolean isOpen() {
             return mIsOpen;
         }
-
 
         @Override
         public void close() {
@@ -541,12 +515,13 @@ public class FormatDecoder implements Source {
             if( mCodecContext.isOpen() ) {
                 try {
                     mCodecContext.close();
-                } catch( Exception ex ) {}
+                } catch( Exception ignored ) {
+                }
             }
 
-            if( mPool != null ) {
-                mPool.close();
-                mPool = null;
+            if( mAlloc != null ) {
+                mAlloc.deref();
+                mAlloc = null;
             }
 
             mHasKeyFrame = false;
@@ -555,7 +530,6 @@ public class FormatDecoder implements Source {
                 mCurrentFrame = null;
             }
         }
-
 
         @Override
         public Packet process( JavPacket packet, boolean flushing ) throws IOException {
@@ -569,14 +543,8 @@ public class FormatDecoder implements Source {
 
             VideoPacket ret = mCurrentFrame;
             mCurrentFrame = null;
-
             if( ret == null ) {
-                ret = mPool.poll();
-                if( ret == null ) {
-                    ret = VideoPacket.alloc( mPool );
-                } else {
-                    ret.freeData();
-                }
+                ret = mAlloc.alloc( mFormat );
             }
 
             int n = mCodecContext.decodeVideo( packet, ret, mGotFrame );
@@ -598,11 +566,10 @@ public class FormatDecoder implements Source {
             }
 
             mHasKeyFrame = true;
-            ret.init( this, mPictureFormat, mRange[0], mRange[1] );
+            ret.init( this, mFormat, mRange[0], mRange[1] );
 
             return ret;
         }
-
 
         @Override
         public void seekPts( long pts ) {
@@ -611,7 +578,6 @@ public class FormatDecoder implements Source {
                 mCodecContext.flushBuffers();
             }
         }
-
 
         @Override
         public void seekMicros( long micros ) {
@@ -624,18 +590,17 @@ public class FormatDecoder implements Source {
     }
 
 
-
     private static class AudioStream extends Stream {
 
         private final JavCodecContext mCodecContext;
-        private final AudioFormat mFormat;
-        
-        private final long[] mRange = new long[2];
-        private final int[] mGotFrame = new int[1];
+        private final AudioFormat     mFormat;
 
-        private boolean mIsOpen = false;
-        private HardPool<AudioPacket> mPool = null;
-        private AudioPacket mCurrentFrame = null;
+        private final long[] mRange    = new long[2];
+        private final int[]  mGotFrame = new int[1];
+
+        private boolean        mIsOpen       = false;
+        private AudioAllocator mAlloc        = null;
+        private AudioPacket    mCurrentFrame = null;
 
 
         public AudioStream( JavStream stream,
@@ -643,23 +608,13 @@ public class FormatDecoder implements Source {
                             long startMicros )
         {
             super( stream );
-
             mCodecContext = stream.codecContext();
             mFormat = AudioFormat.fromCodecContext( mCodecContext );
-            
             initTimer( startPts, startMicros );
         }
 
 
-
-        @Override
-        public AudioFormat audioFormat() {
-            return mFormat;
-        }
-
-
-        @Override
-        public void open( int poolSize ) throws JavException {
+        public void open( AudioAllocator alloc ) throws JavException {
             if( mIsOpen ) {
                 return;
             }
@@ -672,31 +627,37 @@ public class FormatDecoder implements Source {
                 mCodecContext.open( codec );
             }
 
-            mPool = new HardPool<AudioPacket>( poolSize );
+            mAlloc = alloc;
+            alloc.ref();
             mIsOpen = true;
         }
 
+        @Override
+        public AudioFormat audioFormat() {
+            return mFormat;
+        }
 
         @Override
         public boolean isOpen() {
             return mIsOpen;
         }
 
-
         @Override
         public void close() {
-            mPool = null;
+            if( mAlloc != null ) {
+                mAlloc.deref();
+                mAlloc = null;
+            }
             if( mCodecContext.isOpen() ) {
                 try {
                     mCodecContext.close();
-                } catch( Exception ex ) {}
+                } catch( Exception ignore ) {}
             }
         }
 
-
         @Override
         public AudioPacket process( JavPacket packet, boolean flushing ) throws IOException {
-            if( mPool == null ) {
+            if( mAlloc == null ) {
                 if( !flushing ) {
                     mTimer.packetSkipped( packet.pts(), packet.duration(), mRange );
                     packet.moveDataPointer( packet.size() );
@@ -708,10 +669,7 @@ public class FormatDecoder implements Source {
             mCurrentFrame = null;
 
             if( ret == null ) {
-                ret = mPool.poll();
-                if( ret == null ) {
-                    ret = AudioPacket.newAutoInstance( mPool );
-                }
+                ret = mAlloc.alloc( mFormat, -1 );
             }
 
             int n = mCodecContext.decodeAudio( packet, ret, mGotFrame );
@@ -730,7 +688,6 @@ public class FormatDecoder implements Source {
             return ret;
         }
 
-
         @Override
         public void seekPts( long pts ) {
             mTimer.seekPts( pts );
@@ -738,7 +695,6 @@ public class FormatDecoder implements Source {
                 mCodecContext.flushBuffers();
             }
         }
-
 
         @Override
         public void seekMicros( long micros ) {
@@ -751,7 +707,6 @@ public class FormatDecoder implements Source {
     }
 
 
-
     private static class NullStream extends Stream {
 
         private final long[] mRange = new long[2];
@@ -762,22 +717,13 @@ public class FormatDecoder implements Source {
         }
 
 
-
         @Override
         public boolean isOpen() {
             return false;
         }
 
-
-        @Override
-        public void open( int poolSize ) throws JavException {
-            throw new JavException( "Cannot open stream of type: " + mType );
-        }
-
-
         @Override
         public void close() {}
-
 
         @Override
         public Packet process( JavPacket packet, boolean flushing ) throws IOException {
@@ -793,12 +739,10 @@ public class FormatDecoder implements Source {
             return null;
         }
 
-
         @Override
         public void seekPts( long pts ) {
             mTimer.seekPts( pts );
         }
-
 
         @Override
         public void seekMicros( long micros ) {

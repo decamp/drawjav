@@ -12,17 +12,16 @@ import bits.drawjav.*;
  */
 public class VideoResamplerPipe implements Sink<VideoPacket> {
 
-    
+
     private final Sink<? super VideoPacket> mSink;
     private final VideoPacketResampler mConverter;
-    
-    
+
     public VideoResamplerPipe( Sink<? super VideoPacket> sink,
                                PictureFormat sourceFormat,
-                               int poolSize ) 
+                               VideoAllocator alloc )
     {
-        mSink      = sink;
-        mConverter = new VideoPacketResampler( poolSize );
+        mSink  = sink;
+        mConverter = new VideoPacketResampler( alloc );
         mConverter.setSourceFormat( sourceFormat );
     }
     

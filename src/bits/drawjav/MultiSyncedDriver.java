@@ -6,6 +6,10 @@ import java.util.*;
 import javax.media.opengl.GL;
 
 import bits.draw3d.nodes.*;
+import bits.drawjav.audio.AudioFormat;
+import bits.drawjav.audio.AudioPacket;
+import bits.drawjav.video.PictureFormat;
+import bits.drawjav.video.VideoPacket;
 import bits.microtime.*;
 
 

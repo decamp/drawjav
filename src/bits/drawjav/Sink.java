@@ -8,7 +8,6 @@ import java.nio.channels.Channel;
  */
 public interface Sink<T> extends Channel {
     /**
-     * @param packet
      * @throws InterruptedIOException if interruption occurs before packet was consumed.
      * @throws IOException on other errors.
      */

@@ -42,11 +42,12 @@ public class TestAudioPlayer {
         StreamHandle stream = demux.stream( Jav.AVMEDIA_TYPE_AUDIO, 0 );
 
         AudioFormat srcFormat = stream.audioFormat();
-        AudioFormat dstFormat = new AudioFormat( srcFormat.channels(), 44100, Jav.AV_SAMPLE_FMT_FLT );
+        AudioFormat dstFormat = new AudioFormat( srcFormat.channels(), 48000, Jav.AV_SAMPLE_FMT_FLT );
         //System.out.println( srcFormat.channels() + "\t" + dstFormat.channels() + "\t" + srcFormat.sampleFormat() + "\t" + dstFormat.sampleFormat() );
-        
+
+        final AudioAllocator alloc    = new OneStreamAudioAllocator( 32, -1, -1 );
         final AudioLinePlayer liner   = new AudioLinePlayer( dstFormat, null, 1024 * 512 * 2 * 2 );
-        final AudioResamplerPipe pipe = new AudioResamplerPipe( liner, srcFormat, dstFormat, 32 );
+        final AudioResamplerPipe pipe = new AudioResamplerPipe( liner, srcFormat, dstFormat, alloc  );
         
         demux.openStream( stream );
         liner.playStart( System.currentTimeMillis() * 1000L + 100000L );

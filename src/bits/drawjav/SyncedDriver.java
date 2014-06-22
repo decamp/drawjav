@@ -4,6 +4,10 @@ import java.io.*;
 import javax.media.opengl.GL;
 
 import bits.draw3d.nodes.DrawNodeAdapter;
+import bits.drawjav.audio.AudioFormat;
+import bits.drawjav.audio.AudioPacket;
+import bits.drawjav.video.PictureFormat;
+import bits.drawjav.video.VideoPacket;
 import bits.microtime.*;
 
 /**
@@ -38,18 +42,18 @@ public class SyncedDriver extends DrawNodeAdapter implements StreamDriver {
     public void seekWarmupMicros( long micros ) {
         mDriver.seekWarmupMicros( micros );
     }
-    
-    
-    public void videoPoolCap( int poolCap ) {
-        mDriver.videoPoolCap( poolCap );
+
+
+    public MemoryManager memoryManager() {
+        return mDriver.memoryManager();
     }
-    
-    
-    public void audioPoolCap( int cap ) {
-        mDriver.audioPoolCap( cap );
+
+
+    public void memoryManager( MemoryManager mem ) {
+        mDriver.memoryManager( mem );
     }
-    
-    
+
+
     public Source source() {
         return mDriver.source();
     }

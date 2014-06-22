@@ -18,10 +18,10 @@ public class AudioResamplerPipe implements Sink<AudioPacket> {
     public AudioResamplerPipe( Sink<? super AudioPacket> sink,
                                AudioFormat sourceFormat,
                                AudioFormat destFormat,
-                               int poolSize ) 
+                               AudioAllocator alloc )
     {
         mSink      = sink;
-        mResampler = new AudioPacketResampler( sourceFormat, destFormat, poolSize );
+        mResampler = new AudioPacketResampler( sourceFormat, destFormat, alloc );
     }
     
     

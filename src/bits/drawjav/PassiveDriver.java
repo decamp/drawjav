@@ -4,6 +4,10 @@ import java.io.*;
 import java.nio.channels.ClosedChannelException;
 import java.util.logging.*;
 
+import bits.drawjav.audio.AudioFormat;
+import bits.drawjav.audio.AudioPacket;
+import bits.drawjav.video.PictureFormat;
+import bits.drawjav.video.VideoPacket;
 import bits.microtime.*;
 
 
@@ -136,7 +140,7 @@ public class PassiveDriver implements StreamDriver {
             }
             mNextPacket = p;
             return true;
-        } catch( InterruptedIOException ex ) {
+        } catch( InterruptedIOException ignore ) {
         } catch( EOFException ex ) {
             mEof = true;
             updateStatus();
@@ -303,27 +307,16 @@ public class PassiveDriver implements StreamDriver {
         mSeekWarmupMicros = micros;
     }
     
-    
-    public int videoPoolCap() {
-        return mSink.videoPoolCap();
+
+    public MemoryManager memoryManager() {
+        return mSink.memoryManager();
     }
     
-    
-    public void videoPoolCap( int cap ) {
-        mSink.videoPoolCap( cap );
+
+    public void memoryManager( MemoryManager mem ) {
+        mSink.memoryManager( mem );
     }
 
-    
-    public int audioPoolCap() {
-        return mSink.audioPoolCap();
-    }
-    
-    
-    public void audioPoolCap( int cap ) {
-        mSink.audioPoolCap( cap );
-    }
-    
-    
     /**
      * @return true if this PassiveDriver will clear the sink
      *              after a seek call.
@@ -339,7 +332,7 @@ public class PassiveDriver implements StreamDriver {
     public void clearOnSeek( boolean clearOnSeek ) {
         mClearOnSeek = clearOnSeek;
     }
-    
+
     
     
     public void start() {}

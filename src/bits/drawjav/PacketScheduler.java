@@ -5,6 +5,7 @@ import java.nio.channels.ClosedChannelException;
 import java.util.*;
 import java.util.logging.*;
 
+import bits.drawjav.video.VideoPacket;
 import bits.microtime.*;
 import bits.util.ref.*;
 
@@ -245,7 +246,7 @@ public class PacketScheduler {
                 command.mPacket = p;
                 
                 // If cleared, get video packet out as soon as possible.
-                if( mNeedRush && ( p instanceof VideoPacket ) ) {
+                if( mNeedRush && ( p instanceof VideoPacket) ) {
                     mNeedRush = false;
                     command.mDataMicros = Long.MIN_VALUE;
                 } else {
@@ -414,7 +415,7 @@ public class PacketScheduler {
         
         
         public Command( Pipe parent, PlayClock clock ) {
-            //System.out.println( "alloc: COMMAND" );
+            //System.out.println( "createAuto: COMMAND" );
             mPipe = parent;
             mClock = clock;
         }

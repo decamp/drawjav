@@ -1,4 +1,4 @@
-package bits.drawjav;
+package bits.drawjav.audio;
 
 import static bits.jav.Jav.*;
 

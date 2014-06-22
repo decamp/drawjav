@@ -3,6 +3,10 @@ package bits.drawjav;
 import java.io.*;
 import java.util.logging.*;
 
+import bits.drawjav.audio.AudioFormat;
+import bits.drawjav.audio.AudioPacket;
+import bits.drawjav.video.PictureFormat;
+import bits.drawjav.video.VideoPacket;
 import bits.microtime.*;
 
 /**
@@ -33,12 +37,12 @@ public class RealtimeDriver implements StreamDriver {
     
     private static Logger sLog = Logger.getLogger( RealtimeDriver.class.getName() );
     
-    private final PlayController mPlayCont;
-    private final PassiveDriver mDriver;
+    private final PlayController  mPlayCont;
+    private final PassiveDriver   mDriver;
     private final PacketScheduler mSyncer;
-    private final PlayHandler mPlayHandler;
-    private final ThreadLock mLock;
-    private final Thread mThread;
+    private final PlayHandler     mPlayHandler;
+    private final ThreadLock      mLock;
+    private final Thread          mThread;
         
     
     private RealtimeDriver( PlayController playCont,
@@ -50,9 +54,9 @@ public class RealtimeDriver implements StreamDriver {
         mSyncer      = syncer;
         mPlayHandler = new PlayHandler();
         mLock        = new ThreadLock();
+
         mPlayCont.caster().addListener( mPlayHandler );
-        //mDriver.seek( mPlayCont.clock().micros() );
-        
+
         mThread = new Thread( RealtimeDriver.class.getSimpleName() ) {
             public void run() {
                 runLoop();
@@ -77,17 +81,17 @@ public class RealtimeDriver implements StreamDriver {
     public void seekWarmupMicros( long micros ) {
         mDriver.seekWarmupMicros( micros );
     }
-    
-    
-    public void videoPoolCap( int cap ) {
-        mDriver.videoPoolCap( cap );
+
+
+    public MemoryManager memoryManager() {
+        return mDriver.memoryManager();
     }
-    
-    
-    public void audioPoolCap( int cap ) {
-        mDriver.audioPoolCap( cap );
+
+
+    public void memoryManager( MemoryManager mem ) {
+        mDriver.memoryManager( mem );
     }
-    
+
     
     public Source source() {
         return mDriver.source();
@@ -193,12 +197,11 @@ public class RealtimeDriver implements StreamDriver {
                     
                     try {
                         mLock.block();
-                    } catch( InterruptedIOException ex ) {}
-                    
+                    } catch( InterruptedIOException ignore ) {}
                     continue;
                 }
             }
-            
+
             if( sendPacket ) {
                 mDriver.sendCurrent();
                 sendPacket = false;

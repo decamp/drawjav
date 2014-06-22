@@ -2,9 +2,11 @@ package bits.drawjav;
 
 import java.util.*;
 
-
 /**
- * Crappy Priority Queue.
+ * Intrinsic priority queue collection. This is "intrinsic" in that it only operates on HeapNode objects,
+ * which means this collection does not need to create a node object to wrap each object and can
+ * work with zero memory allocation. The downside is that if you add an item to two different heaps,
+ * you'll have massive problems.
  * 
  * @author decamp
  */
@@ -32,7 +34,7 @@ class PrioHeap<T extends HeapNode> extends HeapNode {
         ensureCapacity( mSize + 1 );
         insertNode( node );
     }
-    
+
     
     
     public T peek() {

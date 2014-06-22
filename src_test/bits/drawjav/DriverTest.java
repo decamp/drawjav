@@ -8,6 +8,7 @@ import javax.media.opengl.*;
 import javax.swing.JFrame;
 
 import bits.draw3d.nodes.*;
+import bits.drawjav.video.PictureFormat;
 import bits.drawjav.video.VideoTexture;
 import bits.jav.Jav;
 import bits.jav.util.Rational;
@@ -25,9 +26,9 @@ public class DriverTest {
     
     public static void main( String[] args ) throws Exception {
         testRealtime();
-        //testSynced();
-        //testMultiRealtime();
-        //testMultiSynced();
+//        testSynced();
+//        testMultiRealtime();
+//        testMultiSynced();
     }
     
     

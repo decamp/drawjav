@@ -5,7 +5,7 @@ import bits.util.ref.Refable;
 
 abstract class TimedNode extends HeapNode implements Refable, Comparable<TimedNode> {
     
-    public abstract int compareTo( TimedNode t );
+    public abstract int compareTo( TimedNode item );
     
     public abstract long presentationMicros();
     

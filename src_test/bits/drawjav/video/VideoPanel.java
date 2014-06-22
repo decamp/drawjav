@@ -9,7 +9,6 @@ import java.util.*;
 import javax.swing.JPanel;
 
 import bits.drawjav.*;
-import bits.drawjav.video.VideoPacketResampler;
 import bits.jav.Jav;
 import bits.jav.util.Rational;
 
@@ -19,7 +18,7 @@ import bits.jav.util.Rational;
  */
 public class VideoPanel extends JPanel implements Sink<VideoPacket> {
 
-    private final VideoPacketResampler mResampler = new VideoPacketResampler( 8 );
+    private final VideoPacketResampler mResampler = new VideoPacketResampler( null );
     private VideoPacket mSrc         = null;
     private BufferedImage mImage     = null;
     private int[] mRow               = null;

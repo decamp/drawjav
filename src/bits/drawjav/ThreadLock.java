@@ -7,52 +7,51 @@ import java.io.InterruptedIOException;
  * Lock for a single thread that re-implements Interrupted.
  * The issue with interrupting threads directly is that it
  * can mess up IO pretty bad, so I needed something to perform
- * interrupts in a gentler manner.
- * 
+ * interrupts at a higher level in a gentler manner.
+ *
  * @author decamp
  */
 public class ThreadLock {
-    
+
     private boolean mInterrupted = false;
-    
-    
+
+
     /**
      * Equivalent to {@code wait()}.
-     * 
+     *
      * @throws InterruptedIOException
      */
     public synchronized void block() throws InterruptedIOException {
-        if( mInterrupted ) {
-            mInterrupted = false;
-            throw new InterruptedIOException();
-        }
+        check();
         try {
             wait();
         } catch( InterruptedException ex ) {
             throw new InterruptedIOException();
         }
-        if( mInterrupted ) {
-            mInterrupted = false;
-            throw new InterruptedIOException();
-        }
+        check();
     }
-    
+
     /**
      * Equivalent to {@code wait()}.
-     * 
-     * @param micros  Max number of milliseconds to wait.
+     *
+     * @param millis Max number of milliseconds to wait.
      * @throws InterruptedIOException
      */
     public synchronized void block( long millis ) throws InterruptedIOException {
-        if( mInterrupted ) {
-            mInterrupted = false;
-            throw new InterruptedIOException();
-        }
+        check();
         try {
             wait( millis );
         } catch( InterruptedException ex ) {
             throw new InterruptedIOException();
         }
+        check();
+    }
+
+    /**
+     * Like calling {@code block(0)}. Will clear and throw any interrupts
+     * without blocking.
+     */
+    public synchronized void check() throws InterruptedIOException {
         if( mInterrupted ) {
             mInterrupted = false;
             throw new InterruptedIOException();
@@ -65,7 +64,7 @@ public class ThreadLock {
     public synchronized void unblock() {
         notifyAll();
     }
-    
+
     /**
      * Interrupts any thread currently blocking on this lock.
      */
@@ -80,10 +79,10 @@ public class ThreadLock {
     public synchronized boolean isInterrupted() {
         return mInterrupted;
     }
-    
+
     /**
      * Resets the interrupted status of this lock.
-     * 
+     *
      * @return true iff this lock was in an interrupted state when this method was called.
      */
     public synchronized boolean reset() {
@@ -91,5 +90,6 @@ public class ThreadLock {
         mInterrupted = false;
         return ret;
     }
+
 
 }

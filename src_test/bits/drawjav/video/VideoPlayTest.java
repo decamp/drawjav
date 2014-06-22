@@ -27,12 +27,12 @@ public class VideoPlayTest {
         frame.setContentPane( panel );
         frame.setVisible( true );
         
-//        File file = new File( "/code/bluefin/cannesamp/resources_ext/params_drwho/Dr Who Tweet Clip.mp4" );
+//        File file = new File( "/code/bits/cannesamp/resources_ext/params_drwho/Dr Who Tweet Clip.mp4" );
         File file = new File( "/code/bluefin/cannesamp/resources_ext/params_drwho/Doctor Who Primary Video.mp4" );
-        //File file = new File( "/code/bluefin/cannesamp/resources_ext/params_nfl/mcdonalds_preroll.mp4" );
+        //File file = new File( "/code/bits/cannesamp/resources_ext/params_nfl/mcdonalds_preroll.mp4" );
 
 //        {
-//            PlayController playCont = PlayController.newAutoInstance();
+//            PlayController playCont = PlayController.createAuto();
 //            FormatDecoder decoder = FormatDecoder.openFile( file, true, 0L );
 //            decoder.openStream( decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ) );
 //

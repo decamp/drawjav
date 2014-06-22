@@ -96,7 +96,7 @@ public class TestMp4Writer {
         cc.pixelFormat( Jav.AV_PIX_FMT_YUV420P );
 
 //        JavCodec codec = JavCodec.findEncoder( Jav.AV_CODEC_ID_H264 );
-//        JavCodecContext cc = JavCodecContext.alloc();
+//        JavCodecContext cc = JavCodecContext.createAuto();
 //        cc.open( codec );
 
 //        List<JavOption> opts = JavOption.findOptions( cc );

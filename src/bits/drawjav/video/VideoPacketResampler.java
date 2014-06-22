@@ -1,6 +1,5 @@
 package bits.drawjav.video;
 
-import bits.drawjav.*;
 import bits.jav.*;
 import bits.jav.swscale.*;
 
@@ -12,20 +11,26 @@ import bits.jav.swscale.*;
  */
 public class VideoPacketResampler {
 
-    private final int          mPoolCapacity;
+    private final VideoAllocator mAlloc;
 
-    private VideoPacketFactory mFactory         = null;
-    private PictureFormat      mSourceFormat    = null;
-    private PictureFormat      mRequestedFormat = null;
-    private PictureFormat      mDestFormat      = null;
-    private int                mConversionFlags = Jav.SWS_FAST_BILINEAR;
-    
-    private boolean            mNeedsInit       = false;
-    private SwsContext         mConverter       = null;
+    private PictureFormat mSourceFormat    = null;
+    private PictureFormat mRequestedFormat = null;
+    private PictureFormat mDestFormat      = null;
+    private int           mConversionFlags = Jav.SWS_FAST_BILINEAR;
+
+    private boolean    mNeedsInit = false;
+    private SwsContext mConverter = null;
+
+    private boolean mDisposed = false;
 
 
-    public VideoPacketResampler( int poolCapacity ) {
-        mPoolCapacity = poolCapacity;
+    public VideoPacketResampler( VideoAllocator alloc ) {
+        if( alloc == null ) {
+            mAlloc = new OneStreamVideoAllocator( 8, -1 );
+        } else {
+            mAlloc = alloc;
+            alloc.ref();
+        }
     }
 
 
@@ -44,8 +49,10 @@ public class VideoPacketResampler {
             source.ref();
             return source;
         }
-        
-        VideoPacket dest = mFactory.build( source.stream(), source.startMicros(), source.stopMicros() );
+
+        fmt = mDestFormat;
+        VideoPacket dest = mAlloc.alloc( fmt );
+        dest.init( source.stream(), fmt, source.startMicros(), source.stopMicros() );
         mConverter.convert( source, 0, mSourceFormat.height(), dest );
         return dest;
     }
@@ -87,18 +94,18 @@ public class VideoPacketResampler {
 
 
     public void close() {
-        if( mFactory != null ) {
-            mFactory.close();
-            mFactory = null;
+        if( mDisposed ) {
+            return;
         }
+
+        mDisposed = true;
+        mAlloc.deref();
         if( mConverter != null ) {
             mConverter.release();
             mConverter = null;
         }
-        mNeedsInit = true;
     }
 
-    
     
     private void updateDestFormat() {
         PictureFormat format = PictureFormats.merge( mSourceFormat, mRequestedFormat );
@@ -110,7 +117,7 @@ public class VideoPacketResampler {
         }
 
         mDestFormat = format;
-        close();
+        formatChanged();
     }
 
 
@@ -133,11 +140,19 @@ public class VideoPacketResampler {
                               dst.width(), dst.height(), dst.pixelFormat(),
                               mConversionFlags );
         mConverter.initialize();
-
-        if( mFactory == null ) {
-            mFactory = new VideoPacketFactory( mDestFormat, mPoolCapacity );
-        }
     }
-    
-    
+
+
+    private void formatChanged() {
+        if( mNeedsInit ) {
+            return;
+        }
+        if( mConverter != null ) {
+            mConverter.release();
+            mConverter = null;
+        }
+
+        mNeedsInit = true;
+    }
+
 }

@@ -11,7 +11,7 @@ public interface Packet extends Refable, TimeRanged {
     
     public long startMicros();
     public long stopMicros();
-    
+
     public boolean ref();
     public void deref();
     public int refCount();

@@ -6,8 +6,11 @@ import java.nio.channels.ClosedChannelException;
 import java.util.*;
 import java.util.logging.*;
 
+import bits.drawjav.audio.AudioFormat;
+import bits.drawjav.audio.AudioPacket;
+import bits.drawjav.video.PictureFormat;
+import bits.drawjav.video.VideoPacket;
 import bits.jav.Jav;
-
 
 
 /**
@@ -22,26 +25,34 @@ import bits.jav.Jav;
  */
 @SuppressWarnings( { "rawtypes", "unchecked" } )
 public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
-    
+
     private static final Logger sLog = Logger.getLogger( ManyToManyFormatter.class.getName() );
-    
-    private final Map<StreamHandle,OneToManyFormatter> mSourceMap = new HashMap<StreamHandle,OneToManyFormatter>();
-    
+
+    private final Map<StreamHandle, OneToManyFormatter> mSourceMap = new HashMap<StreamHandle, OneToManyFormatter>();
+    private MemoryManager mMem;
+
     private final SinkCaster mCaster = new SinkCaster();
-    private boolean mClosed = false;
-    
-    private int mVideoPoolCap = 16;
-    private int mAudioPoolCap = 32;
-    
-    
-    public ManyToManyFormatter() {}
-    
-    
-    
+    private       boolean    mClosed = false;
+
+
+    public ManyToManyFormatter() {
+        this( null );
+    }
+
+
+    public ManyToManyFormatter( MemoryManager mem ) {
+        if( mem == null ) {
+            mMem = new PoolMemoryManager( 32, -1, 16, -1 );
+        } else {
+            mMem = mem;
+        }
+    }
+
+
     public StreamHandle openVideoStream( StreamHandle source,
                                          PictureFormat destFormat,
                                          Sink<? super VideoPacket> sink )
-                                         throws IOException 
+                                         throws IOException
     {
         final int type = source.type();
         if( type != Jav.AVMEDIA_TYPE_VIDEO ) {
@@ -57,16 +68,15 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
             OneToManyFormatter pipe = mSourceMap.get( source );
             boolean addPipe = false;
             if( pipe == null ) {
-                pipe = new OneToManyFormatter( source, mVideoPoolCap, mAudioPoolCap );
+                pipe = new OneToManyFormatter( source, mMem );
                 addPipe = true;
             }
             
             StreamHandle dest = pipe.openVideoStream( destFormat, sink );
-            
             if( addPipe  ) {
                 addDest( source, pipe );
             }
-            
+
             return new DestStream( source, dest );
         }
     }
@@ -91,7 +101,7 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
             OneToManyFormatter pipe = mSourceMap.get( source );
             boolean addPipe = false;
             if( pipe == null ) {
-                pipe = new OneToManyFormatter( source, mVideoPoolCap, mAudioPoolCap );
+                pipe = new OneToManyFormatter( source, mMem );
                 addPipe = true;
             }
 
@@ -244,26 +254,20 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
     }
     
 
-    public int videoPoolCap() {
-        return mVideoPoolCap;
+    public MemoryManager memoryManager() {
+        return mMem;
     }
-    
-    
-    public void videoPoolCap( int cap ) {
-        mVideoPoolCap = cap;
+
+
+    public synchronized void memoryManager( MemoryManager mem ) {
+        assert( mem != null );
+        mMem = mem;
+        for( OneToManyFormatter s: mSourceMap.values() ) {
+            s.memoryManager( mem );
+        }
     }
-    
-    
-    public int audioPoolCap() {
-        return mAudioPoolCap;
-    }
-    
-    
-    public void audioPoolCap( int cap ) {
-        mAudioPoolCap = cap;
-    }
-    
-    
+
+
     
     private synchronized void addDest( StreamHandle key, OneToManyFormatter pipe ) {
         mSourceMap.put( key, pipe );
@@ -278,8 +282,7 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
         }
     }
     
-    
-        
+
     private static final class DestStream extends BasicStreamHandle {
         
         final Reference<StreamHandle> mSource;
@@ -295,6 +298,5 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
             mDest   = new WeakReference<StreamHandle>( dest );
         }
     }
-    
     
 }
