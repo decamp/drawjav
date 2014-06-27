@@ -10,6 +10,7 @@ import bits.drawjav.audio.AudioPacket;
 import bits.drawjav.video.PictureFormat;
 import bits.drawjav.video.VideoPacket;
 import bits.microtime.*;
+import bits.util.concurrent.ThreadLock;
 
 
 /**
@@ -33,74 +34,73 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
         
         return new OneThreadMultiDriver( playCont, scheduler );
     }
-    
-    
+
+
     private static Logger sLog = Logger.getLogger( OneThreadMultiDriver.class.getName() );
-    
-    
-    private final PlayController mPlayCont;
-    private final ThreadLock mLock;
+
+
+    private final PlayController  mPlayCont;
+    private final ThreadLock      mLock;
     private final PacketScheduler mScheduler;
-    private final PlayHandler mPlayHandler;
-    
-    private final Map<Source,SourceData> mSourceMap       = new HashMap<Source,SourceData>();
-    private final Map<StreamHandle,SourceData> mStreamMap = new HashMap<StreamHandle,SourceData>();
-    private final PrioHeap<SourceData> mSources           = new PrioHeap<SourceData>();
-    
+    private final PlayHandler     mPlayHandler;
+
+    private final Map<Source, SourceData>       mSourceMap = new HashMap<Source, SourceData>();
+    private final Map<StreamHandle, SourceData> mStreamMap = new HashMap<StreamHandle, SourceData>();
+    private final PrioHeap<SourceData>          mSources   = new PrioHeap<SourceData>();
+
     private Thread mThread;
-    
+
     private long mSeekWarmupMicros = 2000000L;
-    private int mVideoQueueCap     =  8;
-    private int mAudioQueueCap     = 16;
-    
-    private boolean mClosing       = false;
-    
-    @SuppressWarnings( "unused" )
+    private int  mVideoQueueCap    = 8;
+    private int  mAudioQueueCap    = 16;
+
+    private boolean mClosing = false;
+
+    @SuppressWarnings("unused")
     private boolean mCloseComplete = false;
-    
-    
+
+
     OneThreadMultiDriver( PlayController playCont,
                           PacketScheduler syncer )
     {
         mPlayCont = playCont;
-        mLock     = new ThreadLock();
+        mLock = new ThreadLock();
         mScheduler = syncer;
-        
+
         mPlayHandler = new PlayHandler();
         mPlayCont.caster().addListener( mPlayHandler );
-        
+
         mThread = new Thread( OneThreadMultiDriver.class.getSimpleName() ) {
             public void run() {
                 runLoop();
             }
         };
-        
+
         mThread.setDaemon( true );
         mThread.setPriority( Thread.NORM_PRIORITY - 1 );
     }
-    
-    
-    
+
+
     public void start() {
         mThread.start();
     }
-    
+
 
     public Source source() {
         return null;
     }
-    
-    
+
+
     public PlayController playController() {
         return mPlayCont;
     }
-    
-    
+
+
     public boolean isOpen() {
         return !mClosing;
     }
-    
-    
+
+
     public void close() {
         synchronized( mLock ) {
             if( mClosing ) {

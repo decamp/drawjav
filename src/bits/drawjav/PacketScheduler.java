@@ -7,6 +7,7 @@ import java.util.logging.*;
 
 import bits.drawjav.video.VideoPacket;
 import bits.microtime.*;
+import bits.util.concurrent.ThreadLock;
 import bits.util.ref.*;
 
 
@@ -96,7 +97,7 @@ public class PacketScheduler {
     
     
     public <T extends Packet> Sink<T> openPipe( Sink<? super T> sink, 
-                                                ThreadLock lock ) 
+                                                ThreadLock lock )
                                                 throws IOException 
     {
         return openPipe( sink, lock, mDefaultQueueCap );
@@ -305,8 +306,7 @@ public class PacketScheduler {
                     command.mPriority    = COMMAND_CLOSE;
                     command.mDataMicros  = Long.MIN_VALUE;
                     mQueue.offer( mChannel, command );
-                    return;
-                } catch( ClosedChannelException ex ) {
+                } catch( ClosedChannelException ignore ) {
                 } finally {
                     if( command != null ) {
                         command.deref();

@@ -8,6 +8,8 @@ import bits.drawjav.audio.AudioPacket;
 import bits.drawjav.video.PictureFormat;
 import bits.drawjav.video.VideoPacket;
 import bits.microtime.*;
+import bits.util.concurrent.ThreadLock;
+
 
 /**
  * Handles realtime processing of one source.
@@ -33,27 +35,27 @@ public class RealtimeDriver implements StreamDriver {
         }
         return new RealtimeDriver( playCont, source, syncer );
     }
-    
-    
+
+
     private static Logger sLog = Logger.getLogger( RealtimeDriver.class.getName() );
-    
+
     private final PlayController  mPlayCont;
     private final PassiveDriver   mDriver;
     private final PacketScheduler mSyncer;
     private final PlayHandler     mPlayHandler;
     private final ThreadLock      mLock;
     private final Thread          mThread;
-        
-    
+
+
     private RealtimeDriver( PlayController playCont,
                             Source source,
                             PacketScheduler syncer )
     {
-        mPlayCont    = playCont;
-        mDriver      = new PassiveDriver( source );
-        mSyncer      = syncer;
+        mPlayCont = playCont;
+        mDriver = new PassiveDriver( source );
+        mSyncer = syncer;
         mPlayHandler = new PlayHandler();
-        mLock        = new ThreadLock();
+        mLock = new ThreadLock();
 
         mPlayCont.caster().addListener( mPlayHandler );
 
@@ -62,13 +64,12 @@ public class RealtimeDriver implements StreamDriver {
                 runLoop();
             }
         };
-        
+
         mThread.setDaemon( true );
         mThread.setPriority( Thread.NORM_PRIORITY - 1 );
     }
-    
-    
-    
+
+
     public void start() {
         synchronized( mLock ) {
             if( mThread != null && !mThread.isAlive() ) {
@@ -76,8 +77,8 @@ public class RealtimeDriver implements StreamDriver {
             }
         }
     }
-    
-    
+
+
     public void seekWarmupMicros( long micros ) {
         mDriver.seekWarmupMicros( micros );
     }

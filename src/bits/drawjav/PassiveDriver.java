@@ -477,6 +477,4 @@ public class PassiveDriver implements StreamDriver {
         sLog.log( Level.WARNING, message, ex );
     }
 
-    
-    
 }

@@ -12,9 +12,8 @@ import bits.util.Guid;
 public interface Source extends Channel {
     public int streamCount();
     public StreamHandle stream( int index );
-    public StreamHandle stream( Guid guid );
     public List<StreamHandle> streams();
-    
+
     public void openStream( StreamHandle stream ) throws IOException;
     public void closeStream( StreamHandle stream ) throws IOException;
     public void seek( long micros ) throws IOException;

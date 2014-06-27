@@ -6,6 +6,7 @@ import java.util.*;
 
 import bits.jav.Jav;
 import bits.microtime.*;
+import bits.util.concurrent.ThreadLock;
 import bits.util.ref.*;
 
 
@@ -72,55 +73,56 @@ public class PacketSchedulerTest {
     
     
     private static final class LongSource implements PlayControl, Closeable {
-        
-        private final PlayController mPlayCont;
-        private final StreamHandle mStream;
+
+        private final PlayController         mPlayCont;
+        private final StreamHandle           mStream;
         private final ObjectPool<LongPacket> mPool;
-        private final Sink<LongPacket> mSink;
-        private final ThreadLock mLock;
-        
-        private long mMicros = 0;
-        private boolean mNeedSeek = false;
-        private long mSeekMicros  = 0;
-        
-        
+        private final Sink<LongPacket>       mSink;
+        private final ThreadLock             mLock;
+
+        private long    mMicros     = 0;
+        private boolean mNeedSeek   = false;
+        private long    mSeekMicros = 0;
+
+
         LongSource( PlayController playCont,
                     PacketScheduler exec,
                     Sink<LongPacket> sink )
-                    throws IOException
+                throws IOException
         {
             mPlayCont = playCont;
-            mMicros   = playCont.clock().micros();
-            mStream  = new BasicStreamHandle( Jav.AVMEDIA_TYPE_UNKNOWN, 
-                                              null, 
-                                              null );
-            
+            mMicros = playCont.clock().micros();
+            mStream = new BasicStreamHandle( Jav.AVMEDIA_TYPE_UNKNOWN,
+                                             null,
+                                             null );
+
             mPool = new HardPool<LongPacket>( 16 );
             mLock = new ThreadLock();
             mSink = exec.openPipe( sink, mLock, 4 );
             mPlayCont.caster().addListener( this );
-            
+
             Thread thread = new Thread() {
                 public void run() {
                     runLoop();
                 }
             };
-            
+
             thread.setDaemon( true );
             thread.start();
         }
-        
-        
+
+
         public void close() {
             try {
                 mSink.close();
-            } catch( Exception ex ) {}
+            } catch( Exception ex ) {
+            }
         }
 
-        
+
         private void runLoop() {
             boolean needClear = false;
-            
+
             while( true ) {
                 synchronized( mLock ) {
                     if( mNeedSeek ) {
@@ -130,19 +132,19 @@ public class PacketSchedulerTest {
                         needClear = true;
                     }
                 }
-                
+
                 if( needClear ) {
                     needClear = false;
                     mSink.clear();
                 }
-                
+
                 LongPacket p = mPool.poll();
                 if( p == null ) {
                     p = new LongPacket( mPool, mStream, 0 );
                 }
                 p.mMicros = mMicros;
                 mMicros += 1000000L;
-                
+
                 try {
                     mSink.consume( p );
                 } catch( InterruptedIOException ex ) {
