@@ -23,7 +23,6 @@ public class FrameDifferencer implements Sink<IntFrame> {
     private double[] mDiff = null;
 
 
-
     public FrameDifferencer( Sink<? super IntFrame> sink ) {
         this( sink, 0.6, 0.0 );
     }

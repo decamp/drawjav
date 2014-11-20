@@ -32,7 +32,8 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
     private MemoryManager mMem;
 
     private final SinkCaster mCaster = new SinkCaster();
-    private       boolean    mClosed = false;
+
+    private boolean mClosed = false;
 
 
     public ManyToManyFormatter() {

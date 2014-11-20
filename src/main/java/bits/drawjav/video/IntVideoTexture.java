@@ -7,7 +7,6 @@ import bits.draw3d.DrawNodeAdapter;
 import bits.draw3d.tex.Texture2;
 import bits.drawjav.Sink;
 
-import javax.media.opengl.GL;
 import static javax.media.opengl.GL2ES3.*;
 
 

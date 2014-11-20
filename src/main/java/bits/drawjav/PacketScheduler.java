@@ -181,11 +181,8 @@ public class PacketScheduler {
         
     
     private static final class Pipe extends DoubleLinkedNode implements Sink, ObjectPool<Command> {
-        
-        static int sIndex = 0;
 
         @SuppressWarnings( "unused" )
-        final int mIndex;
         final PlayClock mClock;
         final TimedMultiQueue mQueue;
         
@@ -215,7 +212,6 @@ public class PacketScheduler {
               boolean rushFirstVideoFrame )
               throws ClosedChannelException
         {
-            mIndex   = sIndex++;
             mClock   = clock;
             mQueue   = queue;
             mChannel = queue.openChannel();
@@ -272,8 +268,8 @@ public class PacketScheduler {
                 }
 
                 //TODO: Check if this should be:
-                // mNeedRush = mRushFirstVideoFrame;
-                mNeedRush = true;
+                mNeedRush = mRushFirstVideoFrame;
+//                mNeedRush = true;
                 Command command = poll();
                 command.mCommandCode = COMMAND_CLEAR;
                 command.mPriority    = COMMAND_CLEAR;

@@ -46,7 +46,7 @@ public class TestVideoExportNode {
 
 
     private static final class EventHandler implements GLEventListener {
-        private final PlayController  mPlayCont = PlayController.newSteppingInstance( 0, 1001000000 / 30000 );
+        private final PlayController  mPlayCont = PlayController.createStepping( 0, 1001000000 / 30000 );
         private final VideoExportNode mExporter = new VideoExportNode( mPlayCont.clock() );
 
         private final Random  mRand = new Random( 0 );

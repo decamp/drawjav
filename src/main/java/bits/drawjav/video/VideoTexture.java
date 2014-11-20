@@ -2,14 +2,12 @@ package bits.drawjav.video;
 
 import java.nio.ByteBuffer;
 import java.util.*;
-import javax.media.opengl.*;
 
 import bits.draw3d.DrawEnv;
 import bits.draw3d.tex.Texture;
 import bits.drawjav.*;
 import bits.jav.Jav;
 import static javax.media.opengl.GL3.*;
-
 
 
 /**
@@ -50,10 +48,10 @@ public class VideoTexture implements Texture, Sink<VideoPacket> {
     //==========================
     
     public void consume( VideoPacket frame ) {
-        if( frame == null || !frame.hasDirectBuffer() ) {
+        if( frame == null || frame.javaBufElem( 0 ) == null ) {
             return;
         }
-        
+
         PictureFormat format = frame.pictureFormat();
         if( format == null || format.width() <= 0 || format.height() <= 0 ) {
             return;
@@ -63,7 +61,6 @@ public class VideoTexture implements Texture, Sink<VideoPacket> {
         case Jav.AV_PIX_FMT_BGR24:
         case Jav.AV_PIX_FMT_BGRA:
             break;
-            
         default:
             return;
         }
@@ -153,8 +150,7 @@ public class VideoTexture implements Texture, Sink<VideoPacket> {
     
     public void param( int key, int value ) {
         Integer prev = mParams.put( key, value );
-        
-        if( prev == null || prev.intValue() != value ) {
+        if( prev == null || prev != value ) {
             mNeedUpdate = true;
             mNeedInit   = true;
         }

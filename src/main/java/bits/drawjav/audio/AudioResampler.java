@@ -7,6 +7,9 @@ import bits.jav.util.Rational;
 * Based on audio resampler used in Vorbis Tools. <br/>
 * Supports arbitrary sample-rate conversion. <br/>
 * Uses kaiser-windowed sinc filter.
+*
+* This file is kept around because it's nice to have a pure java tool around.
+* However, it's recommended you use swsresample instead.
 */
 public class AudioResampler {
 

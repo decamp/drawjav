@@ -20,18 +20,15 @@ import bits.util.concurrent.ThreadLock;
 public class OneThreadMultiDriver implements MultiSourceDriver {
     
     
-    public static OneThreadMultiDriver newInstance( PlayController playCont ) {
+    @Deprecated public static OneThreadMultiDriver newInstance( PlayController playCont ) {
         return newInstance( playCont, null );
     }
     
     
-    public static OneThreadMultiDriver newInstance( PlayController playCont,
-                                                    PacketScheduler scheduler )
-    {
+    @Deprecated public static OneThreadMultiDriver newInstance( PlayController playCont, PacketScheduler scheduler ) {
         if( scheduler == null ) {
             scheduler = new PacketScheduler( playCont );
         }
-        
         return new OneThreadMultiDriver( playCont, scheduler );
     }
 
@@ -60,12 +57,10 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
     private boolean mCloseComplete = false;
 
 
-    OneThreadMultiDriver( PlayController playCont,
-                          PacketScheduler syncer )
-    {
+    public OneThreadMultiDriver( PlayController playCont, PacketScheduler optSyncer ) {
         mPlayCont = playCont;
         mLock = new ThreadLock();
-        mScheduler = syncer;
+        mScheduler = optSyncer != null ? optSyncer : new PacketScheduler( playCont );
 
         mPlayHandler = new PlayHandler();
         mPlayCont.caster().addListener( mPlayHandler );

@@ -36,7 +36,7 @@ public class VideoPackets {
         
         out.resize( w, h, w );
         final int[] row = out.mPix;
-        final ByteBuffer inBuf = frame.directBuffer();
+        final ByteBuffer inBuf = frame.javaBufElem( 0 );
         final int inOff = inBuf.position();
         final int inStride = frame.lineSize( 0 );
         int yOut = 0;
@@ -69,7 +69,7 @@ public class VideoPackets {
         }
         
         final int[] row = ( optRow != null && optRow.length >= w ) ? optRow : new int[w];
-        final ByteBuffer inBuf = frame.directBuffer();
+        final ByteBuffer inBuf = frame.javaBufElem( 0 );
         final int inOff = inBuf.position();
         final int inStride = frame.lineSize( 0 );
         

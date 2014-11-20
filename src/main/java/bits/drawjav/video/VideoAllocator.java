@@ -1,7 +1,5 @@
 package bits.drawjav.video;
 
-import bits.drawjav.StreamHandle;
-import bits.drawjav.video.VideoPacket;
 import bits.util.ref.ObjectPool;
 import bits.util.ref.Refable;
 

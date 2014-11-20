@@ -19,16 +19,16 @@ import bits.util.concurrent.ThreadLock;
 @SuppressWarnings( { "unchecked", "rawtypes" } )
 public class RealtimeDriver implements StreamDriver {
     
-    public static RealtimeDriver newInstance( PlayController playCont,
-                                              Source source ) 
+    @Deprecated public static RealtimeDriver newInstance( PlayController playCont,
+                                                          Source source )
     {
         return newInstance( playCont, source, null );
     }
     
     
-    public static RealtimeDriver newInstance( PlayController playCont,
-                                              Source source,
-                                              PacketScheduler syncer ) 
+    @Deprecated public static RealtimeDriver newInstance( PlayController playCont,
+                                                          Source source,
+                                                          PacketScheduler syncer )
     {
         if( syncer == null ) {
             syncer = new PacketScheduler( playCont );
@@ -47,16 +47,12 @@ public class RealtimeDriver implements StreamDriver {
     private final Thread          mThread;
 
 
-    private RealtimeDriver( PlayController playCont,
-                            Source source,
-                            PacketScheduler syncer )
-    {
+    public RealtimeDriver( PlayController playCont, Source source, PacketScheduler optSyncer ) {
         mPlayCont = playCont;
         mDriver = new PassiveDriver( source );
-        mSyncer = syncer;
+        mSyncer = optSyncer != null ? optSyncer : new PacketScheduler( playCont );
         mPlayHandler = new PlayHandler();
         mLock = new ThreadLock();
-
         mPlayCont.caster().addListener( mPlayHandler );
 
         mThread = new Thread( RealtimeDriver.class.getSimpleName() ) {

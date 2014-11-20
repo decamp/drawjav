@@ -5,6 +5,7 @@ import bits.jav.codec.JavFrame;
 import bits.util.ref.AbstractRefable;
 import bits.util.ref.Refable;
 
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -143,10 +144,9 @@ public class OneStreamVideoAllocator extends AbstractRefable implements VideoAll
         if( a == b ) {
             return true;
         }
-        if( a == null || b == null ) {
-            return false;
-        }
-        return a.width() == b.width() &&
+        return a != null &&
+               b != null &&
+               a.width() == b.width() &&
                a.height() == b.height() &&
                a.pixelFormat() == b.pixelFormat();
     }
@@ -167,8 +167,9 @@ public class OneStreamVideoAllocator extends AbstractRefable implements VideoAll
         }
 
         int size = 0;
-        if( p.hasDirectBuffer() ) {
-            size = p.directBufferCapacity();
+        ByteBuffer buf = p.javaBufElem( 0 );
+        if( buf != null ) {
+            size = buf.capacity();
         } else {
             PictureFormat fmt = p.pictureFormat();
             if( fmt != null ) {

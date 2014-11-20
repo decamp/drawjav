@@ -37,8 +37,6 @@ public class Mp4Writer {
     private SwsContext       mSws        = null;
     private Rational         mStreamRate = null;
     private JavDict          mMetadata   = null;
-    private final int[]      mBufOffsets = { 0 };
-    private final int[]      mLineSizes  = { 0 };
     private final int[]      mGotPacket  = { 0 };
     
     

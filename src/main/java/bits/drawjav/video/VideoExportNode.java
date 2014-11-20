@@ -620,13 +620,16 @@ public class VideoExportNode implements DrawNode, ReshapeListener {
             }
 
             FileChannel out = new FileOutputStream( outFile ).getChannel();
-            while( dst.remaining() > 0 ) {
-                int n = out.write( dst );
-                if( n <= 0 ) {
-                    throw new IOException( "Write failed." );
+            try {
+                while( dst.remaining() > 0 ) {
+                    int n = out.write( dst );
+                    if( n <= 0 ) {
+                        throw new IOException( "Write failed." );
+                    }
                 }
+            } finally {
+                out.close();
             }
-            out.close();
 
             return true;
         }

@@ -3,15 +3,9 @@ package bits.drawjav;
 import java.io.*;
 import java.util.*;
 
-import javax.media.opengl.GL;
-
-import bits.draw3d.DrawEnv;
-import bits.draw3d.DrawNodeAdapter;
-import bits.draw3d.nodes.*;
-import bits.drawjav.audio.AudioFormat;
-import bits.drawjav.audio.AudioPacket;
-import bits.drawjav.video.PictureFormat;
-import bits.drawjav.video.VideoPacket;
+import bits.draw3d.*;
+import bits.drawjav.audio.*;
+import bits.drawjav.video.*;
 import bits.microtime.*;
 
 
@@ -22,13 +16,11 @@ import bits.microtime.*;
  * @author decamp
  */
 public class MultiSyncedDriver extends DrawNodeAdapter implements MultiSourceDriver {
-    
-    
-    public static MultiSyncedDriver newInstance( PlayController playCont ) {
+
+    @Deprecated public static MultiSyncedDriver newInstance( PlayController playCont ) {
         return new MultiSyncedDriver( playCont );
     }
 
-    
     
     private final PlayController mPlayCont;
     
@@ -39,7 +31,7 @@ public class MultiSyncedDriver extends DrawNodeAdapter implements MultiSourceDri
     private boolean mClosed = false;
     
     
-    private MultiSyncedDriver( PlayController playCont ) {
+    public MultiSyncedDriver( PlayController playCont ) {
         mPlayCont = playCont;
     }
     
@@ -149,6 +141,5 @@ public class MultiSyncedDriver extends DrawNodeAdapter implements MultiSourceDri
             mDriver  = new SyncedDriver( mPlayCont, source );
         }
     }
-    
-    
+
 }

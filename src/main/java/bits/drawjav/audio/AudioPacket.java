@@ -118,11 +118,6 @@ public class AudioPacket extends JavFrame implements Packet {
 
     /**
      * Initializes packet object.
-     *
-     * @param stream
-     * @param format
-     * @param startMicros
-     * @param stopMicros
      */
     public void init( StreamHandle stream,
                       AudioFormat format,

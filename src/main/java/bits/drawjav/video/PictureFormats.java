@@ -1,9 +1,5 @@
 package bits.drawjav.video;
 
-import bits.jav.Jav;
-import bits.jav.util.Rational;
-
-
 /**
  * @author decamp
  * @deprecated Just use {@link PictureFormat}

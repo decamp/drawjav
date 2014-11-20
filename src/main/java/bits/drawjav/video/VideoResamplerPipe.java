@@ -22,19 +22,19 @@ public class VideoResamplerPipe implements Sink<VideoPacket> {
     {
         mSink  = sink;
         mConverter = new VideoPacketResampler( alloc );
-        mConverter.setSourceFormat( sourceFormat );
+        mConverter.sourceFormat( sourceFormat );
     }
     
     
     
     public void setPictureConversion( PictureFormat format, int swsFlags ) {
-        mConverter.setDestFormat( format );
-        mConverter.setConversionFlags( swsFlags );
+        mConverter.destFormat( format );
+        mConverter.conversionFlags( swsFlags );
     }
 
     
     public PictureFormat destFormat() {
-        return mConverter.getDestFormat();
+        return mConverter.destFormat();
     }
     
     

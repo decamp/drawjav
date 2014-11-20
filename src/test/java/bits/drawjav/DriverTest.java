@@ -28,8 +28,8 @@ public class DriverTest {
     public static void main( String[] args ) throws Exception {
 //        testRealtime();
 //        testSynced();
-        testMultiRealtime();
-//        testMultiSynced();
+//        testMultiRealtime();
+        testMultiSynced();
     }
     
     
@@ -37,9 +37,9 @@ public class DriverTest {
     static void testRealtime() throws Exception {
         File file = TEST_FILE;
         
-        final PlayController playCont = PlayController.newAutoInstance();
+        final PlayController playCont = PlayController.createAuto();
         final FormatDecoder decoder   = FormatDecoder.openFile( file, true, 0L );
-        final RealtimeDriver driver   = RealtimeDriver.newInstance( playCont, decoder, null ); 
+        final RealtimeDriver driver   = new RealtimeDriver( playCont, decoder, null );
         final VideoTexture tex        = new VideoTexture();
         
         StreamHandle sh = decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 );
@@ -52,7 +52,7 @@ public class DriverTest {
         //playCont.caster().addListener(player);
         //driver.openAudioStream(sh, sh.audioFormat(), player);
         new VideoFrame( null, tex );
-        
+
         playCont.control().seek( 0000000L );
         driver.start();
         playCont.control().playStart();
@@ -73,16 +73,14 @@ public class DriverTest {
 //                System.out.println("SEEK");
 //                playCont.control().seek( 10000000L );
 //            }
-            
-            
-        }catch(Exception ex) {}
+        } catch( Exception ex ) {}
     }
     
     
     static void testSynced() throws Exception {
         File file = TEST_FILE;
         
-        final PlayController playCont = PlayController.newSteppingInstance( 0, 1000000 / 30 );
+        final PlayController playCont = PlayController.createStepping( 0, 1000000 / 30 );
         final FormatDecoder decoder   = FormatDecoder.openFile( file, true, 0L );
         final SyncedDriver driver     = new SyncedDriver( playCont, decoder ); 
         final VideoTexture tex        = new VideoTexture();
@@ -100,7 +98,7 @@ public class DriverTest {
         final DrawNode update = new DrawNodeAdapter() {
             public void pushDraw( DrawEnv d ) {
                 playCont.updateClocks();
-                System.out.println( playCont.clock().micros() );
+                //System.out.println( playCont.clock().micros() );
                 driver.pushDraw( d );
                 driver.popDraw( d );
             }
@@ -130,10 +128,10 @@ public class DriverTest {
         File file1 = new File( "../../ext/video.mp4" );
         File file2 = new File( "../../ext/video.ts" );
         
-        final PlayController playCont  = PlayController.newAutoInstance();
+        final PlayController playCont  = PlayController.createAuto();
         final FormatDecoder decoder1   = FormatDecoder.openFile( file1, true, 0L );
         final FormatDecoder decoder2   = FormatDecoder.openFile( file2, true, 0L );
-        final OneThreadMultiDriver driver = OneThreadMultiDriver.newInstance( playCont ); 
+        final OneThreadMultiDriver driver = new OneThreadMultiDriver( playCont, null );
         final VideoTexture tex1        = new VideoTexture();
         final VideoTexture tex2        = new VideoTexture();
         
@@ -177,10 +175,10 @@ public class DriverTest {
         File file1 = new File( "../../ext/video.mp4" );
         File file2 = new File( "../../ext/video.ts" );
         
-        final PlayController playCont  = PlayController.newSteppingInstance( 0L, 1000000L / 30L );
+        final PlayController playCont  = PlayController.createStepping( 0L, 1000000L / 30L );
         final FormatDecoder decoder1   = FormatDecoder.openFile( file1, true, 0L );
         final FormatDecoder decoder2   = FormatDecoder.openFile( file2, true, 0L );
-        final MultiSyncedDriver driver = MultiSyncedDriver.newInstance( playCont ); 
+        final MultiSyncedDriver driver = new MultiSyncedDriver( playCont );
         final VideoTexture tex1        = new VideoTexture();
         final VideoTexture tex2        = new VideoTexture();
         

@@ -74,9 +74,9 @@ public class VideoPacketResampler {
         // Better to use identical objects than merely equivalent objects.
         if( format == mDestFormat || format != null && format.equals( mDestFormat ) ) {
             mRequestedFormat = format;
-            updateDestFormat();
         } else {
             mRequestedFormat = format;
+            updateDestFormat();
         }
     }
 

@@ -55,8 +55,7 @@ public class VideoPlayTest {
             decoder.openStream( decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ) );
 
             PictureFormat fmt = new PictureFormat( -1, -1, Jav.AV_PIX_FMT_BGR24 );
-            
-            RealtimeDriver driver = RealtimeDriver.newInstance( playCont, decoder, null );
+            RealtimeDriver driver = new RealtimeDriver( playCont, decoder, null );
             driver.seekWarmupMicros( 3000000L );
             driver.openVideoStream( decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ), fmt, panel );
 //                                    new PictureFormat( -1, -1, Jav.AV_PIX_FMT_BGRA, new bits.jav.util.Rational( 1, 1 ) ), panel );

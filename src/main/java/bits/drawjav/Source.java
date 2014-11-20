@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.nio.channels.Channel;
 import java.util.*;
 
-import bits.util.Guid;
-
 /**
  * @author decamp
  */

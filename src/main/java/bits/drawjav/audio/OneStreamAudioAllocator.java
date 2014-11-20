@@ -1,11 +1,10 @@
 package bits.drawjav.audio;
 
-import bits.jav.codec.JavFrame;
-import bits.jav.util.JavBufferRef;
 import bits.jav.util.JavSampleFormat;
 import bits.util.ref.AbstractRefable;
 import bits.util.ref.Refable;
 
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -25,7 +24,7 @@ public class OneStreamAudioAllocator extends AbstractRefable implements AudioAll
 
     private AudioFormat mPoolFormat;
     private long        mPoolSize;
-    private int         mPoolItemSize;
+    //private int         mPoolItemSize;
 
     private boolean mHasFormat        = false;
     private boolean mHasChangedFormat = false;
@@ -170,10 +169,11 @@ public class OneStreamAudioAllocator extends AbstractRefable implements AudioAll
             return 0;
         }
         int size;
-        if( packet.hasDirectBuffer() ) {
-            size = packet.directBufferCapacity();
+        ByteBuffer bb = packet.javaBufElem( 0 );
+        if( bb != null ) {
+            size = bb.capacity();
         } else {
-            size = JavFrame.computeAudioBufferSize( packet.channels(), packet.nbSamples(), packet.format(), 0, null );
+            size = JavSampleFormat.getBufferSize( packet.channels(), packet.nbSamples(), packet.format(), 0, null );
         }
         return Math.max( 0, size ) + 256;
     }
