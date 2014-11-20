@@ -1,15 +1,15 @@
-    package bits.drawjav.video;
+package bits.drawjav.video;
 
 import java.io.*;
 import java.nio.*;
 import java.nio.channels.FileChannel;
 import java.util.*;
 
-import javax.media.opengl.*;
-import static javax.media.opengl.GL.*;
+import static javax.media.opengl.GL3.*;
 
 import bits.collect.RingList;
-import bits.draw3d.nodes.DrawNode;
+
+import bits.draw3d.*;
 import bits.jav.util.Rational;
 import bits.microtime.*;
 import bits.png.NativeZLib;
@@ -29,7 +29,7 @@ import bits.util.ref.*;
  * 
  * @author decamp
  */
-public class VideoExportNode implements DrawNode {
+public class VideoExportNode implements DrawNode, ReshapeListener {
     
     public static final int QUALITY_HIGHEST = 100;
     public static final int QUALITY_LOWEST  = 0;
@@ -45,12 +45,7 @@ public class VideoExportNode implements DrawNode {
 
     private static final Double GAMMA = 1.0 / 2.2;
     
-    
-    public static VideoExportNode newInstance() {
-        return null;
-    }
-    
-    
+
     private static final int MAX_QUEUE_SIZE = 2;
     
     private final Clock mClock;
@@ -108,7 +103,7 @@ public class VideoExportNode implements DrawNode {
                                long stopMicros )
                                throws IOException
     {
-        outFile = Files.setSuffix( outFile, "mp4" );
+        outFile = Files.withSuffix( outFile, "mp4" );
         
         File outDir = outFile.getParentFile();
         if( !outDir.exists() && !outDir.mkdirs() ) {
@@ -178,24 +173,33 @@ public class VideoExportNode implements DrawNode {
 
 
     @Override
-    public void init( GLAutoDrawable glad ) {
-        mDoubleBuffered = glad.getChosenGLCapabilities().getDoubleBuffered();
-    }
-    
-    
-    @Override
-    public void reshape( GLAutoDrawable gld, int x, int y, int w, int h ) {
-        mWidth  = w;
-        mHeight = h;
+    public void init( DrawEnv d ) {
+        mDoubleBuffered = d.mGld.getChosenGLCapabilities().getDoubleBuffered();
     }
 
-    
     @Override
-    public void pushDraw( GL gl ) {}
-    
-    
+    public void dispose( DrawEnv d ) {
+        for( Stream s: mStreams ) {
+            s.close();
+        }
+        mStreams.clear();
+        for( Stream s: mNewStreams ) {
+            s.close();
+        }
+        mNewStreams.clear();
+    }
+
     @Override
-    public void popDraw( GL gl ) {
+    public void reshape( DrawEnv d ) {
+        mWidth  = d.mViewport.mW;
+        mHeight = d.mViewport.mH;
+    }
+
+    @Override
+    public void pushDraw( DrawEnv d ) {}
+
+    @Override
+    public void popDraw( DrawEnv d ) {
         long t = mClock.micros();
         
         while( !mNewStreams.isEmpty() && mNewStreams.peek().startMicros() <= t ) {
@@ -206,7 +210,7 @@ public class VideoExportNode implements DrawNode {
         int len = mStreams.size();
         for( int i = 0; i < len; i++ ) {
             Stream s = mStreams.get( i );
-            if( s.stopMicros() <= t || !s.process( gl, mWidth, mHeight ) ) {
+            if( s.stopMicros() <= t || !s.process( d, mWidth, mHeight ) ) {
                 s.close();
                 mStreams.remove( i-- );
                 len--;
@@ -214,19 +218,7 @@ public class VideoExportNode implements DrawNode {
         }
     }
     
-    
-    @Override
-    public void dispose( GLAutoDrawable gld ) {
-        for( Stream s: mStreams ) {
-            s.close();
-        }
-        mStreams.clear();
-        for( Stream s: mNewStreams ) {
-            s.close();
-        }
-        mNewStreams.clear();
-    }
-    
+
 
     public static interface Job extends Closeable, TimeRanged {
         public void registerCompletionCallback( Runnable r );
@@ -239,7 +231,7 @@ public class VideoExportNode implements DrawNode {
     
     
     private static interface FrameReader {
-        public ByteBuffer readFrame( GL gl, int w, int h );
+        public ByteBuffer readFrame( DrawEnv d, int w, int h );
     }
     
     
@@ -257,7 +249,7 @@ public class VideoExportNode implements DrawNode {
             mPool = pool;
         }
         
-        public ByteBuffer readFrame( GL gl, int w, int h ) {
+        public ByteBuffer readFrame( DrawEnv d, int w, int h ) {
             int rowBytes = ( w * 3 + ROW_ALIGN - 1 ) / ROW_ALIGN * ROW_ALIGN;
             int cap = rowBytes * h + OVERHEAD;
             
@@ -271,17 +263,16 @@ public class VideoExportNode implements DrawNode {
             buf.order( ByteOrder.nativeOrder() );
             
             if( mReadTarget != null ) {
-                gl.glReadBuffer( mReadTarget );
+                d.mGl.glReadBuffer( mReadTarget );
             } else {
-                gl.glReadBuffer( mDoubleBuffered ? GL_BACK : GL_FRONT );
+                d.mGl.glReadBuffer( mDoubleBuffered ? GL_BACK : GL_FRONT );
             }
             
-            gl.glPixelStorei( GL_PACK_ALIGNMENT, ROW_ALIGN );
-            gl.glReadPixels( 0, 0, w, h, GL_BGR, GL_UNSIGNED_BYTE, buf );
+            d.mGl.glPixelStorei( GL_PACK_ALIGNMENT, ROW_ALIGN );
+            d.mGl.glReadPixels( 0, 0, w, h, GL_BGR, GL_UNSIGNED_BYTE, buf );
             buf.position( 0 ).limit( rowBytes * h );
             return buf;
         }
-        
     }
 
 
@@ -293,7 +284,7 @@ public class VideoExportNode implements DrawNode {
             mPool = pool;
         }
 
-        public ByteBuffer readFrame( GL gl, int w, int h ) {
+        public ByteBuffer readFrame( DrawEnv d, int w, int h ) {
             int rowBytes = ( w * 3 + ROW_ALIGN - 1 ) / ROW_ALIGN * ROW_ALIGN;
             int cap = rowBytes * h + OVERHEAD;
 
@@ -307,13 +298,13 @@ public class VideoExportNode implements DrawNode {
             buf.order( ByteOrder.nativeOrder() );
 
             if( mReadTarget != null ) {
-                gl.glReadBuffer( mReadTarget );
+                d.mGl.glReadBuffer( mReadTarget );
             } else {
-                gl.glReadBuffer( mDoubleBuffered ? GL_BACK : GL_FRONT );
+                d.mGl.glReadBuffer( mDoubleBuffered ? GL_BACK : GL_FRONT );
             }
 
-            gl.glPixelStorei( GL_PACK_ALIGNMENT, ROW_ALIGN );
-            gl.glReadPixels( 0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, buf );
+            d.mGl.glPixelStorei( GL_PACK_ALIGNMENT, ROW_ALIGN );
+            d.mGl.glReadPixels( 0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, buf );
             buf.position( 0 ).limit( rowBytes * h );
             return buf;
         }
@@ -677,8 +668,8 @@ public class VideoExportNode implements DrawNode {
         }
         
         
-        public boolean process( GL gl, int w, int h ) {
-            ByteBuffer buf = mReader.readFrame( gl, w, h );
+        public boolean process( DrawEnv d, int w, int h ) {
+            ByteBuffer buf = mReader.readFrame( d, w, h );
             try {
                 return mWriter.offer( buf, w, h );
             } catch( IOException ex ) {
@@ -746,7 +737,6 @@ public class VideoExportNode implements DrawNode {
         
         public void run() {
             List<Joinable> list = null;
-            
             synchronized( this ) {
                 if( mList.isEmpty() ) {
                     return;

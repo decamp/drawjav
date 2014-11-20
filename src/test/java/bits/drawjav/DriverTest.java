@@ -5,16 +5,17 @@ import static javax.media.opengl.GL.*;
 import java.io.File;
 
 import javax.media.opengl.*;
+import javax.media.opengl.awt.GLCanvas;
 import javax.swing.JFrame;
 
-import bits.draw3d.nodes.*;
+import bits.draw3d.*;
 import bits.drawjav.video.PictureFormat;
 import bits.drawjav.video.VideoTexture;
+import bits.glui.util.LimitAnimator;
 import bits.jav.Jav;
 import bits.jav.util.Rational;
 import bits.microtime.PlayController;
 
-import com.sun.opengl.util.Animator;
 
 /**
  * @author decamp
@@ -95,12 +96,13 @@ public class DriverTest {
         //AudioLinePlayer player = new AudioLinePlayer(sh.audioFormat(), playCont.masterClock());
         //playCont.caster().addListener(player);
         //driver.openAudioStream(sh, sh.audioFormat(), player);
-        
+
         final DrawNode update = new DrawNodeAdapter() {
-            public void pushDraw( GL gl ) {
+            public void pushDraw( DrawEnv d ) {
                 playCont.updateClocks();
-                driver.pushDraw( gl );
-                driver.popDraw( gl );
+                System.out.println( playCont.clock().micros() );
+                driver.pushDraw( d );
+                driver.popDraw( d );
             }
         };
         
@@ -118,7 +120,7 @@ public class DriverTest {
                 System.out.println("SEEK");
                 playCont.control().seek( 3000000L );
             }
-        }catch(Exception ex) {}
+        } catch( Exception ex ) {}
         
         driver.close();
     }
@@ -172,8 +174,8 @@ public class DriverTest {
 
     
     static void testMultiSynced() throws Exception {
-        File file1 = new File( "resources_ext/video.mp4" );
-        File file2 = new File( "resources_ext/video.ts" );
+        File file1 = new File( "../../ext/video.mp4" );
+        File file2 = new File( "../../ext/video.ts" );
         
         final PlayController playCont  = PlayController.newSteppingInstance( 0L, 1000000L / 30L );
         final FormatDecoder decoder1   = FormatDecoder.openFile( file1, true, 0L );
@@ -194,10 +196,10 @@ public class DriverTest {
         //playCont.caster().addListener(player);
         //driver.openAudioStream(sh, sh.audioFormat(), player);
         final DrawNode update = new DrawNodeAdapter() {
-            public void pushDraw( GL gl ) {
+            public void pushDraw( DrawEnv d ) {
                 playCont.updateClocks();
-                driver.pushDraw( gl );
-                driver.popDraw( gl );
+                driver.pushDraw( d );
+                driver.popDraw( d );
             }
         };
         
@@ -222,81 +224,82 @@ public class DriverTest {
 //        } catch(Exception ex) {}
         
     }
-    
 
     
     private static class VideoFrame extends JFrame implements GLEventListener {
 
-        private final DrawNode mUpdateNode;
-        private final DrawNode[] mTexs;
-        private final GLCanvas mCanvas;
-        
-        
-        public VideoFrame( DrawNode updateNode, DrawNode... texs ) {
+        private final DrawNode   mUpdateNode;
+        private final DrawUnit[] mTexs;
+        private final GLCanvas   mCanvas;
+        private final DrawEnv mEnv = new DrawEnv();
+
+        public VideoFrame( DrawNode updateNode, DrawUnit... texs ) {
             mUpdateNode = updateNode;
             mTexs = texs;
-            
-            GLCapabilities glc = new GLCapabilities();
+
+            GLProfile profile = GLProfile.get( GLProfile.GL3 );
+            GLCapabilities glc = new GLCapabilities( profile );
             mCanvas = new GLCanvas( glc );
 
             setSize( 1024, 768 );
             setLocationRelativeTo( null );
             setDefaultCloseOperation( JFrame.EXIT_ON_CLOSE );
             getContentPane().add( mCanvas );
-            
+
             mCanvas.addGLEventListener( this );
-            
-            setVisible(true);
-            new Animator( mCanvas ).start();
+
+            setVisible( true );
+            new LimitAnimator( mCanvas ).start();
         }
-        
-        
+
+
         public void display( GLAutoDrawable gld ) {
-            GL gl = gld.getGL();
+            final DrawEnv d = mEnv;
+            d.init( gld, null );
+            GL gl = d.mGl;
 
             if( mUpdateNode != null ) {
-                mUpdateNode.pushDraw( gl );
-                mUpdateNode.popDraw( gl );
+                mUpdateNode.pushDraw( d );
+                mUpdateNode.popDraw( d );
             }
-            
-            gl.glMatrixMode( GL_PROJECTION );
-            gl.glLoadIdentity();
-            gl.glMatrixMode( GL_MODELVIEW );
-            gl.glLoadIdentity();
 
-            gl.glOrtho( 0.0, 1.0, 0.0, 1.0, -1.0, 1.0 );
+            d.mProj.identity();
+            d.mView.identity();
+            d.mView.setOrtho( 0, 1, 0, 1, -1, 1 );
+            gl.glClearColor( 0, 0, 0, 0 );
+            gl.glClear( GL_COLOR_BUFFER_BIT );
+            DrawStream s = d.drawStream();
+            s.config( true, true, false );
+            s.color( 1, 1, 1, 1 );
+            gl.glActiveTexture( GL_TEXTURE0 );
 
-            gl.glClearColor(0, 0, 0, 0);
-            gl.glClear(GL_COLOR_BUFFER_BIT);
-            gl.glColor4d(1,1,1,1);
-            
             for( int i = 0; i < mTexs.length; i++ ) {
-                double y0 = (double)i / mTexs.length;
-                double y1 = (double)( i + 1 ) / mTexs.length;
-                
-                mTexs[i].pushDraw( gl );
+                float y0 = (float)i / mTexs.length;
+                float y1 = (float)(i + 1) / mTexs.length;
+                mTexs[i].bind( d );
 
-                gl.glBegin(GL_QUADS);
-                gl.glTexCoord2d(0, 1);
-                gl.glVertex2d(0, y0);
-                gl.glTexCoord2d(1, 1);
-                gl.glVertex2d(1, y0);
-                gl.glTexCoord2d(1, 0);
-                gl.glVertex2d(1, y1);
-                gl.glTexCoord2d(0, 0);
-                gl.glVertex2d(0, y1);
-                gl.glEnd();
-                
-                mTexs[i].popDraw( gl );
+                s.beginQuads();
+                s.tex( 0, 1 );
+                s.vert( 0, y0 );
+                s.tex( 1, 1 );
+                s.vert( 1, y0 );
+                s.tex( 1, 0 );
+                s.vert( 1, y1 );
+                s.tex( 0, 0 );
+                s.vert( 0, y1 );
+                s.end();
             }
         }
-            
+
         public void displayChanged( GLAutoDrawable arg0, boolean arg1, boolean arg2 ) {}
-        
+
         public void init( GLAutoDrawable arg0 ) {}
-        
+
+        @Override
+        public void dispose( GLAutoDrawable drawable ) {}
+
         public void reshape( GLAutoDrawable arg0, int arg1, int arg2, int arg3, int arg4 ) {}
 
     }
-    
+
 }

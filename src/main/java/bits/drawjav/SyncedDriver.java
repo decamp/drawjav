@@ -1,9 +1,9 @@
 package bits.drawjav;
 
 import java.io.*;
-import javax.media.opengl.GL;
 
-import bits.draw3d.nodes.DrawNodeAdapter;
+import bits.draw3d.DrawEnv;
+import bits.draw3d.DrawNodeAdapter;
 import bits.drawjav.audio.AudioFormat;
 import bits.drawjav.audio.AudioPacket;
 import bits.drawjav.video.PictureFormat;
@@ -63,7 +63,7 @@ public class SyncedDriver extends DrawNodeAdapter implements StreamDriver {
         return mPlayCont;
     }
     
-    
+
     public StreamHandle openVideoStream( StreamHandle source,
                                          PictureFormat destFormat,
                                          Sink<? super VideoPacket> sink )
@@ -97,10 +97,9 @@ public class SyncedDriver extends DrawNodeAdapter implements StreamDriver {
         return mDriver.isOpen();
     }
     
-    
-    public void pushDraw( GL gl ) {
+    @Override
+    public void pushDraw( DrawEnv d ) {
         long timeMicros = mPlayCont.clock().micros();
-        
         while( true ) {
             if( !mDriver.hasNext() ) {
                 return;

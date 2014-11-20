@@ -5,6 +5,8 @@ import java.util.*;
 
 import javax.media.opengl.GL;
 
+import bits.draw3d.DrawEnv;
+import bits.draw3d.DrawNodeAdapter;
 import bits.draw3d.nodes.*;
 import bits.drawjav.audio.AudioFormat;
 import bits.drawjav.audio.AudioPacket;
@@ -129,10 +131,10 @@ public class MultiSyncedDriver extends DrawNodeAdapter implements MultiSourceDri
 
     
     @Override
-    public void pushDraw( GL gl ) {
+    public void pushDraw( DrawEnv d ) {
         synchronized( this ) {
             for( SourceData s: mSources ) {
-                s.mDriver.pushDraw( gl );
+                s.mDriver.pushDraw( d );
             }
         }
     }

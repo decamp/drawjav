@@ -4,11 +4,14 @@ import java.io.*;
 import java.util.Random;
 
 import javax.media.opengl.*;
+import javax.media.opengl.awt.GLCanvas;
 import javax.swing.JFrame;
 
+import bits.draw3d.DrawEnv;
+import bits.draw3d.DrawStream;
+import bits.glui.util.Animator;
+import bits.glui.util.LimitAnimator;
 import bits.microtime.*;
-
-import com.sun.opengl.util.Animator;
 
 import static javax.media.opengl.GL.*;
 
@@ -23,7 +26,8 @@ public class TestVideoExportNode {
 
 
     static void test1() throws Exception {
-        GLCapabilities caps = new GLCapabilities();
+        GLProfile profile = GLProfile.get( GLProfile.GL3 );
+        GLCapabilities caps = new GLCapabilities( profile );
         caps.setHardwareAccelerated( true );
         GLCanvas canvas = new GLCanvas( caps );
 
@@ -36,16 +40,17 @@ public class TestVideoExportNode {
 
         frame.setVisible( true );
 
-        Animator anim = new Animator( canvas );
+        Animator anim = new LimitAnimator( canvas );
         anim.start();
     }
 
 
     private static final class EventHandler implements GLEventListener {
-        private final PlayController mPlayCont  = PlayController.newSteppingInstance( 0, 1001000000 / 30000 );
+        private final PlayController  mPlayCont = PlayController.newSteppingInstance( 0, 1001000000 / 30000 );
         private final VideoExportNode mExporter = new VideoExportNode( mPlayCont.clock() );
 
-        private final Random mRand = new Random( 0 );
+        private final Random  mRand = new Random( 0 );
+        private final DrawEnv mEnv  = new DrawEnv();
 
         private long mStartMicros = 1000000L;
         private long mStopMicros  = 2000000L;
@@ -69,11 +74,18 @@ public class TestVideoExportNode {
 
         @Override
         public void init( GLAutoDrawable glad ) {
-            mExporter.init( glad );
+            mEnv.init( glad, null );
+            mExporter.init( mEnv );
         }
 
         @Override
+        public void dispose( GLAutoDrawable drawable ) {}
+
+        @Override
         public void display( GLAutoDrawable glad ) {
+            DrawEnv d = mEnv;
+            d.init( glad, null );
+
             GL gl = glad.getGL();
             mPlayCont.updateClocks();
             long t = mPlayCont.clock().micros();
@@ -88,23 +100,23 @@ public class TestVideoExportNode {
 
             gl.glClear( GL_COLOR_BUFFER_BIT );
 
-            gl.glColor3f( 0f, 0f, 0f );
-            gl.glBegin( GL_TRIANGLES );
-            gl.glVertex2f( 1.0f, 0.5f );
-            gl.glVertex2f( 1.0f, 1.0f );
-            gl.glVertex2f( 0.5f, 1.0f );
-            gl.glEnd();
+            DrawStream s = d.drawStream();
+            s.config( true, false, false );
+            s.color( 0f, 0f, 0f );
+            s.beginTris();
+            s.vert( 1.0f, 0.5f );
+            s.vert( 1.0f, 1.0f );
+            s.vert( 0.5f, 1.0f );
+            s.end();
 
-            mExporter.pushDraw( gl );
-            mExporter.popDraw( gl );
+            mExporter.pushDraw( d );
+            mExporter.popDraw( d );
         }
 
         @Override
-        public void displayChanged( GLAutoDrawable glad, boolean arg1, boolean arg2 ) {}
-
-        @Override
         public void reshape( GLAutoDrawable glad, int x, int y, int w, int h ) {
-            mExporter.reshape( glad, x, y, w, h );
+            mEnv.init( glad, null );
+            mExporter.reshape( mEnv );
         }
 
     }

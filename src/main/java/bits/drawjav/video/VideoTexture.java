@@ -1,12 +1,14 @@
 package bits.drawjav.video;
 
+import java.nio.ByteBuffer;
 import java.util.*;
 import javax.media.opengl.*;
 
-import bits.draw3d.nodes.*;
+import bits.draw3d.DrawEnv;
+import bits.draw3d.tex.Texture;
 import bits.drawjav.*;
 import bits.jav.Jav;
-import static javax.media.opengl.GL.*;
+import static javax.media.opengl.GL3.*;
 
 
 
@@ -15,7 +17,7 @@ import static javax.media.opengl.GL.*;
  *  
  * @author Philip DeCamp  
  */
-public class VideoTexture implements TextureNode, Sink<VideoPacket> {
+public class VideoTexture implements Texture, Sink<VideoPacket> {
 
     private VideoPacket mNextFrame    = null;
     private VideoPacket mCurrentFrame = null;
@@ -160,24 +162,23 @@ public class VideoTexture implements TextureNode, Sink<VideoPacket> {
     
     public void format( int intFormat, int format, int dataType ) {}
     
+
     
-    
-    public void init( GL gl ) {
-        pushDraw( gl );
-        popDraw( gl );
+    public void init( DrawEnv d ) {
+        bind( d );
     }
     
     
-    public synchronized void dispose( GL gl ) {
+    public synchronized void dispose( DrawEnv d ) {
         if( mDisposed ) {
             return;
         }
         
         mDisposed = true;
         mNeedUpdate = true;
-        
+
         if( mId[0] != 0 ) {
-            gl.glDeleteTextures( 1, mId, 0 );
+            d.mGl.glDeleteTextures( 1, mId, 0 );
             mId[0] = 0;
         }
         
@@ -191,69 +192,43 @@ public class VideoTexture implements TextureNode, Sink<VideoPacket> {
             mCurrentFrame = null;
         }
     }
-    
-    
-    public void bind( GL gl ) {
-        if( mNeedUpdate && !doUpdate( gl ) ) {
-            return;
-        }
-        
-        boolean buffer = queueBuffer();
-        gl.glBindTexture( GL_TEXTURE_2D, mId[0] );
-        if( buffer ) {
-            doBuffer( gl );
-        }
-    }
-    
-    
-    public void unbind( GL gl ) {
-        gl.glBindTexture( GL_TEXTURE_2D, 0 );
-    }
-    
-    
-    @Override
-    public void pushDraw( GL gl ) {
-        gl.glGetIntegerv( GL_TEXTURE_2D, mRevert, 0 );
-        gl.glGetIntegerv( GL_TEXTURE_BINDING_2D, mRevert, 1 );
-        
-        if( mNeedUpdate && !doUpdate( gl ) ) {
-            return;
-        }
-        
-        boolean buffer = queueBuffer();
-        gl.glBindTexture( GL_TEXTURE_2D, mId[0] );
-        gl.glEnable( GL_TEXTURE_2D );
-        if( buffer ) {
-            doBuffer( gl );
-        }
-    }
-    
-    
-    public void popDraw( GL gl ) {
-        if( mRevert[0] == 0 ) {
-            gl.glDisable( GL_TEXTURE_2D );
-        }
-        gl.glBindTexture( GL_TEXTURE_2D, mRevert[1] );
+
+
+    public void bind( DrawEnv d, int unit ) {
+        d.mGl.glActiveTexture( unit );
+        bind( d );
     }
 
     
-    
-    public void init( GLAutoDrawable gld ) {
-        init( gld.getGL() );
+    public void bind( DrawEnv d ) {
+        if( mNeedUpdate && !doUpdate( d ) ) {
+            return;
+        }
+        
+        boolean buffer = queueBuffer();
+        d.mGl.glBindTexture( GL_TEXTURE_2D, mId[0] );
+        if( buffer ) {
+            doBuffer( d );
+        }
     }
-    
-    
-    public void dispose( GLAutoDrawable gld ) {
-        dispose( gld.getGL() );
+
+
+    public void unbind( DrawEnv d, int unit ) {
+        d.mGl.glActiveTexture( unit );
+        unbind( d );
     }
+
     
-    
-    public void reshape( GLAutoDrawable gld, int x, int y, int w, int h ) {}
-    
-    
-    
-    
-    private boolean doUpdate( GL gl ) {
+    public void unbind( DrawEnv d ) {
+        d.mGl.glBindTexture( GL_TEXTURE_2D, 0 );
+    }
+
+
+    public void reshape( DrawEnv d ) {}
+
+
+
+    private boolean doUpdate( DrawEnv d ) {
         mNeedUpdate = false;
         
         if( mDisposed ) {
@@ -264,17 +239,16 @@ public class VideoTexture implements TextureNode, Sink<VideoPacket> {
             mNeedInit = false;
             
             if( mId[0] == 0 ) {
-                gl.glGenTextures( 1, mId, 0 );
+                d.mGl.glGenTextures( 1, mId, 0 );
                 if( mId[0] <= 0 ) {
                     throw new RuntimeException( "Failed to allocate texture." );
                 }
             }
 
-            gl.glBindTexture( GL_TEXTURE_2D, mId[0] );
-            
+            d.mGl.glBindTexture( GL_TEXTURE_2D, mId[0] );
             for( Map.Entry<Integer,Integer> e: mParams.entrySet() ) {
-                gl.glTexParameteri( GL_TEXTURE_2D, e.getKey(), e.getValue() );
-                
+                d.mGl.glTexParameteri( GL_TEXTURE_2D, e.getKey(), e.getValue() );
+
             }
         }
         
@@ -296,22 +270,24 @@ public class VideoTexture implements TextureNode, Sink<VideoPacket> {
     }
     
     
-    private void doBuffer( GL gl ) {
+    private void doBuffer( DrawEnv d ) {
         VideoPacket frame = mCurrentFrame;
         PictureFormat fmt = frame.pictureFormat();
         mWidth  = fmt.width();
         mHeight = fmt.height();
-        
+
         if( fmt.pixelFormat() == Jav.AV_PIX_FMT_BGR24 ) {
             mFormat = GL_BGR;
         } else {
             mFormat = GL_BGRA;
         }
-        
+
         int s = frame.lineSize( 0 );
-        gl.glPixelStorei( GL_PACK_ROW_LENGTH, s );
-        gl.glTexImage2D( GL_TEXTURE_2D, 0, mIntFormat, mWidth, mHeight, 0, mFormat, mDataType, frame.directBuffer() );
-        gl.glPixelStorei( GL_PACK_ROW_LENGTH, 0 );
+        d.mGl.glPixelStorei( GL_PACK_ROW_LENGTH, s );
+        //d.mGl.glTexImage2D( GL_TEXTURE_2D, 0, mIntFormat, mWidth, mHeight, 0, mFormat, mDataType, frame.directBuffer() );
+        ByteBuffer bb = frame.javaBufElem( 0 );
+        d.mGl.glTexImage2D( GL_TEXTURE_2D, 0, mIntFormat, mWidth, mHeight, 0, mFormat, mDataType, bb );
+        d.mGl.glPixelStorei( GL_PACK_ROW_LENGTH, 0 );
     }
-    
+
 }
