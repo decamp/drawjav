@@ -8,13 +8,11 @@ package bits.drawjav.video;
 
 import java.nio.ByteBuffer;
 import java.util.*;
-
-import bits.draw3d.DrawEnv;
-import bits.draw3d.tex.Texture;
-import bits.drawjav.*;
-import bits.jav.Jav;
 import static javax.media.opengl.GL3.*;
 
+import bits.draw3d.*;
+import bits.drawjav.*;
+import bits.jav.Jav;
 
 /**
  * Texture node that converts output of video stream to dynamic texture.

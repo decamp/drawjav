@@ -7,13 +7,10 @@
 package bits.drawjav.video;
 
 import java.nio.*;
-
-import bits.draw3d.DrawEnv;
-import bits.draw3d.DrawNodeAdapter;
-import bits.draw3d.tex.Texture2;
-import bits.drawjav.Sink;
-
 import static javax.media.opengl.GL2ES3.*;
+
+import bits.draw3d.*;
+import bits.drawjav.Sink;
 
 
 /**
