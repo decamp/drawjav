@@ -7,6 +7,7 @@
 package bits.drawjav;
 
 import java.io.*;
+import java.nio.channels.ClosedChannelException;
 import java.util.*;
 
 import bits.draw3d.*;
@@ -15,136 +16,164 @@ import bits.drawjav.video.*;
 import bits.microtime.*;
 
 
-
 /**
  * Handles realtime processing of one source.
  * 
  * @author decamp
  */
-public class MultiSyncedDriver extends DrawNodeAdapter implements MultiSourceDriver {
+public class MultiSyncedDriver extends DrawNodeAdapter implements StreamDriver {
 
     @Deprecated public static MultiSyncedDriver newInstance( PlayController playCont ) {
         return new MultiSyncedDriver( playCont );
     }
 
-    
+
     private final PlayController mPlayCont;
-    
-    private final Map<Source,SourceData> mSourceMap       = new HashMap<Source,SourceData>();
-    private final Map<StreamHandle,SourceData> mStreamMap = new HashMap<StreamHandle,SourceData>();
-    private List<SourceData> mSources = new ArrayList<SourceData>();
-    private long mSeekWarmupMicros = 2000000L;
-    private boolean mClosed = false;
-    
-    
+
+    private final Map<Source, Node>       mSourceMap        = new HashMap<Source, Node>();
+    private final Map<StreamHandle, Node> mStreamMap        = new HashMap<StreamHandle, Node>();
+    private       List<Node>              mSources          = new ArrayList<Node>();
+    private       long                    mSeekWarmupMicros = 2000000L;
+    private       boolean                 mClosed           = false;
+
+
     public MultiSyncedDriver( PlayController playCont ) {
         mPlayCont = playCont;
     }
-    
-    
-    
+
+
     public void start() {}
-    
-    
+
+
     public PlayController playController() {
         return mPlayCont;
     }
-    
-    
-    public synchronized boolean addSource( Source source ) {
+
+
+    public boolean isOpen() {
+        return !mClosed;
+    }
+
+
+    public synchronized void close() {
         if( mClosed ) {
-            return false;
+            return;
         }
-        if( mSourceMap.containsKey( source ) ) {
-            return true;
+        mClosed = true;
+        mSourceMap.clear();
+        mStreamMap.clear();
+        while( !mSources.isEmpty() ) {
+            Node node = mSources.remove( mSources.size() - 1 );
+            try {
+                node.mDriver.close();
+            } catch( IOException ignored ) {}
         }
-        
-        SourceData data = new SourceData( source );
-        data.mDriver.seekWarmupMicros( mSeekWarmupMicros );
-        mSourceMap.put( source, data );
-        mSources.add( data );
-        
-        for( StreamHandle s: data.mStreams ) {
-            mStreamMap.put( s, data );
-        }
-        
-        return true;   
     }
-    
-    
-    public boolean removeSource( Source source ) {
-        return false;
-    }
-    
-    
-    public synchronized StreamHandle openVideoStream( StreamHandle stream,
+
+
+    public synchronized StreamHandle openVideoStream( Source source,
+                                                      StreamHandle stream,
                                                       PictureFormat destFormat,
                                                       Sink<? super VideoPacket> sink )
                                                       throws IOException 
     {
-        SourceData source = mStreamMap.get( stream );
-        if( source == null ) {
-            return null;
+        return openStream( true, source, stream, destFormat, null, sink );
+    }
+    
+    
+    public synchronized StreamHandle openAudioStream( Source source,
+                                                      StreamHandle stream,
+                                                      AudioFormat format,
+                                                      Sink<? super AudioPacket> sink )
+                                                      throws IOException
+    {
+        return openStream( false, source, stream, null, format, sink );
+    }
+
+
+    @SuppressWarnings( { "unchecked", "rawtypes" } )
+    private StreamHandle openStream( boolean isVideo,
+                                                  Source source,
+                                                  StreamHandle stream,
+                                                  PictureFormat pictureFormat,
+                                                  AudioFormat audioFormat,
+                                                  Sink sink )
+                                                  throws IOException
+    {
+        if( mClosed ) {
+            throw new ClosedChannelException();
         }
-        
-        StreamHandle ret = source.mDriver.openVideoStream( stream, destFormat, sink );
-        if( ret == null ) {
-            return null;
+
+        Node node = mSourceMap.get( source );
+        boolean newNode = false;
+        if( node == null ) {
+            newNode = true;
+            node = new Node( mPlayCont, source );
+            node.mDriver.seekWarmupMicros( mSeekWarmupMicros );
+            mSourceMap.put( source, node );
         }
-        
+
+        StreamHandle ret;
+        boolean abort = true;
+
+        try {
+            if( isVideo ) {
+                ret = node.mDriver.openVideoStream( source, stream, pictureFormat, sink );
+            } else {
+                ret = node.mDriver.openAudioStream( source, stream, audioFormat, sink );
+            }
+            if( ret == null ) {
+                return null;
+            }
+            abort = false;
+        } finally {
+            if( abort ) {
+                node.mDriver.close();
+            }
+        }
+
+        if( newNode ) {
+            mSourceMap.put( source, node );
+            mSources.add( node );
+        }
+
+        mStreamMap.put( ret, node );
         return ret;
     }
-    
-    
-    public StreamHandle openAudioStream( StreamHandle source,
-                                         AudioFormat format,
-                                         Sink<? super AudioPacket> sink )
-                                         throws IOException 
-    {
-        return null;
-    }
 
-    
-    public boolean closeStream( StreamHandle stream ) throws IOException {
-        return false;
-    }
-    
-    
-    public synchronized void close() {
-        synchronized( this ) {
-            if( mClosed ) {
-                return;
-            }
-            mClosed = true;
-            mSourceMap.clear();
-            mStreamMap.clear();
+
+    public synchronized boolean closeStream( StreamHandle stream ) throws IOException {
+        Node node = mStreamMap.remove( stream );
+        if( node == null ) {
+            return false;
         }
-    }
-    
-    
-    public boolean isOpen() {
-        return !mClosed;
-    }
-    
+        boolean ret = node.mDriver.closeStream( stream );
+        if( !node.mDriver.hasSink() ) {
+            mSourceMap.remove( node.mSource );
+            mSources.remove( node );
+            node.mDriver.close();
+        }
 
-    
+        return ret;
+    }
+
     @Override
     public void pushDraw( DrawEnv d ) {
         synchronized( this ) {
-            for( SourceData s: mSources ) {
+            for( Node s: mSources ) {
                 s.mDriver.pushDraw( d );
             }
         }
     }
-    
 
-    private final class SourceData {
-        List<StreamHandle> mStreams;
-        SyncedDriver mDriver = null;
-        
-        SourceData( Source source ) {
-            mStreams = source.streams();
-            mDriver  = new SyncedDriver( mPlayCont, source );
+
+    private static final class Node {
+        final Source mSource;
+        final SyncedDriver mDriver;
+
+        Node( PlayController playCont, Source source ) {
+            mSource = source;
+            mDriver = new SyncedDriver( playCont, source );
         }
     }
 

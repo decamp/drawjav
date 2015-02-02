@@ -98,9 +98,9 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
         // Better to use identical objects than merely equivalent objects.
         if( format == mDstFormat || format != null && format.equals( mDstFormat ) ) {
             mRequestedFormat = format;
-            updateDestFormat();
         } else {
             mRequestedFormat = format;
+            updateDestFormat();
         }
     }
 

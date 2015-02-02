@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2014. Massachusetts Institute of Technology
- * Released under the BSD 2-Clause License
- * http://opensource.org/licenses/BSD-2-Clause
- */
+* Copyright (c) 2014. Massachusetts Institute of Technology
+* Released under the BSD 2-Clause License
+* http://opensource.org/licenses/BSD-2-Clause
+*/
 
 package bits.drawjav.video;
 
@@ -13,11 +13,11 @@ import bits.util.ref.*;
 
 
 /**
- * Computes linear difference between two frames, storing difference in the
- * alpha channel.
- * 
- * @author decamp
- */
+* Computes linear difference between two frames, storing difference in the
+* alpha channel.
+*
+* @author decamp
+*/
 public class FrameDifferencer implements Sink<IntFrame> {
 
     private final ObjectPool<IntFrame> mPool = new SoftPool<IntFrame>( 8 );
@@ -72,7 +72,7 @@ public class FrameDifferencer implements Sink<IntFrame> {
         mSink.consume( out );
         out.deref();
     }
-    
+
 
     public void clear() {
         doClear();

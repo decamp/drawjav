@@ -38,13 +38,13 @@ public class VideoPanelTest {
         frame.setVisible( true );
         
         File file = TEST_FILE;
-        PlayController playCont = PlayController.newAutoInstance();
+        PlayController playCont = PlayController.createAuto();
         FormatDecoder decoder   = FormatDecoder.openFile( file, true, 0L );
         decoder.openStream( decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ) );
         
         RealtimeDriver driver = new RealtimeDriver( playCont, decoder, null );
         driver.seekWarmupMicros( 3000000L );
-        driver.openVideoStream( decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ), null, panel );
+        driver.openVideoStream( null, decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ), null, panel );
 //                                new PictureFormat( -1, -1, Jav.AV_PIX_FMT_BGRA, new bits.jav.util.Rational( 1, 1 ) ), panel );
 
         playCont.control().setRate( 1.0 );
@@ -74,7 +74,7 @@ public class VideoPanelTest {
             while( true ) {
                 try {
                     Thread.sleep( 25L );
-                }catch( InterruptedException ex ) {}
+                }catch( InterruptedException ignored ) {}
                 
                 while( true ) {
                     try {

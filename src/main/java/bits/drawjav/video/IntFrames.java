@@ -1,14 +1,14 @@
 /*
- * Copyright (c) 2014. Massachusetts Institute of Technology
- * Released under the BSD 2-Clause License
- * http://opensource.org/licenses/BSD-2-Clause
- */
+* Copyright (c) 2014. Massachusetts Institute of Technology
+* Released under the BSD 2-Clause License
+* http://opensource.org/licenses/BSD-2-Clause
+*/
 
 package bits.drawjav.video;
 
 /**
- * @author decamp
- */
+* @author decamp
+*/
 public class IntFrames {
 
     public static void pow( double[] a, int off, int len, double exp ) {
@@ -63,7 +63,7 @@ public class IntFrames {
             ia += w;
         }
     }
-    
+
 
     public static void clampDown( double[] arr, int off, int len, double min, double replace ) {
         for( int i = off; i < off + len; i++ ) {
@@ -72,8 +72,8 @@ public class IntFrames {
             }
         }
     }
-    
-    
+
+
     public static double[] computeDifference( IntFrame a, IntFrame b, double[] out ) {
         final int w = a.mWidth;
         final int h = a.mHeight;
@@ -108,8 +108,8 @@ public class IntFrames {
 
         return out;
     }
-    
-    
+
+
     private IntFrames() {}
 
 }

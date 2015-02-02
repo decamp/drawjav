@@ -19,7 +19,6 @@ import bits.jav.Jav;
  */
 public class VideoPackets {
 
-
     public static void toArgb( VideoPacket frame, boolean flip, IntFrame out ) {
         int h = frame.pictureFormat().height();
         if( !flip ) {
@@ -28,25 +27,25 @@ public class VideoPackets {
             toArgb( frame, h, 0, out );
         }
     }
-    
-    
+
+
     public static void toArgb( VideoPacket frame, int yStart, int yStop, IntFrame out ) {
         final PictureFormat format = frame.pictureFormat();
         final int w = format.width();
         final int h = ( yStart < yStop ) ? yStop - yStart : yStart - yStop;
-        
+
         RowReader reader = readerFor( format.pixelFormat() );
         if( reader == null ) {
             throw new IllegalArgumentException( "Unsupported pixel format: " + format.pixelFormat() );
         }
-        
+
         out.resize( w, h, w );
         final int[] row = out.mPix;
         final ByteBuffer inBuf = frame.javaBufElem( 0 );
         final int inOff = inBuf.position();
         final int inStride = frame.lineSize( 0 );
         int yOut = 0;
-        
+
         if( yStart < yStop ) {
             for( int y = yStart; y < yStop; y++ ) {
                 inBuf.position( inOff + inStride * y );
@@ -59,7 +58,7 @@ public class VideoPackets {
             }
         }
     }
-    
+
     
     public static void toBufferedImage( VideoPacket frame, boolean flip, BufferedImage out, int[] optRow ) {
         PictureFormat format = frame.pictureFormat();
@@ -148,7 +147,7 @@ public class VideoPackets {
             ia += w;
         }
     }
-    
+
 
     public static void clampDown( double[] arr, int off, int len, double min, double replace ) {
         for( int i = off; i < off + len; i++ ) {

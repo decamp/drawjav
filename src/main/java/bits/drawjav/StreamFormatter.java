@@ -12,21 +12,53 @@ import bits.drawjav.video.PictureFormat;
 import bits.drawjav.video.VideoPacket;
 
 import java.io.*;
-
+import java.nio.channels.ClosedChannelException;
 
 
 /**
  * @author decamp
  */
 public interface StreamFormatter {
-    
-    public StreamHandle openVideoStream( StreamHandle source,
-                                         PictureFormat dstFormat,
+
+    /**
+     * Opens a video stream, formats all packets on that stream to
+     * specified format, and passes them on to {@code sink}.
+     *
+     * @param source        Specifies source of the stream.
+     *                      Some StreamFormatters may only work with a pre-defined source or set of sources.
+     *                      In this case, {@code source} must be one of these sources or {@code null}.
+     * @param sourceStream  Stream to open. MUST belong to {@code source}.
+     * @param destFormat    Desired destination format, or {@code null} if no formatting is requested.
+     * @param sink          Sink to receive processed packets.
+     * @return StreamHandle for newly created, formatted stream.
+     * @throws ClosedChannelException if StreamFormatter is closed.
+     * @throws IllegalArgumentException if source/sourceStream are invalid.
+     * @throws IOException for most other failures.
+     */
+    public StreamHandle openVideoStream( Source source,
+                                         StreamHandle sourceStream,
+                                         PictureFormat destFormat,
                                          Sink<? super VideoPacket> sink )
                                          throws IOException;
 
-    public StreamHandle openAudioStream( StreamHandle source,
-                                         AudioFormat dstFormat,
+    /**
+     * Opens an audio stream, formats all packets on that stream to
+     * specified format, and passes them on to {@code sink}.
+     *
+     * @param source        Specifies source of the stream.
+     *                      Some StreamFormatters may only work with a pre-defined source or set of sources.
+     *                      In this case, {@code source} must be one of these sources or {@code null}.
+     * @param sourceStream  Stream to open. MUST belong to {@code source}.
+     * @param destFormat    Desired destination format, or {@code null} if no formatting is requested.
+     * @param sink          Sink to receive processed packets.
+     * @return StreamHandle for newly created, formatted stream.
+     * @throws ClosedChannelException if StreamFormatter is closed.
+     * @throws IllegalArgumentException if source/sourceStream are invalid.
+     * @throws IOException for most other failures.
+     */
+    public StreamHandle openAudioStream( Source source,
+                                         StreamHandle sourceStream,
+                                         AudioFormat destFormat,
                                          Sink<? super AudioPacket> sink )
                                          throws IOException;
 

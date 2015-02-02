@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2014. Massachusetts Institute of Technology
- * Released under the BSD 2-Clause License
- * http://opensource.org/licenses/BSD-2-Clause
- */
+* Copyright (c) 2014. Massachusetts Institute of Technology
+* Released under the BSD 2-Clause License
+* http://opensource.org/licenses/BSD-2-Clause
+*/
 
 package bits.drawjav.video;
 
@@ -14,11 +14,11 @@ import bits.drawjav.Sink;
 
 
 /**
- * Texture node that uses most recently consumed IntFrame
- * as texture.
- *
- * @author Philip DeCamp
- */
+* Texture node that uses most recently consumed IntFrame
+* as texture.
+*
+* @author Philip DeCamp
+*/
 public class IntVideoTexture extends DrawNodeAdapter implements Sink<IntFrame> {
 
 

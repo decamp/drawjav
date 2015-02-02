@@ -30,17 +30,17 @@ public class OneToManyFormatter implements Sink<Packet> {
 
     private static final Logger sLog = Logger.getLogger( OneToManyFormatter.class.getName() );
 
-    private final StreamHandle mSource;
+    private final StreamHandle mStream;
     private final Map<Object, FormatNode> mNodeMap = new HashMap<Object, FormatNode>();
 
-    private MemoryManager      mMem;
+    private MemoryManager mMem;
     private SinkCaster<Packet> mCaster = new SinkCaster<Packet>();
     private boolean            mClosed = false;
 
 
-    public OneToManyFormatter( StreamHandle source, MemoryManager mem ) {
-        mSource = source;
-        mMem    = mem;
+    public OneToManyFormatter( StreamHandle stream, MemoryManager mem ) {
+        mStream = stream;
+        mMem = mem;
     }
 
 
@@ -58,16 +58,16 @@ public class OneToManyFormatter implements Sink<Packet> {
         }
 
         // There is at least one output format. Must get more specific.
-        if( !(handle instanceof SinkNode ) ) {
+        if( !(handle instanceof SinkNode) ) {
             return false;
         }
-        
+
         SinkNode sinkNode = (SinkNode)handle;
         Sink sink = sinkNode.mSink.get();
         if( sink == null ) {
             return true;
         }
-        
+
         FormatNode formatNode = mNodeMap.get( sinkNode.mKey );
         return formatNode == null || formatNode.mCaster.containsSinkOtherThan( sink );
     }
@@ -130,17 +130,17 @@ public class OneToManyFormatter implements Sink<Packet> {
                                          Sink<? super VideoPacket> sink )
                                          throws IOException 
     {
-        if( mSource.type() != Jav.AVMEDIA_TYPE_VIDEO ) {
+        if( mStream.type() != Jav.AVMEDIA_TYPE_VIDEO ) {
             return null;
         }
         
-        PictureFormat ret = PictureFormat.merge( mSource.pictureFormat(), destFormat );
+        PictureFormat ret = PictureFormat.merge( mStream.pictureFormat(), destFormat );
         if( ret == null || !PictureFormat.isFullyDefined( ret ) ) {
             return null;
         }
         
         return openStream( Jav.AVMEDIA_TYPE_VIDEO,
-                           mSource.pictureFormat(),
+                           mStream.pictureFormat(),
                            ret,
                            sink );
     }
@@ -150,17 +150,17 @@ public class OneToManyFormatter implements Sink<Packet> {
                                          Sink<? super AudioPacket> sink )
                                          throws IOException
     {
-        if( mSource.type() != Jav.AVMEDIA_TYPE_AUDIO ) {
+        if( mStream.type() != Jav.AVMEDIA_TYPE_AUDIO ) {
             return null;
         }
         
-        AudioFormat ret = AudioFormat.merge( mSource.audioFormat(), destFormat );
+        AudioFormat ret = AudioFormat.merge( mStream.audioFormat(), destFormat );
         if( ret == null || !AudioFormat.isFullyDefined( ret ) ) {
             return null;
         }
         
         return openStream( Jav.AVMEDIA_TYPE_AUDIO,
-                           mSource.audioFormat(),
+                           mStream.audioFormat(),
                            destFormat,
                            sink );
     }
@@ -323,7 +323,7 @@ public class OneToManyFormatter implements Sink<Packet> {
                                            int videoPoolCap,
                                            int audioPoolCap )
     {
-        mSource = source;
+        mStream = source;
         mMem    = new PoolMemoryManager( audioPoolCap, -1, videoPoolCap, -1 );
     }
 }

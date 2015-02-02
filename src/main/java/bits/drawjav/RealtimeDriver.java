@@ -106,61 +106,63 @@ public class RealtimeDriver implements StreamDriver {
     }
     
     
-    public StreamHandle openVideoStream( StreamHandle source,
+    public StreamHandle openVideoStream( Source source,
+                                         StreamHandle stream,
                                          PictureFormat destFormat,
                                          Sink<? super VideoPacket> sink )
                                          throws IOException 
     {
-        synchronized( mLock ) {
-            boolean success = false;
-            mSyncer.openPipe( sink, mLock );
-            Sink syncedSink = mSyncer.openPipe( sink, mLock );
-            
-            try {
-                StreamHandle s  = mDriver.openVideoStream( source, destFormat, syncedSink );
-                if( s != null ) {
-                    success = true;
-                    mLock.unblock();
-                    return s;
-                }
-            } finally {
-                if( !success ) {
-                    syncedSink.close();
-                }
-            }
-                
-            return null;
-            
-        }
+        return openStream( true, source, stream, destFormat, null, sink );
     }
     
     
-    public StreamHandle openAudioStream( StreamHandle source,
+    public StreamHandle openAudioStream( Source source,
+                                         StreamHandle stream,
                                          AudioFormat format,
                                          Sink<? super AudioPacket> sink )
                                          throws IOException 
     {
+        return openStream( false, source, stream, null, format, sink );
+    }
+
+
+    public StreamHandle openStream( boolean isVideo,
+                                    Source source,
+                                    StreamHandle stream,
+                                    PictureFormat pictureFormat,
+                                    AudioFormat audioFormat,
+                                    Sink sink )
+                                    throws IOException
+    {
         synchronized( mLock ) {
-            boolean success = false;
+            mSyncer.openPipe( sink, mLock );
             Sink syncedSink = mSyncer.openPipe( sink, mLock );
-            
+            StreamHandle ret;
+
+            boolean abort = true;
             try {
-                StreamHandle s = mDriver.openAudioStream( source, format, syncedSink );
-                if( s != null ) {
-                    success = true;
-                    mLock.unblock();
-                    return s;
+                if( isVideo ) {
+                    ret = mDriver.openVideoStream( source, stream, pictureFormat, syncedSink );
+                } else {
+                    ret = mDriver.openAudioStream( source, stream, audioFormat, syncedSink );
                 }
+                if( ret == null ) {
+                    return null;
+                }
+                abort = false;
             } finally {
-                if( !success ) {
+                if( abort ) {
                     syncedSink.close();
                 }
             }
-            
-            return null;
+
+            mLock.unblock();
+            return ret;
         }
     }
-    
+
+
+
     
     public boolean closeStream( StreamHandle stream ) throws IOException {
         synchronized( mLock ) {

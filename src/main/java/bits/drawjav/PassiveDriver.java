@@ -74,6 +74,14 @@ public class PassiveDriver implements StreamDriver {
     public boolean hasSink() {
         return mSink.hasSink();
     }
+
+    /**
+     * @param stream
+     * @return true iff this PassiveDriver has somewhere to send specific stream of data.
+     */
+    public boolean hasSinkFor( StreamHandle stream ) {
+        return mSink.hasSinkFor( stream );
+    }
     
     /**
      * PassiveDriver will keep track of the last error that
@@ -89,8 +97,6 @@ public class PassiveDriver implements StreamDriver {
     
     /**
      * Seeks position in source to read packets from.
-     * 
-     * @param micros
      */
     public synchronized void seek( long micros ) {
         mNeedSeek   = true;
@@ -234,7 +240,7 @@ public class PassiveDriver implements StreamDriver {
      * Sends arbitrary packet to sink. 
      * Will clear sink if clear is pending.  
      * 
-     * @param packet
+     * @param packet To send to sink.
      * @return true if successful.
      */
     public boolean send( Packet packet ) {
@@ -352,9 +358,10 @@ public class PassiveDriver implements StreamDriver {
     public PlayController playController() {
         return null;
     }
-    
-    
-    public synchronized StreamHandle openVideoStream( StreamHandle source,
+
+    @Override
+    public synchronized StreamHandle openVideoStream( Source ignored,
+                                                      StreamHandle stream,
                                                       PictureFormat destFormat,
                                                       Sink<? super VideoPacket> sink )
                                                       throws IOException 
@@ -362,16 +369,19 @@ public class PassiveDriver implements StreamDriver {
         if( mClosed ) {
             throw new ClosedChannelException();
         }
+        if( ignored != null && !ignored.equals( mSource ) ) {
+            throw new IllegalArgumentException( "Unrecognized source." );
+        }
         
-        boolean active   = mSink.isSourceActive( source );
-        StreamHandle ret = mSink.openVideoStream( source, destFormat, sink );
+        boolean active   = mSink.hasSinkFor( stream );
+        StreamHandle ret = mSink.openVideoStream( ignored, stream, destFormat, sink );
         if( ret == null ) {
             return null;
         }
         
         if( !active ) {
             try {
-                mSource.openStream( source );
+                mSource.openStream( stream );
             } catch( IOException ex ) {
                 mSink.closeStream( ret );
                 throw ex;
@@ -382,8 +392,10 @@ public class PassiveDriver implements StreamDriver {
         return ret;
     }
     
-    
-    public synchronized StreamHandle openAudioStream( StreamHandle source,
+
+    @Override
+    public synchronized StreamHandle openAudioStream( Source ignored,
+                                                      StreamHandle stream,
                                                       AudioFormat format,
                                                       Sink<? super AudioPacket> sink )
                                                       throws IOException 
@@ -391,16 +403,19 @@ public class PassiveDriver implements StreamDriver {
         if( mClosed ) {
             throw new ClosedChannelException();
         }
+        if( ignored != null && !ignored.equals( mSource ) ) {
+            throw new IllegalArgumentException( "Unrecognized source." );
+        }
         
-        boolean active   = mSink.isSourceActive( source );
-        StreamHandle ret = mSink.openAudioStream( source, format, sink );
+        boolean active   = mSink.hasSinkFor( stream );
+        StreamHandle ret = mSink.openAudioStream( ignored, stream, format, sink );
         if( ret == null ) {
             return null;
         }
         
         if( !active ) {
             try {
-                mSource.openStream( source );
+                mSource.openStream( stream );
             } catch( IOException ex ) {
                 mSink.closeStream( ret );
                 throw ex;
@@ -420,8 +435,8 @@ public class PassiveDriver implements StreamDriver {
         // Check if need to close source.
         synchronized( this ) {
             StreamHandle sourceStream = mSink.destToSource( stream );
-            if( sourceStream != null && !mSink.isSourceActive( sourceStream ) ) {
-                if( !mSink.isSourceActive( sourceStream ) ) {
+            if( sourceStream != null && !mSink.hasSinkFor( sourceStream ) ) {
+                if( !mSink.hasSinkFor( sourceStream ) ) {
                     try {
                         mSource.closeStream( sourceStream );
                     } catch( IOException ex ) {

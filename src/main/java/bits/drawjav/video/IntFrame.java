@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 2014. Massachusetts Institute of Technology
- * Released under the BSD 2-Clause License
- * http://opensource.org/licenses/BSD-2-Clause
- */
+* Copyright (c) 2014. Massachusetts Institute of Technology
+* Released under the BSD 2-Clause License
+* http://opensource.org/licenses/BSD-2-Clause
+*/
 
 package bits.drawjav.video;
 
 import bits.util.ref.*;
 
 /**
- * Buffered format for video frame that can be easily modified.
- * 
- * @author decamp
- */
+* Buffered format for video frame that can be easily modified.
+*
+* @author decamp
+*/
 public class IntFrame extends AbstractRefable {
-    
+
     public int[] mPix;
     public int mWidth;
     public int mHeight;
     public int mStride;
-    
+
 
     public IntFrame( ObjectPool<? super IntFrame> pool ) {
         super( pool );
@@ -53,5 +53,5 @@ public class IntFrame extends AbstractRefable {
 
 
     protected void freeObject() {}
-    
+
 }

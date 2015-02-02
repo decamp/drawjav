@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2014. Massachusetts Institute of Technology
- * Released under the BSD 2-Clause License
- * http://opensource.org/licenses/BSD-2-Clause
- */
+* Copyright (c) 2014. Massachusetts Institute of Technology
+* Released under the BSD 2-Clause License
+* http://opensource.org/licenses/BSD-2-Clause
+*/
 
 package bits.drawjav.video;
 
@@ -12,10 +12,10 @@ import bits.drawjav.*;
 import bits.util.ref.*;
 
 /**
- * Converts JavFrames to IntFrames in video pipeline.
- * 
- * @author decamp
- */
+* Converts JavFrames to IntFrames in video pipeline.
+*
+* @author decamp
+*/
 public class JavToIntPipe implements Sink<VideoPacket> {
 
     private final ObjectPool<IntFrame> mPool = new SoftPool<IntFrame>( 3 );

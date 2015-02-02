@@ -34,7 +34,7 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
 
     private static final Logger sLog = Logger.getLogger( ManyToManyFormatter.class.getName() );
 
-    private final Map<StreamHandle, OneToManyFormatter> mSourceMap = new HashMap<StreamHandle, OneToManyFormatter>();
+    private final Map<StreamHandle, OneToManyFormatter> mStreamMap = new HashMap<StreamHandle, OneToManyFormatter>();
     private MemoryManager mMem;
 
     private final SinkCaster mCaster = new SinkCaster();
@@ -56,12 +56,14 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
     }
 
 
-    public StreamHandle openVideoStream( StreamHandle source,
+
+    public StreamHandle openVideoStream( Source ignored,
+                                         StreamHandle stream,
                                          PictureFormat destFormat,
                                          Sink<? super VideoPacket> sink )
                                          throws IOException
     {
-        final int type = source.type();
+        final int type = stream.type();
         if( type != Jav.AVMEDIA_TYPE_VIDEO ) {
             sLog.warning( "Attempt to open non-video stream as video stream." );
             return null;
@@ -71,25 +73,26 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
             if( mClosed ) {
                 throw new ClosedChannelException();
             }
-            
-            OneToManyFormatter pipe = mSourceMap.get( source );
+
+            OneToManyFormatter pipe = mStreamMap.get( stream );
             boolean addPipe = false;
             if( pipe == null ) {
-                pipe = new OneToManyFormatter( source, mMem );
+                pipe = new OneToManyFormatter( stream, mMem );
                 addPipe = true;
             }
             
             StreamHandle dest = pipe.openVideoStream( destFormat, sink );
             if( addPipe  ) {
-                addDest( source, pipe );
+                addDest( stream, pipe );
             }
 
-            return new DestStream( source, dest );
+            return new DestStream( stream, dest );
         }
     }
     
     
-    public StreamHandle openAudioStream( StreamHandle source,
+    public StreamHandle openAudioStream( Source ignored,
+                                         StreamHandle source,
                                          AudioFormat destFormat,
                                          Sink<? super AudioPacket> sink )
                                          throws IOException
@@ -105,7 +108,7 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
                 throw new ClosedChannelException();
             }
             
-            OneToManyFormatter pipe = mSourceMap.get( source );
+            OneToManyFormatter pipe = mStreamMap.get( source );
             boolean addPipe = false;
             if( pipe == null ) {
                 pipe = new OneToManyFormatter( source, mMem );
@@ -141,7 +144,7 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
         boolean ret       = false;
         
         synchronized( this ) {
-            dest = mSourceMap.get( srcHandle );
+            dest = mStreamMap.get( srcHandle );
             if( dest == null ) {
                 return false;
             }
@@ -169,7 +172,7 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
     public void consume( Packet packet ) throws IOException {
         Sink sink = null;
         synchronized( this ) {
-            sink = mSourceMap.get( packet.stream() );
+            sink = mStreamMap.get( packet.stream() );
         }
         if( sink != null ) {
             sink.consume( packet );
@@ -188,7 +191,7 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
                 return;
             }
             mClosed = true;
-            mSourceMap.clear();
+            mStreamMap.clear();
         }
         
         try {
@@ -211,22 +214,22 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
         }
         
         DestStream ds = (DestStream)stream;
-        return mSourceMap.get( ds.mDest );
+        return mStreamMap.get( ds.mDest.get() );
     }
     
     
     public synchronized boolean hasSink() {
-        return !mSourceMap.isEmpty();
+        return !mStreamMap.isEmpty();
     }
-    
-    
-    public synchronized boolean isSourceActive( StreamHandle source ) {
-        return mSourceMap.containsKey( source );
+
+
+    public synchronized boolean hasSinkFor( StreamHandle source ) {
+        return mStreamMap.containsKey( source );
     }
     
     
     public synchronized boolean hasSinkOtherThan( StreamHandle stream ) {
-        int size = mSourceMap.size();
+        int size = mStreamMap.size();
         if( size < 1 ) {
             return false;
         } else if( size > 1 ) {
@@ -243,7 +246,7 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
             return true;
         }
         
-        OneToManyFormatter dest = mSourceMap.get( srcHandle );
+        OneToManyFormatter dest = mStreamMap.get( srcHandle );
         if( dest == null ) {
             return true;
         }
@@ -269,7 +272,7 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
     public synchronized void memoryManager( MemoryManager mem ) {
         assert( mem != null );
         mMem = mem;
-        for( OneToManyFormatter s: mSourceMap.values() ) {
+        for( OneToManyFormatter s: mStreamMap.values() ) {
             s.memoryManager( mem );
         }
     }
@@ -277,13 +280,13 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
 
     
     private synchronized void addDest( StreamHandle key, OneToManyFormatter pipe ) {
-        mSourceMap.put( key, pipe );
+        mStreamMap.put( key, pipe );
         mCaster.addSink( pipe );
     }
 
     
     private synchronized void removeDest( StreamHandle key ) {
-        OneToManyFormatter pipe = mSourceMap.remove( key );
+        OneToManyFormatter pipe = mStreamMap.remove( key );
         if( pipe != null ) {
             mCaster.removeSink( pipe );
         }

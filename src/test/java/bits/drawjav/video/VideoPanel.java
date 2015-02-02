@@ -144,7 +144,7 @@ public class VideoPanel extends JPanel implements Sink<VideoPacket> {
         int dh = mDstBox.height();
         
         PictureFormat fmt = new PictureFormat( dw, dh, Jav.AV_PIX_FMT_BGRA, new Rational( 1, 1 ) );
-        mResampler.setDestFormat( fmt );
+        mResampler.destFormat( fmt );
         return true;
     }
     
@@ -153,7 +153,7 @@ public class VideoPanel extends JPanel implements Sink<VideoPacket> {
         int w = packet.width();
         int h = packet.height();
         int lineSize  = packet.lineSize( 0 );
-        ByteBuffer bb = packet.directBuffer();
+        ByteBuffer bb = packet.javaBufElem( 0 );
         bb.order( ByteOrder.LITTLE_ENDIAN );
         
         BufferedImage im = mImage;
@@ -174,6 +174,5 @@ public class VideoPanel extends JPanel implements Sink<VideoPacket> {
             mImage.setRGB( 0, y, w, 1, row, 0, w );
         }
     }
-   
-    
+
 }

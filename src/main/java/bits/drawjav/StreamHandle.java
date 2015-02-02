@@ -11,6 +11,8 @@ import bits.drawjav.video.PictureFormat;
 import bits.util.Guid;
 
 /**
+ * Represents a single stream of audio or video.
+ *
  * @author decamp
  */
 public interface StreamHandle {

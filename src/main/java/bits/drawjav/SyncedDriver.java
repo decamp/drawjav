@@ -70,21 +70,23 @@ public class SyncedDriver extends DrawNodeAdapter implements StreamDriver {
     }
     
 
-    public StreamHandle openVideoStream( StreamHandle source,
+    public StreamHandle openVideoStream( Source source,
+                                         StreamHandle stream,
                                          PictureFormat destFormat,
                                          Sink<? super VideoPacket> sink )
                                          throws IOException 
     {
-        return mDriver.openVideoStream( source, destFormat, sink );
+        return mDriver.openVideoStream( source, stream, destFormat, sink );
     }
     
     
-    public StreamHandle openAudioStream( StreamHandle source,
+    public StreamHandle openAudioStream( Source source,
+                                         StreamHandle stream,
                                          AudioFormat format,
                                          Sink<? super AudioPacket> sink )
                                          throws IOException 
     {
-        return mDriver.openAudioStream( source, format, sink );
+        return mDriver.openAudioStream( source, stream, format, sink );
     }
     
     
@@ -102,7 +104,12 @@ public class SyncedDriver extends DrawNodeAdapter implements StreamDriver {
     public boolean isOpen() {
         return mDriver.isOpen();
     }
-    
+
+
+    public boolean hasSink() {
+        return mDriver.hasSink();
+    }
+
     @Override
     public void pushDraw( DrawEnv d ) {
         long timeMicros = mPlayCont.clock().micros();

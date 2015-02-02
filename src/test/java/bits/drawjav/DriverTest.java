@@ -50,7 +50,7 @@ public class DriverTest {
         
         StreamHandle sh = decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 );
         PictureFormat fmt = new PictureFormat( -1, -1, Jav.AV_PIX_FMT_BGRA, new Rational( 1, 1 ) );
-        driver.openVideoStream( sh, fmt, tex ); 
+        driver.openVideoStream( decoder, sh, fmt, tex );
         driver.seekWarmupMicros( 3000000L );
         
         //sh = decoder.firstStream(JavConstants.AVMEDIA_TYPE_AUDIO);
@@ -59,7 +59,7 @@ public class DriverTest {
         //driver.openAudioStream(sh, sh.audioFormat(), player);
         new VideoFrame( null, tex );
 
-        playCont.control().seek( 0000000L );
+        playCont.control().seek( 0 );
         driver.start();
         playCont.control().playStart();
 
@@ -93,7 +93,7 @@ public class DriverTest {
         
         StreamHandle sh = decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 );
         PictureFormat fmt = new PictureFormat( -1, -1, Jav.AV_PIX_FMT_BGRA, new Rational( 1, 1 ) );
-        driver.openVideoStream( sh, fmt, tex );
+        driver.openVideoStream( decoder, sh, fmt, tex );
         driver.seekWarmupMicros( 3000000L );
 
         //sh = decoder.firstStream(JavConstants.AVMEDIA_TYPE_AUDIO);
@@ -140,13 +140,10 @@ public class DriverTest {
         final OneThreadMultiDriver driver = new OneThreadMultiDriver( playCont, null );
         final VideoTexture tex1        = new VideoTexture();
         final VideoTexture tex2        = new VideoTexture();
-        
-        driver.addSource( decoder1 );
-        driver.addSource( decoder2 );
-        
+
         PictureFormat fmt = new PictureFormat(-1, -1, Jav.AV_PIX_FMT_BGRA, new Rational(1, 1) );
-        driver.openVideoStream( decoder1.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ), fmt, tex1 );
-        driver.openVideoStream( decoder2.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ), fmt, tex2 );
+        driver.openVideoStream( decoder1, decoder1.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ), fmt, tex1 );
+        driver.openVideoStream( decoder2, decoder2.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ), fmt, tex2 );
         
         //sh = decoder.firstStream(JavConstants.AVMEDIA_TYPE_AUDIO);
         //AudioLinePlayer player = new AudioLinePlayer(sh.audioFormat(), playCont.masterClock());
@@ -188,12 +185,9 @@ public class DriverTest {
         final VideoTexture tex1        = new VideoTexture();
         final VideoTexture tex2        = new VideoTexture();
         
-        driver.addSource( decoder1 );
-        driver.addSource( decoder2 );
-
         PictureFormat fmt = new PictureFormat( -1, -1, Jav.AV_PIX_FMT_BGRA, new Rational( 1, 1 ) );
-        driver.openVideoStream( decoder1.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ), fmt, tex1 );
-        driver.openVideoStream( decoder2.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ), fmt, tex2 );
+        driver.openVideoStream( decoder1, decoder1.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ), fmt, tex1 );
+        driver.openVideoStream( decoder2, decoder2.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ), fmt, tex2 );
         
         //sh = decoder.firstStream(JavConstants.AVMEDIA_TYPE_AUDIO);
         //AudioLinePlayer player = new AudioLinePlayer(sh.audioFormat(), playCont.masterClock());
@@ -212,20 +206,6 @@ public class DriverTest {
         playCont.control().seek( 0L );
         driver.start();
         playCont.control().playStart();
-        
-//        try {
-//            Thread.sleep( 1000L );
-//            System.out.println("SEEK");
-//            playCont.control().seek( 5000000L );
-//            System.out.println("PLAY");
-//            playCont.control().playStart();
-//            
-//            while( true ) {
-//                Thread.sleep( 5000L );
-//                System.out.println("SEEK");
-//                playCont.control().seek( 10000000L );
-//            }
-//        } catch(Exception ex) {}
         
     }
 

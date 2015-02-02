@@ -23,9 +23,8 @@ import bits.util.concurrent.ThreadLock;
  * @author decamp
  */
 @SuppressWarnings( { "unchecked", "rawtypes" } )
-public class OneThreadMultiDriver implements MultiSourceDriver {
-    
-    
+public class OneThreadMultiDriver implements StreamDriver {
+
     @Deprecated public static OneThreadMultiDriver newInstance( PlayController playCont ) {
         return newInstance( playCont, null );
     }
@@ -47,9 +46,9 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
     private final PacketScheduler mScheduler;
     private final PlayHandler     mPlayHandler;
 
-    private final Map<Source, SourceData>       mSourceMap = new HashMap<Source, SourceData>();
-    private final Map<StreamHandle, SourceData> mStreamMap = new HashMap<StreamHandle, SourceData>();
-    private final PrioHeap<SourceData>          mSources   = new PrioHeap<SourceData>();
+    private final Map<Source, Node>       mSourceMap = new HashMap<Source, Node>();
+    private final Map<StreamHandle, Node> mStreamMap = new HashMap<StreamHandle, Node>();
+    private final PrioHeap<Node>          mDrivers   = new PrioHeap<Node>();
 
     private Thread mThread;
 
@@ -58,8 +57,6 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
     private int  mAudioQueueCap    = 16;
 
     private boolean mClosing = false;
-
-    @SuppressWarnings("unused")
     private boolean mCloseComplete = false;
 
 
@@ -87,11 +84,6 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
     }
 
 
-    public Source source() {
-        return null;
-    }
-
-
     public PlayController playController() {
         return mPlayCont;
     }
@@ -108,153 +100,130 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
                 return;
             }
             mClosing = true;
+            mStreamMap.clear();
+            mSourceMap.clear();
             mLock.interrupt();
-            
-            Set<Source> sources = mSourceMap.keySet();
-            while( !sources.isEmpty() ) {
-                removeSource( sources.iterator().next(), true );
+
+            while( !mDrivers.isEmpty() ) {
+                Node node = mDrivers.remove( 0 );
+                node.mDriver.close();
             }
         }
     }
-    
-    
-    public boolean closeSource( Source source ) {
-        return removeSource( source, true );
-    }    
-    
-    
-    public boolean removeSource( Source source ) {
-        return removeSource( source, false );
-    }
-    
-    
-    public boolean addSource( Source source ) {
-        synchronized( mLock ) {
-            if( mClosing ) {
-                return false;
-            }
-            if( mSourceMap.containsKey( source ) ) {
-                return true;
-            }
-            
-            SourceData data = new SourceData( source );
-            data.mDriver.seekWarmupMicros( mSeekWarmupMicros );
-            
-            mSourceMap.put( source, data );
-            for( StreamHandle s: data.mStreams ) {
-                mStreamMap.put( s, data );
-            }
-            
-            mSources.offer( data );
-            mLock.unblock();
-            return true;
-        }
-    }
-    
-    
-    public StreamHandle openVideoStream( StreamHandle stream,
-                                         PictureFormat outputFormat,
+
+
+    public StreamHandle openVideoStream( Source source,
+                                         StreamHandle sourceStream,
+                                         PictureFormat destFormat,
                                          Sink<? super VideoPacket> sink )
                                          throws IOException 
     {
-        synchronized( mLock ) {
-            if( mClosing ) {
-                throw new ClosedChannelException();
-            }
-            
-            SourceData source = mStreamMap.get( stream );
-            if( source == null ) {
-                return null;
-            }
-            
-            Sink syncSink = mScheduler.openPipe( sink, mLock, mVideoQueueCap );
-            StreamHandle ret;
-            
-            try {
-                ret = source.mDriver.openVideoStream( stream, outputFormat, syncSink );
-                if( ret == null ) {
-                    return null;
-                }
-                syncSink = null;
-            } finally {
-                if( syncSink != null ) {
-                    syncSink.close();
-                }
-            }
-            
-            mSources.reschedule( source );
-            mLock.unblock();
-            return ret;
-        }
+        return openStream( true, source, sourceStream, destFormat, null, sink );
     }
                               
 
-    public StreamHandle openAudioStream( StreamHandle stream, 
-                                         AudioFormat format,
+    public StreamHandle openAudioStream( Source source,
+                                         StreamHandle sourceStream,
+                                         AudioFormat destFormat,
                                          Sink<? super AudioPacket> sink )
                                          throws IOException 
+    {
+        return openStream( false, source, sourceStream, null, destFormat, sink );
+    }
+
+
+    private StreamHandle openStream( boolean isVideo,
+                                     Source source,
+                                     StreamHandle stream,
+                                     PictureFormat pictureFormat,
+                                     AudioFormat audioFormat,
+                                     Sink sink )
+                                     throws IOException
     {
         synchronized( mLock ) {
             if( mClosing ) {
                 throw new ClosedChannelException();
             }
-            
-            SourceData source = mStreamMap.get( stream );
-            if( source == null ) {
-                return null;
+
+            Node node = mSourceMap.get( source );
+            boolean newNode = false;
+            if( node == null ) {
+                newNode = true;
+                PassiveDriver driver = new PassiveDriver( source );
+                driver.seekWarmupMicros( mSeekWarmupMicros );
+                node = new Node( source, driver );
             }
-            
-            Sink syncSink = mScheduler.openPipe( sink, mLock, mAudioQueueCap );
+
+            Sink syncSink = mScheduler.openPipe( sink, mLock, mVideoQueueCap );
             StreamHandle ret;
-            
+            boolean abort = true;
+
             try {
-                ret = source.mDriver.openAudioStream( stream, format, syncSink );
+                if( isVideo ) {
+                    ret = node.mDriver.openVideoStream( source, stream, pictureFormat, syncSink );
+                } else {
+                    ret = node.mDriver.openAudioStream( source, stream, audioFormat, syncSink );
+                }
+
                 if( ret == null ) {
                     return null;
                 }
-                syncSink = null;
+                abort = false;
             } finally {
-                if( syncSink != null ) {
+                if( abort ) {
                     syncSink.close();
+                    if( newNode ) {
+                        node.mDriver.close();
+                    }
                 }
             }
-            
-            mSources.reschedule( source );
+
+            if( newNode ) {
+                mSourceMap.put( source, node );
+                mDrivers.offer( node );
+            } else {
+                mDrivers.reschedule( node );
+            }
+            mStreamMap.put( ret, node );
             mLock.unblock();
             return ret;
         }
-            
     }
-    
+
     
     public boolean closeStream( StreamHandle stream ) throws IOException {
         synchronized( mLock ) {
-            SourceData source = mStreamMap.get( stream );
-            if( source == null ) {
+            Node node = mStreamMap.remove( stream );
+            if( node == null ) {
                 return false;
             }
-            if( !source.mDriver.closeStream( stream ) ) {
-                return false;
+            boolean ret = node.mDriver.closeStream( stream );
+            if( !node.mDriver.hasSink() ) {
+                mSourceMap.remove( node.mSource );
+                mDrivers.remove( node );
+                node.mDriver.close();
+            } else {
+                mDrivers.reschedule( node );
             }
-            mSources.reschedule( source );
+
             mLock.unblock();
-            return true;
+            return ret;
         }
     }
-        
-    
+
+
     
     private void runLoop() {
-        SourceData s = null;
+        Node s = null;
         boolean sendPacket = false;
         
         while( true ) {
             synchronized( mLock ) {
                 if( s != null ) {
-                    mSources.reschedule( s );
+                    mDrivers.reschedule( s );
                 }
                 
-                s = mSources.peek();
+                s = mDrivers.peek();
                 if( s == null ) {
                     // Nothing to do.
                     if( mClosing ) {
@@ -272,7 +241,7 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
                 
                 if( !s.mDriver.hasNext() ) {
                     if( !s.mDriver.isOpen() ) {
-                        mSources.remove();
+                        mDrivers.remove();
                         continue;
                     }
                     
@@ -293,27 +262,9 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
             }
         }
     }
-    
-    
-    
-    private boolean removeSource( Source source, boolean closeSource ) {
-        synchronized( mLock ) {
-            SourceData d = mSourceMap.remove( source );
-            if( d == null ) {
-                return false;
-            }
-            for( StreamHandle s: d.mStreams ) {
-                mStreamMap.remove( s );
-            }
-            
-            d.mDriver.close( closeSource );
-            mLock.unblock();
-            return true;
-        }
-    }
-    
-    
-    
+
+
+
     private final class PlayHandler implements PlayControl {
         
         public void playStart( long execMicros ) {}
@@ -322,55 +273,55 @@ public class OneThreadMultiDriver implements MultiSourceDriver {
 
         public void seek( long execMicros, long seekMicros ) {
             synchronized( mLock ) {
-                for( SourceData s: mSourceMap.values() ) {
-                    s.mDriver.seek( seekMicros );
+                int len = mDrivers.size();
+                for( int i = 0; i < len; i++ ) {
+                    mDrivers.get( i ).mDriver.seek( seekMicros );
                 }
                 mLock.interrupt();
             }
         }
 
         public void setRate( long execMicros, double rate ) {}
-        
     }
     
     
-    private static final class SourceData extends HeapNode implements Comparable<SourceData> {
+    private static final class Node extends HeapNode implements Comparable<Node> {
 
-        final List<StreamHandle> mStreams;
+        final Source mSource;
         final PassiveDriver mDriver;
-        
-        SourceData( Source source ) {
-            mStreams = source.streams();
-            mDriver  = new PassiveDriver( source );
+
+        Node( Source source, PassiveDriver driver  ) {
+            mSource = source;
+            mDriver = driver;
         }
-        
-        
-        @Override
-        public int compareTo( SourceData s ) {
+
+
+        public int compareTo( Node s ) {
             boolean r0 = mDriver.hasNext();
             boolean r1 = s.mDriver.hasNext();
-            
+
             if( r0 && r1 ) {
                 // Both are readable. Sort based on next packet.
                 long t0 = mDriver.currentMicros();
                 long t1 = s.mDriver.currentMicros();
                 return t0 < t1 ? -1 :
-                       t0 > t1 ?  1 : 0;
+                        t0 > t1 ? 1 : 0;
             }
-            
+
             // Schedule closed drivers first.
             boolean close0 = !mDriver.isOpen();
             boolean close1 = !s.mDriver.isOpen();
-        
+
             if( close0 ) {
                 return close1 ? 0 : -1;
             } else if( close1 ) {
                 return 1;
             }
-            
-            return r0 ? -1 : ( r1 ? 1 : 0 );
+
+            return r0 ? -1 : (r1 ? 1 : 0);
         }
-    
+
     }
-    
+
+
 }

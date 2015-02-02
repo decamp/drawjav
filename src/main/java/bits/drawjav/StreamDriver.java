@@ -7,7 +7,6 @@
 package bits.drawjav;
 
 import java.nio.channels.Channel;
-
 import bits.microtime.PlayController;
 
 /**
@@ -15,6 +14,5 @@ import bits.microtime.PlayController;
  */
 public interface StreamDriver extends Channel, StreamFormatter {
     public void start();
-    public Source source();
     public PlayController playController();
 }
