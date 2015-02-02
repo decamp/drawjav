@@ -26,7 +26,7 @@ import bits.microtime.PlayController;
 /**
  * @author decamp
  */
-public class DriverTest {
+public class TestDriver {
 
     private static final File TEST_FILE = new File( "../../../jav/src/test/resources/test.mp4" );
 
@@ -34,8 +34,8 @@ public class DriverTest {
     public static void main( String[] args ) throws Exception {
 //        testRealtime();
 //        testSynced();
-//        testMultiRealtime();
-        testMultiSynced();
+        testMultiRealtime();
+//        testMultiSynced();
     }
     
     
@@ -133,7 +133,10 @@ public class DriverTest {
     static void testMultiRealtime() throws Exception {
         File file1 = new File( "../../ext/video.mp4" );
         File file2 = new File( "../../ext/video.ts" );
-        
+
+        System.out.println( new File( "." ).getAbsolutePath() );
+        System.out.println( file1.getAbsolutePath() );
+
         final PlayController playCont  = PlayController.createAuto();
         final FormatDecoder decoder1   = FormatDecoder.openFile( file1, true, 0L );
         final FormatDecoder decoder2   = FormatDecoder.openFile( file2, true, 0L );

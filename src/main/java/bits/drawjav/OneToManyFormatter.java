@@ -135,10 +135,6 @@ public class OneToManyFormatter implements Sink<Packet> {
         }
         
         PictureFormat ret = PictureFormat.merge( mStream.pictureFormat(), destFormat );
-        if( ret == null || !PictureFormat.isFullyDefined( ret ) ) {
-            return null;
-        }
-        
         return openStream( Jav.AVMEDIA_TYPE_VIDEO,
                            mStream.pictureFormat(),
                            ret,
@@ -155,10 +151,6 @@ public class OneToManyFormatter implements Sink<Packet> {
         }
         
         AudioFormat ret = AudioFormat.merge( mStream.audioFormat(), destFormat );
-        if( ret == null || !AudioFormat.isFullyDefined( ret ) ) {
-            return null;
-        }
-        
         return openStream( Jav.AVMEDIA_TYPE_AUDIO,
                            mStream.audioFormat(),
                            destFormat,
@@ -228,35 +220,33 @@ public class OneToManyFormatter implements Sink<Packet> {
             if( mClosed ) {
                 throw new ClosedChannelException();
             }
-            
             formatNode = mNodeMap.get( destFormat );
 
             if( formatNode == null ) {
                 SinkCaster caster = new SinkCaster();
                 
                 if( type == Jav.AVMEDIA_TYPE_VIDEO ) {
-                    PictureFormat fmt       = PictureFormat.merge( (PictureFormat)sourceFormat, (PictureFormat)destFormat );
-                    VideoAllocator alloc    = mMem.videoAllocator( null, fmt );
+                    VideoAllocator alloc    = mMem.videoAllocator( null, (PictureFormat)destFormat );
                     VideoResamplerPipe conv = new VideoResamplerPipe( caster, (PictureFormat)sourceFormat, alloc );
                     alloc.deref();
                     conv.setPictureConversion( (PictureFormat)destFormat, Jav.SWS_FAST_BILINEAR );
-
                     // As an extra precaution, use the destination format determined
-                    // by the video resampler. It should be exactly the same.
-                    // If not, we may end up doing redundant conversions, but 
-                    // better than breaking.
-                    fmt = conv.destFormat();
+                    // by the video resampler. It should be the same.
+                    // If for some reason it's not, we may end up doing redundant conversions,
+                    // but that's better than breaking.
+                    destFormat = conv.destFormat();
                     formatNode = new FormatNode( conv, caster );
-                    addNode( fmt, formatNode );
+                    addNode( destFormat, formatNode );
                     
                 } else {
-                    AudioFormat fmt         = AudioFormat.merge( (AudioFormat)sourceFormat, (AudioFormat)destFormat );
-                    AudioAllocator alloc    = mMem.audioAllocator( null, fmt );
-                    AudioResamplerPipe conv = new AudioResamplerPipe( caster,
-                                                                      (AudioFormat)destFormat,
-                                                                      alloc );
-
+                    AudioAllocator alloc    = mMem.audioAllocator( null, (AudioFormat)destFormat);
+                    AudioResamplerPipe conv = new AudioResamplerPipe( caster, (AudioFormat)destFormat, alloc );
                     alloc.deref();
+
+                    // As an extra precaution, use the destination format determined
+                    // by the audio resampler. It should be the same.
+                    // If for some reason it's not, we may end up doing redundant conversions,
+                    // but that's better than breaking.
                     destFormat = conv.destFormat();
                     formatNode = new FormatNode( conv, caster );
                     addNode( destFormat, formatNode );
@@ -264,7 +254,7 @@ public class OneToManyFormatter implements Sink<Packet> {
             }
             
             formatNode.mCaster.addSink( dest );
-            
+
             if( type == Jav.AVMEDIA_TYPE_VIDEO ) {
                 return new SinkNode( type, (PictureFormat)destFormat, null, dest );
             } else {
@@ -286,9 +276,7 @@ public class OneToManyFormatter implements Sink<Packet> {
     }
 
 
-    
     private static class FormatNode<T> {
-        
         final Sink<T> mSink;
         final SinkCaster<T> mCaster;
         

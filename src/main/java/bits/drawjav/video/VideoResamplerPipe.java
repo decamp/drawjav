@@ -47,7 +47,7 @@ public class VideoResamplerPipe implements Sink<VideoPacket> {
     public void consume( VideoPacket packet ) throws IOException {
         VideoPacket ret = null;
         try {
-            ret = mConverter.process( packet );
+            ret = mConverter.convert( packet );
             mSink.consume( ret );
         } finally {
             if( ret != null ) {

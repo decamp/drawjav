@@ -224,7 +224,7 @@ public class PassiveDriver implements StreamDriver {
             packet = null;
             return false;
         } catch( IOException ex ) {
-            warn( "Failed to process packet", ex );
+            warn( "Failed to convert packet", ex );
             synchronized( this ) {
                 if( !mNeedSeek ) {
                     mErrorState = ex;
@@ -260,7 +260,7 @@ public class PassiveDriver implements StreamDriver {
         } catch( InterruptedIOException ex ) {
             return false;
         } catch( IOException ex ) {
-            warn( "Failed to process packet", ex );
+            warn( "Failed to convert packet", ex );
             synchronized( this ) {
                 if( !mNeedSeek ) {
                     mErrorState = ex;

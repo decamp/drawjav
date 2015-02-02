@@ -95,7 +95,7 @@ class TimedMultiQueue<T extends TimedNode> {
                 continue;
             }
 
-            // Find next command to process.
+            // Find next command to convert.
             T ret = channel.peek();
             if( ret == null ) {
                 if( channel.mClosed || mClosed ) {

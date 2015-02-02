@@ -167,7 +167,7 @@ public class PacketScheduler {
                 default:
                     warn( "Unknown command scheduled by PacketScheduler.", null );
                 }
-            } catch( InterruptedIOException ex ) {
+            } catch( InterruptedIOException ignore ) {
             } catch( ClosedChannelException ex ) {
                 c.mPipe.close();
             } catch( Exception ex ) {
@@ -178,8 +178,7 @@ public class PacketScheduler {
             }
         }
     }
-    
-    
+
     
     private static void warn( String msg, Exception ex ) {
         sLog.log( Level.WARNING, msg, ex );
@@ -189,27 +188,25 @@ public class PacketScheduler {
     private static final class Pipe extends DoubleLinkedNode implements Sink, ObjectPool<Command> {
 
         @SuppressWarnings( "unused" )
-        final PlayClock mClock;
-        final TimedMultiQueue mQueue;
+        private final PlayClock mClock;
+        private final TimedMultiQueue mQueue;
+        private final Object mChannel;
+        private final Sink mSink;
+        private final ThreadLock mLock;
         
-        final Object mChannel;
-        final Sink mSink;
-        final ThreadLock mLock;
-        
-        @SuppressWarnings( "unused" )
-        final boolean mRushFirstVideoFrame;
-        
-        boolean mClosed = false;
-        boolean mNeedRush;
-        
-        final int mCap;
-        int mQueueSize = 0;
-        
-        final int mPoolCap;
-        Command mPool = null;
-        int mPoolSize = 0;
-        
-        
+        private boolean mClosed = false;
+
+        private final int mCap;
+        private int mQueueSize = 0;
+
+        private final int mPoolCap;
+        private Command mPool = null;
+        private int mPoolSize = 0;
+
+        private final boolean mRushFirstVideoFrame;
+        private boolean mNeedRush;
+
+
         Pipe( PlayClock clock,
               TimedMultiQueue queue,
               Sink sink, 
@@ -224,9 +221,9 @@ public class PacketScheduler {
             mSink    = sink;
             mLock    = lock;
             mCap     = queueCap;
+            mPoolCap = Math.max( 128, Math.min( queueCap, 1024 ) );
             mRushFirstVideoFrame = rushFirstVideoFrame;
             mNeedRush            = rushFirstVideoFrame;
-            mPoolCap = Math.max( 128, Math.min( queueCap, 1024 ) );
         }
         
         
@@ -243,10 +240,10 @@ public class PacketScheduler {
                 Packet p = (Packet)packet;
                 p.ref();
                 
-                Command command = poll();
+                Command command      = poll();
                 command.mCommandCode = COMMAND_CONSUME;
-                command.mPriority = COMMAND_CONSUME;
-                command.mPacket = p;
+                command.mPriority    = COMMAND_CONSUME;
+                command.mPacket      = p;
                 
                 // If cleared, get video packet out as soon as possible.
                 if( mNeedRush && ( p instanceof VideoPacket) ) {

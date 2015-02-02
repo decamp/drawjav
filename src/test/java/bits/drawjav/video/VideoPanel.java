@@ -108,7 +108,7 @@ public class VideoPanel extends JPanel implements Sink<VideoPacket> {
         }
         
         try {
-            VideoPacket p = mResampler.process( frame );
+            VideoPacket p = mResampler.convert( frame );
             bufferImage( p );
             g.drawImage( mImage, mDstBox.x(), mDstBox.y(), mDstBox.width(), mDstBox.height(), null );
             p.deref();

@@ -27,10 +27,13 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
 
     private final AudioAllocator mAlloc;
 
-    private AudioFormat mSrcFormat       = null;
-    private AudioFormat mRequestedFormat = null;
-    private AudioFormat mDstFormat       = null;
-    private int         mConversionFlags = 0;
+    private AudioFormat mSourceFormat        = null;
+    private AudioFormat mPredictSourceFormat = null;
+    private AudioFormat mRequestedFormat     = null;
+    //private AudioFormat mPredictDestFormat   = null;
+    private AudioFormat mDestFormat          = null;
+
+    private int mConversionFlags = 0;
 
     private boolean mNeedsInit = false;
 
@@ -59,17 +62,19 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
 
 
     public AudioFormat sourceFormat() {
-        return mSrcFormat;
+        return mSourceFormat != null ? mSourceFormat : mPredictSourceFormat;
     }
 
 
     public void sourceFormat( AudioFormat format ) {
-        if( format == mSrcFormat || format != null && format.equals( mSrcFormat ) ) {
-            mSrcFormat = format;
+        if( format == mPredictSourceFormat || format != null && format.equals( mPredictSourceFormat ) ) {
+            mPredictSourceFormat = format;
+            mSourceFormat = null;
             return;
         }
 
-        mSrcFormat = format;
+        mPredictSourceFormat = format;
+        mSourceFormat = null;
         mNeedsInit = true;
 
         // Source format may affect destination format if requested format is partially defined.
@@ -87,7 +92,7 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
      * @return computed destination format. May be different from {@code #requestedFormat()}.
      */
     public AudioFormat destFormat() {
-        return mDstFormat;
+        return mDestFormat;
     }
 
     /**
@@ -96,7 +101,7 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
     public void destFormat( AudioFormat format ) {
         // Assign format == mRequestedFormat either way.
         // Better to use identical objects than merely equivalent objects.
-        if( format == mDstFormat || format != null && format.equals( mDstFormat ) ) {
+        if( format == mRequestedFormat || format != null && format.equals( mRequestedFormat ) ) {
             mRequestedFormat = format;
         } else {
             mRequestedFormat = format;
@@ -119,10 +124,16 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
     }
 
 
-    public AudioPacket convert( AudioPacket src ) throws JavException {
-        AudioFormat fmt = src.audioFormat();
-        if( fmt != mSrcFormat ) {
-            sourceFormat( fmt );
+    public AudioPacket convert( AudioPacket source ) throws JavException {
+        AudioFormat format = source.audioFormat();
+        if( format != mSourceFormat ) {
+            if( format != null && format.equals( mSourceFormat ) ) {
+                mSourceFormat = format;
+            } else {
+                mSourceFormat = format;
+                mNeedsInit = true;
+                updateDestFormat();
+            }
         }
 
         if( mNeedsInit ) {
@@ -130,15 +141,15 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
         }
 
         if( mConverter == null ) {
-            src.ref();
-            return src;
+            source.ref();
+            return source;
         }
 
-        int srcLen = src.nbSamples();
+        int srcLen = source.nbSamples();
         int dstLen = (int)Rational.rescale( srcLen, mRateRatio.num(), mRateRatio.den() );
-        mStream = src.stream();
+        mStream = source.stream();
 
-        return doConvert( src, srcLen, dstLen );
+        return doConvert( source, srcLen, dstLen );
     }
 
 
@@ -147,7 +158,7 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
             if( mConverter == null ) {
                 return null;
             }
-            int dstLen = (int)mConverter.getDelay( mDstFormat.sampleRate() );
+            int dstLen = (int)mConverter.getDelay( mDestFormat.sampleRate() );
             if( dstLen != 0 ) {
                 return null;
             }
@@ -189,11 +200,12 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
 
 
     private void updateDestFormat() {
-        AudioFormat format = AudioFormat.merge( mSrcFormat, mRequestedFormat );
-        if( !AudioFormat.isFullyDefined( format ) && format.equals( mDstFormat ) ) {
+        AudioFormat src = mSourceFormat != null ? mSourceFormat : mPredictSourceFormat;
+        AudioFormat dest = AudioFormat.merge( src, mRequestedFormat );
+        if( !AudioFormat.isFullyDefined( dest ) && dest.equals( mDestFormat ) ) {
             return;
         }
-        mDstFormat = format;
+        mDestFormat = dest;
         invalidateConverter();
     }
 
@@ -212,8 +224,8 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
 
     private void init() throws JavException {
         mNeedsInit = false;
-        AudioFormat src = mSrcFormat;
-        AudioFormat dst = mDstFormat;
+        AudioFormat src = mSourceFormat;
+        AudioFormat dst = mDestFormat;
         if( !AudioFormat.isFullyDefined( src ) || !AudioFormat.isFullyDefined( dst ) ) {
             return;
         }
@@ -242,12 +254,7 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
 
 
     private AudioPacket doConvert( AudioPacket src, int srcLen, int dstLen ) throws JavException {
-        AudioPacket dst = mAlloc.alloc( mDstFormat, dstLen );
-        //System.out.format( "0x%X   0x%X    %d\n", src.data(), src.extendedData(), src.channels() );
-        //System.out.format( "  0x%X  0x%X \n", src.dataElem( 0 ), src.dataElem( 1 ) );
-        //System.out.format( "  0x%X  0x%X \n", src.extendedDataElem( 0 ), src.extendedDataElem( 1 ) );
-        //System.out.format( "  %s  %s \n", src.bufElem( 0 ), src.bufElem( 1 ) );
-        //System.out.format( "  0x%X   0x%X\n", dst.data(), dst.extendedData() );
+        AudioPacket dst = mAlloc.alloc( mDestFormat, dstLen );
         int err = mConverter.convert( src, srcLen, dst, dstLen );
         if( err <= 0 ) {
             dst.deref();
@@ -261,12 +268,12 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
         if( src != null ) {
             long micros = src.startMicros();
             if( micros != mStreamMicros ) {
-                mTimer.init( micros, mDstFormat.sampleRate() );
+                mTimer.init( micros, mDestFormat.sampleRate() );
             }
         }
 
         mTimer.computeTimestamps( err, mWork );
-        dst.init( mStream, mDstFormat, mWork[0], mWork[1] );
+        dst.init( mStream, mDestFormat, mWork[0], mWork[1] );
         mStreamMicros = mWork[1];
 
         return dst;

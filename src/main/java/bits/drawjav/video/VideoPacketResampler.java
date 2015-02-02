@@ -19,10 +19,11 @@ public class VideoPacketResampler {
 
     private final VideoAllocator mAlloc;
 
-    private PictureFormat mSourceFormat    = null;
-    private PictureFormat mRequestedFormat = null;
-    private PictureFormat mDestFormat      = null;
-    private int           mConversionFlags = Jav.SWS_FAST_BILINEAR;
+    private PictureFormat mPredictedSourceFormat = null;
+    private PictureFormat mSourceFormat          = null;
+    private PictureFormat mRequestedFormat       = null;
+    private PictureFormat mDestFormat            = null;
+    private int           mConversionFlags       = Jav.SWS_FAST_BILINEAR;
 
     private boolean    mNeedsInit = false;
     private SwsContext mConverter = null;
@@ -40,19 +41,20 @@ public class VideoPacketResampler {
     }
 
 
-
     public PictureFormat sourceFormat() {
-        return mSourceFormat;
+        return mSourceFormat != null ? mSourceFormat : mPredictedSourceFormat;
     }
 
 
     public void sourceFormat( PictureFormat format ) {
-        if( format == mSourceFormat || format != null && format.equals( mSourceFormat ) ) {
-            mSourceFormat = format;
+        if( format == mPredictedSourceFormat || format != null && format.equals( mPredictedSourceFormat ) ) {
+            mPredictedSourceFormat = format;
+            mSourceFormat = null;
             return;
         }
 
-        mSourceFormat = format;
+        mPredictedSourceFormat = format;
+        mSourceFormat = null;
         mNeedsInit = true;
 
         // Source format may affect destination format if requested format is
@@ -78,7 +80,7 @@ public class VideoPacketResampler {
     public void destFormat( PictureFormat format ) {
         // Assign format == mRequestedFormat either way.
         // Better to use identical objects than merely equivalent objects.
-        if( format == mDestFormat || format != null && format.equals( mDestFormat ) ) {
+        if( format == mRequestedFormat || format != null && format.equals( mRequestedFormat ) ) {
             mRequestedFormat = format;
         } else {
             mRequestedFormat = format;
@@ -102,10 +104,16 @@ public class VideoPacketResampler {
 
 
 
-    public VideoPacket process( VideoPacket source ) throws JavException {
-        PictureFormat fmt = source.pictureFormat();
-        if( fmt != mSourceFormat ) {
-            sourceFormat( fmt );
+    public VideoPacket convert( VideoPacket source ) throws JavException {
+        PictureFormat format = source.pictureFormat();
+        if( format != mSourceFormat ) {
+            if( format != null && format.equals( mSourceFormat ) ) {
+                mSourceFormat = format;
+            } else {
+                mSourceFormat = format;
+                mNeedsInit = true;
+                updateDestFormat();
+            }
         }
 
         if( mNeedsInit ) {
@@ -117,9 +125,9 @@ public class VideoPacketResampler {
             return source;
         }
 
-        fmt = mDestFormat;
-        VideoPacket dest = mAlloc.alloc( fmt );
-        dest.init( source.stream(), fmt, source.startMicros(), source.stopMicros() );
+        format = mDestFormat;
+        VideoPacket dest = mAlloc.alloc( format );
+        dest.init( source.stream(), format, source.startMicros(), source.stopMicros() );
         mConverter.conv( source, dest );
         return dest;
     }
@@ -142,7 +150,7 @@ public class VideoPacketResampler {
 
 
     private void updateDestFormat() {
-        PictureFormat format = PictureFormat.merge( mSourceFormat, mRequestedFormat );
+        PictureFormat format = PictureFormat.merge( mPredictedSourceFormat, mRequestedFormat );
         if( format == null || !PictureFormat.isFullyDefined( format ) ) {
             return;
         }
@@ -157,7 +165,6 @@ public class VideoPacketResampler {
 
     private void init() throws JavException {
         mNeedsInit = false;
-        
         PictureFormat src = mSourceFormat;
         PictureFormat dst = mDestFormat;
         

@@ -151,7 +151,7 @@ public class AudioResampler {
      * @param inOff   Offset into input array
      * @param out     Output buffer
      * @param outOff  Offset into output array
-     * @param len     Number of input FRAMES to process, or SAMPLES PER CHANNEL. NOT number of array VALUES.
+     * @param len     Number of input FRAMES to convert, or SAMPLES PER CHANNEL. NOT number of array VALUES.
      *
      * @return the number of output frames generated (interleaved if multiple channels).
      */

@@ -43,7 +43,6 @@ public class AudioResamplerPipe implements Sink<AudioPacket> {
             mSink.consume( p );
             p.deref();
         }
-        //mSink.consume( packet );
     }
     
     
