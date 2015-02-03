@@ -21,7 +21,7 @@ import bits.microtime.*;
  * 
  * @author decamp
  */
-public class SyncedDriver extends DrawNodeAdapter implements StreamDriver {
+public class SyncedDriver implements StreamDriver, Ticker {
     
     
     private final PlayController mPlayCont;
@@ -111,7 +111,7 @@ public class SyncedDriver extends DrawNodeAdapter implements StreamDriver {
     }
 
     @Override
-    public void pushDraw( DrawEnv d ) {
+    public void tick() {
         long timeMicros = mPlayCont.clock().micros();
         while( true ) {
             if( !mDriver.hasNext() ) {
@@ -125,9 +125,7 @@ public class SyncedDriver extends DrawNodeAdapter implements StreamDriver {
             }
         }
     }
-    
-    
-        
+
     
     private final class PlayHandler implements PlayControl {
 

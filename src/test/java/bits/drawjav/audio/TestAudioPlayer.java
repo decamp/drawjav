@@ -10,6 +10,7 @@ import java.io.*;
 
 import bits.drawjav.*;
 import bits.jav.Jav;
+import bits.microtime.PlayController;
 
 
 /**
@@ -55,19 +56,20 @@ public class TestAudioPlayer {
         AudioFormat dstFormat = new AudioFormat( srcFormat.channels(), 44100, Jav.AV_SAMPLE_FMT_FLT );
         System.out.println( srcFormat + " -> " + dstFormat );
 
+        final PlayController play     = PlayController.createAuto();
         final AudioAllocator alloc    = new OneStreamAudioAllocator( 32, -1, -1 );
-        final AudioLinePlayer liner   = new AudioLinePlayer( dstFormat, null, 1024 * 512 );
+        final AudioLinePlayer liner   = new AudioLinePlayer( dstFormat, play, 1024 * 512 );
         final AudioResamplerPipe pipe = new AudioResamplerPipe( liner, dstFormat, alloc  );
 
-        liner.playStart( System.currentTimeMillis() * 1000L + 100000L );
+        play.control().playStart();
         
         new Thread() {
             public void run() {
                 try {
                     Thread.sleep( 3000L );
-                    liner.playStop( System.currentTimeMillis() * 1000L + 100000L );
+                    play.control().playStop( System.currentTimeMillis() * 1000L + 100000L );
                     Thread.sleep( 1000L );
-                    liner.playStart( System.currentTimeMillis() * 1000L + 100000L );
+                    play.control().playStart( System.currentTimeMillis() * 1000L + 100000L );
                 } catch( Exception ignored ) {}
             }
         }.start();

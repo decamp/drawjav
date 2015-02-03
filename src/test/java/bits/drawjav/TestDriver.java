@@ -17,7 +17,7 @@ import javax.swing.JFrame;
 import bits.draw3d.*;
 import bits.drawjav.video.PictureFormat;
 import bits.drawjav.video.VideoTexture;
-import bits.glui.util.LimitAnimator;
+import bits.draw3d.util.LimitAnimator;
 import bits.jav.Jav;
 import bits.jav.util.Rational;
 import bits.microtime.PlayController;
@@ -103,10 +103,9 @@ public class TestDriver {
 
         final DrawNode update = new DrawNodeAdapter() {
             public void pushDraw( DrawEnv d ) {
-                playCont.updateClocks();
-                //System.out.println( playCont.clock().micros() );
-                driver.pushDraw( d );
-                driver.popDraw( d );
+                playCont.tick();
+                driver.tick();
+                driver.tick();
             }
         };
         
@@ -169,11 +168,15 @@ public class TestDriver {
             while( true ) {
                 Thread.sleep( 5000L );
                 System.out.println("SEEK");
-                playCont.control().seek( 10000000L );
+                playCont.control().seek( 12000000L );
+                Thread.sleep( 2000L );
+                playCont.control().playStop();
+                System.out.println( "PAUSE" );
+                Thread.sleep( 2000L );
+                playCont.control().playStart();
+                System.out.println( "PLAY" );
             }
-            
-            
-        }catch(Exception ex) {}
+        } catch(Exception ignore) {}
     }
 
     
@@ -198,9 +201,9 @@ public class TestDriver {
         //driver.openAudioStream(sh, sh.audioFormat(), player);
         final DrawNode update = new DrawNodeAdapter() {
             public void pushDraw( DrawEnv d ) {
-                playCont.updateClocks();
-                driver.pushDraw( d );
-                driver.popDraw( d );
+                playCont.tick();
+                driver.tick();
+                driver.tick();
             }
         };
         

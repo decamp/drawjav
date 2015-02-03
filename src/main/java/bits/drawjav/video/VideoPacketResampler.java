@@ -103,7 +103,6 @@ public class VideoPacketResampler {
     }
 
 
-
     public VideoPacket convert( VideoPacket source ) throws JavException {
         PictureFormat format = source.pictureFormat();
         if( format != mSourceFormat ) {
@@ -133,7 +132,6 @@ public class VideoPacketResampler {
     }
 
 
-
     public void close() {
         if( mDisposed ) {
             return;
@@ -150,15 +148,12 @@ public class VideoPacketResampler {
 
 
     private void updateDestFormat() {
-        PictureFormat format = PictureFormat.merge( mPredictedSourceFormat, mRequestedFormat );
-        if( format == null || !PictureFormat.isFullyDefined( format ) ) {
+        PictureFormat source = mSourceFormat != null ? mSourceFormat : mPredictedSourceFormat;
+        PictureFormat dest = PictureFormat.merge( source, mRequestedFormat );
+        if( dest.equals( mDestFormat ) ) {
             return;
         }
-        if( format.equals( mDestFormat ) ) {
-            return;
-        }
-
-        mDestFormat = format;
+        mDestFormat = dest;
         formatChanged();
     }
 

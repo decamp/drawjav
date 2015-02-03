@@ -159,7 +159,7 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
                 return null;
             }
             int dstLen = (int)mConverter.getDelay( mDestFormat.sampleRate() );
-            if( dstLen != 0 ) {
+            if( dstLen == 0 ) {
                 return null;
             }
             return doConvert( null, 0, dstLen );
@@ -200,9 +200,9 @@ public class AudioPacketResampler implements PacketConverter<AudioPacket> {
 
 
     private void updateDestFormat() {
-        AudioFormat src = mSourceFormat != null ? mSourceFormat : mPredictSourceFormat;
-        AudioFormat dest = AudioFormat.merge( src, mRequestedFormat );
-        if( !AudioFormat.isFullyDefined( dest ) && dest.equals( mDestFormat ) ) {
+        AudioFormat source = mSourceFormat != null ? mSourceFormat : mPredictSourceFormat;
+        AudioFormat dest = AudioFormat.merge( source, mRequestedFormat );
+        if( dest.equals( mDestFormat ) ) {
             return;
         }
         mDestFormat = dest;

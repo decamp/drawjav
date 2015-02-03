@@ -15,8 +15,8 @@ import javax.swing.JFrame;
 
 import bits.draw3d.DrawEnv;
 import bits.draw3d.DrawStream;
-import bits.glui.util.Animator;
-import bits.glui.util.LimitAnimator;
+import bits.draw3d.util.Animator;
+import bits.draw3d.util.LimitAnimator;
 import bits.microtime.*;
 
 import static javax.media.opengl.GL.*;
@@ -93,7 +93,7 @@ public class TestVideoExportNode {
             d.init( glad, null );
 
             GL gl = glad.getGL();
-            mPlayCont.updateClocks();
+            mPlayCont.tick();
             long t = mPlayCont.clock().micros();
 
             if( t >= mStartMicros && t < mStopMicros ) {

@@ -118,11 +118,11 @@ public class TestMp4Writer {
 //
 //        System.out.println( "=========" );
         JavClass priv = cc.privData();
-        JavOption opt = JavOption.nextOption( priv, null );
+        JavOption opt = JavOption.next( priv, null );
         while( opt != null ) {
             System.out.println();
             System.out.println( opt.toDescription() );
-            opt = JavOption.nextOption( priv, opt );
+            opt = JavOption.next( priv, opt );
         }
 
     }

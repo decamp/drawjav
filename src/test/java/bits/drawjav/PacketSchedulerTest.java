@@ -25,7 +25,7 @@ public class PacketSchedulerTest {
     
     
     public static void test1() throws Exception {
-        PlayController playCont  = PlayController.newAutoInstance();
+        PlayController playCont  = PlayController.createAuto();
         AsyncPlayControl control = playCont.control();
         LongPrinter printer      = new LongPrinter();
         PacketScheduler exec     = new PacketScheduler( playCont );

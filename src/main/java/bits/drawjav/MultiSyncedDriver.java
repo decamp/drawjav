@@ -21,12 +21,7 @@ import bits.microtime.*;
  * 
  * @author decamp
  */
-public class MultiSyncedDriver extends DrawNodeAdapter implements StreamDriver {
-
-    @Deprecated public static MultiSyncedDriver newInstance( PlayController playCont ) {
-        return new MultiSyncedDriver( playCont );
-    }
-
+public class MultiSyncedDriver implements Ticker, StreamDriver {
 
     private final PlayController mPlayCont;
 
@@ -93,12 +88,12 @@ public class MultiSyncedDriver extends DrawNodeAdapter implements StreamDriver {
 
     @SuppressWarnings( { "unchecked", "rawtypes" } )
     private StreamHandle openStream( boolean isVideo,
-                                                  Source source,
-                                                  StreamHandle stream,
-                                                  PictureFormat pictureFormat,
-                                                  AudioFormat audioFormat,
-                                                  Sink sink )
-                                                  throws IOException
+                                     Source source,
+                                     StreamHandle stream,
+                                     PictureFormat pictureFormat,
+                                     AudioFormat audioFormat,
+                                     Sink sink )
+                                     throws IOException
     {
         if( mClosed ) {
             throw new ClosedChannelException();
@@ -158,11 +153,9 @@ public class MultiSyncedDriver extends DrawNodeAdapter implements StreamDriver {
     }
 
     @Override
-    public void pushDraw( DrawEnv d ) {
-        synchronized( this ) {
-            for( Node s: mSources ) {
-                s.mDriver.pushDraw( d );
-            }
+    public synchronized void tick() {
+        for( Node s: mSources ) {
+            s.mDriver.tick();
         }
     }
 
@@ -175,6 +168,11 @@ public class MultiSyncedDriver extends DrawNodeAdapter implements StreamDriver {
             mSource = source;
             mDriver = new SyncedDriver( playCont, source );
         }
+    }
+
+
+    @Deprecated public static MultiSyncedDriver newInstance( PlayController playCont ) {
+        return new MultiSyncedDriver( playCont );
     }
 
 }

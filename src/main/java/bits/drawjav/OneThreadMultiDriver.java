@@ -25,19 +25,6 @@ import bits.util.concurrent.ThreadLock;
 @SuppressWarnings( { "unchecked", "rawtypes" } )
 public class OneThreadMultiDriver implements StreamDriver {
 
-    @Deprecated public static OneThreadMultiDriver newInstance( PlayController playCont ) {
-        return newInstance( playCont, null );
-    }
-    
-    
-    @Deprecated public static OneThreadMultiDriver newInstance( PlayController playCont, PacketScheduler scheduler ) {
-        if( scheduler == null ) {
-            scheduler = new PacketScheduler( playCont );
-        }
-        return new OneThreadMultiDriver( playCont, scheduler );
-    }
-
-
     private static Logger sLog = Logger.getLogger( OneThreadMultiDriver.class.getName() );
 
 
@@ -322,6 +309,20 @@ public class OneThreadMultiDriver implements StreamDriver {
         }
 
     }
+
+
+    @Deprecated public static OneThreadMultiDriver newInstance( PlayController playCont ) {
+        return newInstance( playCont, null );
+    }
+
+
+    @Deprecated public static OneThreadMultiDriver newInstance( PlayController playCont, PacketScheduler scheduler ) {
+        if( scheduler == null ) {
+            scheduler = new PacketScheduler( playCont );
+        }
+        return new OneThreadMultiDriver( playCont, scheduler );
+    }
+
 
 
 }

@@ -20,7 +20,7 @@ import javax.sound.sampled.*;
 /**
  * @author Philip DeCamp
  */
-public class AudioLinePlayer implements Sink<AudioPacket>, PlayControl {
+public class AudioLinePlayer implements Sink<AudioPacket> {
 
     public static final  int   DEFAULT_BUFFER_LENGTH = 1024 * 256 * 2;
     private static final int   LINE_BUFFER_SIZE      = 1024 * 256 * 2;
@@ -30,6 +30,10 @@ public class AudioLinePlayer implements Sink<AudioPacket>, PlayControl {
     private final SourceDataLine                  mLine;
     private final FloatControl                    mGainControl;
 
+    private final PlayController mPlayCont;
+    private final PlayClock      mClock;
+    private final PlayHandler    mPlayHandler;
+
     private final int    mChannels;
     private final long   mFrequency;
     private final int    mBytesPerFrame;
@@ -38,22 +42,22 @@ public class AudioLinePlayer implements Sink<AudioPacket>, PlayControl {
     private int mBufIndex;
     private int mBufSize;
 
-    private final FullClock mState;
+
     private boolean mClosed       = false;
-    private boolean mStateChanged = false;
+    private boolean mStateChanged = true;
 
 
     public AudioLinePlayer( AudioFormat format ) throws IOException {
-        this( format, Clock.SYSTEM_CLOCK, DEFAULT_BUFFER_LENGTH );
+        this( format, null, DEFAULT_BUFFER_LENGTH );
     }
 
 
-    public AudioLinePlayer( AudioFormat format, Clock optClock ) throws IOException {
-        this( format, optClock, DEFAULT_BUFFER_LENGTH );
+    public AudioLinePlayer( AudioFormat format, PlayController optPlayCont ) throws IOException {
+        this( format, optPlayCont, DEFAULT_BUFFER_LENGTH );
     }
 
 
-    public AudioLinePlayer( AudioFormat format, Clock optClock, int bufferBytes ) throws IOException {
+    public AudioLinePlayer( AudioFormat format, PlayController optPlayCont, int bufferBytes ) throws IOException {
         mChannels      = format.channels();
         mFormat        = new javax.sound.sampled.AudioFormat( format.sampleRate(), 16, mChannels, true, true );
         mFrequency     = format.sampleRate();
@@ -68,11 +72,13 @@ public class AudioLinePlayer implements Sink<AudioPacket>, PlayControl {
         mBufIndex  = 0;
         mBufSize   = 0;
 
-        if( optClock == null ) {
-            optClock = Clock.SYSTEM_CLOCK;
+        if( optPlayCont == null ) {
+            optPlayCont = PlayController.createAuto();
         }
+        mPlayCont = optPlayCont;
+        mClock = mPlayCont.clock();
+        mPlayHandler = new PlayHandler();
 
-        mState = new FullClock( optClock );
         DataLine.Info info = new DataLine.Info( SourceDataLine.class, mFormat, LINE_BUFFER_SIZE );
 
         try {
@@ -84,6 +90,8 @@ public class AudioLinePlayer implements Sink<AudioPacket>, PlayControl {
             throw new IOException( ex.getMessage() );
         }
 
+        mPlayCont.caster().addListener( mPlayHandler );
+
         new Thread( AudioLinePlayer.class.getName() ) {
             public void run() {
                 playLoop();
@@ -94,35 +102,14 @@ public class AudioLinePlayer implements Sink<AudioPacket>, PlayControl {
 
 
 
-
-    public synchronized void playStart( long execTimeMicros ) {
-        //System.out.println( "Play on: " + execTimeMicros + "\t" + mState.masterMicros() );
-        mState.playStart( execTimeMicros );
-        mStateChanged = true;
-        notifyAll();
+    public PlayController playController() {
+        return mPlayCont;
     }
 
 
-    public synchronized void playStop( long execTimeMicros ) {
-        mState.playStop( execTimeMicros );
-        mStateChanged = true;
-        notifyAll();
+    public PlayControl control() {
+        return mPlayCont.control();
     }
-
-
-    public synchronized void seek( long execTimeMicros, long gotoTimeMicros ) {
-        mState.seek( execTimeMicros, gotoTimeMicros );
-        mStateChanged = true;
-        notifyAll();
-    }
-
-
-    public synchronized void setRate( long execTimeMicros, double rate ) {
-        mState.setRate( execTimeMicros, rate );
-        mStateChanged = true;
-        notifyAll();
-    }
-
 
 
     public void consume( AudioPacket packet ) throws IOException {
@@ -165,7 +152,7 @@ public class AudioLinePlayer implements Sink<AudioPacket>, PlayControl {
 
 
     public void close() {
-        close( mState.masterMicros() );
+        close( mPlayCont.clock().masterMicros() );
     }
 
 
@@ -179,7 +166,6 @@ public class AudioLinePlayer implements Sink<AudioPacket>, PlayControl {
     public boolean isOpen() {
         return !mClosed;
     }
-
 
 
     public synchronized void setGainDbs( long execTimeMicros, double dbs ) {
@@ -298,11 +284,11 @@ public class AudioLinePlayer implements Sink<AudioPacket>, PlayControl {
 STATE_CHANGE:
         while( !mClosed ) {
             mStateChanged = false;
-            if( mState.isPlaying() ) {
+            if( mClock.isPlaying() ) {
                 // Start the audio line, if necessary.
                 if( !isPlaying ) {
-                    long waitUntil  = mState.masterSyncMicros() / 1000L;
-                    long waitMillis = waitUntil - mState.masterMicros() / 1000L;
+                    long waitUntil  = mClock.masterSyncMicros() / 1000L;
+                    long waitMillis = waitUntil - mClock.masterMicros() / 1000L;
                     if( waitMillis > 10L ) {
                         //Not sure about this loop, but I'm not about to mess with it.
                         do {
@@ -313,7 +299,7 @@ STATE_CHANGE:
                                 continue STATE_CHANGE;
                             }
                             writeToLine();
-                            waitMillis = waitUntil - mState.masterMicros() / 1000L;
+                            waitMillis = waitUntil - mClock.masterMicros() / 1000L;
                         } while( waitMillis > 10L );
                     } else {
                         writeToLine();
@@ -341,8 +327,8 @@ STATE_CHANGE:
                 }
             } else {
                 if( isPlaying ) {
-                    long waitUntil  = mState.masterSyncMicros() / 1000L;
-                    long waitMillis = waitUntil - mState.masterMicros() / 1000L;
+                    long waitUntil  = mClock.masterSyncMicros() / 1000L;
+                    long waitMillis = waitUntil - mClock.masterMicros() / 1000L;
 
                     while( waitMillis > 10L ) {
                         try {
@@ -352,7 +338,7 @@ STATE_CHANGE:
                         if( mStateChanged ) {
                             continue STATE_CHANGE;
                         }
-                        waitMillis = waitUntil - mState.masterMicros() / 1000L;
+                        waitMillis = waitUntil - mClock.masterMicros() / 1000L;
                     }
 
                     mLine.stop();
@@ -367,8 +353,6 @@ STATE_CHANGE:
             }
         }
     }
-
-
 
 
     private int writeToLine() {
@@ -388,6 +372,44 @@ STATE_CHANGE:
 
         notifyAll();
         return startBytes;
+    }
+
+
+
+
+    private class PlayHandler implements PlayControl {
+
+        public void playStart( long execTimeMicros ) {
+            synchronized( AudioLinePlayer.this ) {
+                mStateChanged = true;
+                AudioLinePlayer.this.notifyAll();
+            }
+        }
+
+
+        public synchronized void playStop( long execTimeMicros ) {
+            synchronized( AudioLinePlayer.this ) {
+                mStateChanged = true;
+                AudioLinePlayer.this.notifyAll();
+            }
+        }
+
+
+        public synchronized void seek( long execTimeMicros, long gotoTimeMicros ) {
+            synchronized( AudioLinePlayer.this ) {
+                mStateChanged = true;
+                AudioLinePlayer.this.notifyAll();
+            }
+        }
+
+
+        public synchronized void setRate( long execTimeMicros, double rate ) {
+            synchronized( AudioLinePlayer.this ) {
+                mStateChanged = true;
+                AudioLinePlayer.this.notifyAll();
+            }
+        }
+
     }
 
 

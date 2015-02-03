@@ -52,7 +52,7 @@ public class VideoTexture implements Texture, Sink<VideoPacket> {
     //==========================
     
     public void consume( VideoPacket frame ) {
-        if( frame == null || frame.javaBufElem( 0 ) == null ) {
+        if( frame == null || frame.dataElem( 0 ) == 0 ) {
             return;
         }
 
