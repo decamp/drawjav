@@ -90,7 +90,7 @@ public class AudioLinePlayer implements Sink<AudioPacket> {
             throw new IOException( ex.getMessage() );
         }
 
-        mPlayCont.caster().addListener( mPlayHandler );
+        mPlayCont.clock().addListener( mPlayHandler );
 
         new Thread( AudioLinePlayer.class.getName() ) {
             public void run() {
@@ -107,7 +107,7 @@ public class AudioLinePlayer implements Sink<AudioPacket> {
     }
 
 
-    public PlayControl control() {
+    public ClockControl control() {
         return mPlayCont.control();
     }
 
@@ -287,7 +287,7 @@ STATE_CHANGE:
             if( mClock.isPlaying() ) {
                 // Start the audio line, if necessary.
                 if( !isPlaying ) {
-                    long waitUntil  = mClock.masterSyncMicros() / 1000L;
+                    long waitUntil  = mClock.masterBasis() / 1000L;
                     long waitMillis = waitUntil - mClock.masterMicros() / 1000L;
                     if( waitMillis > 10L ) {
                         //Not sure about this loop, but I'm not about to mess with it.
@@ -327,7 +327,7 @@ STATE_CHANGE:
                 }
             } else {
                 if( isPlaying ) {
-                    long waitUntil  = mClock.masterSyncMicros() / 1000L;
+                    long waitUntil  = mClock.masterBasis() / 1000L;
                     long waitMillis = waitUntil - mClock.masterMicros() / 1000L;
 
                     while( waitMillis > 10L ) {
@@ -376,10 +376,9 @@ STATE_CHANGE:
 
 
 
+    private class PlayHandler implements SyncClockControl {
 
-    private class PlayHandler implements PlayControl {
-
-        public void playStart( long execTimeMicros ) {
+        public void clockStart( long execTimeMicros ) {
             synchronized( AudioLinePlayer.this ) {
                 mStateChanged = true;
                 AudioLinePlayer.this.notifyAll();
@@ -387,7 +386,7 @@ STATE_CHANGE:
         }
 
 
-        public synchronized void playStop( long execTimeMicros ) {
+        public synchronized void clockStop( long execTimeMicros ) {
             synchronized( AudioLinePlayer.this ) {
                 mStateChanged = true;
                 AudioLinePlayer.this.notifyAll();
@@ -395,7 +394,7 @@ STATE_CHANGE:
         }
 
 
-        public synchronized void seek( long execTimeMicros, long gotoTimeMicros ) {
+        public synchronized void clockSeek( long execTimeMicros, long gotoTimeMicros ) {
             synchronized( AudioLinePlayer.this ) {
                 mStateChanged = true;
                 AudioLinePlayer.this.notifyAll();
@@ -403,19 +402,13 @@ STATE_CHANGE:
         }
 
 
-        public synchronized void setRate( long execTimeMicros, double rate ) {
+        public synchronized void clockRate( long execTimeMicros, Frac rate ) {
             synchronized( AudioLinePlayer.this ) {
                 mStateChanged = true;
                 AudioLinePlayer.this.notifyAll();
             }
         }
 
-    }
-
-
-
-    @Deprecated public synchronized void setVolume( long execTimeMicros, double volume ) {
-        setGainDbs( execTimeMicros, volume );
     }
 
 }

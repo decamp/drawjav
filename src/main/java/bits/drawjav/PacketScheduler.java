@@ -359,7 +359,7 @@ public class PacketScheduler {
     }
     
     
-    private static final class EventHandler implements PlayControl {
+    private static final class EventHandler implements SyncClockControl {
 
         private final TimedMultiQueue mQueue;
         private final PlayController mPlayCont;
@@ -368,31 +368,31 @@ public class PacketScheduler {
         public EventHandler( TimedMultiQueue core, PlayController playCont ) {
             mQueue = core;
             mPlayCont = playCont;
-            playCont.caster().addListener( this );
+            playCont.clock().addListener( this );
         }
         
         
         public void close() {
-            mPlayCont.caster().removeListener( this );
+            mPlayCont.clock().removeListener( this );
         }
         
         @Override
-        public void playStart( long execMicros ) {
+        public void clockStart( long execMicros ) {
             mQueue.wakeup();
         }
 
         @Override
-        public void playStop( long execMicros ) {
+        public void clockStop( long execMicros ) {
             mQueue.wakeup();
         }
 
         @Override
-        public void seek( long execMicros, long gotoMicros ) {
+        public void clockSeek( long execMicros, long gotoMicros ) {
             mQueue.wakeup();
         }
 
         @Override
-        public void setRate( long execMicros, double rate ) {
+        public void clockRate( long execMicros, Frac rate ) {
             mQueue.wakeup();
         }
         
@@ -465,7 +465,7 @@ public class PacketScheduler {
             if( mDataMicros == Long.MIN_VALUE ) {
                 return mDataMicros;
             }
-            long t = mClock.toMasterMicros( mDataMicros );
+            long t = mClock.toMaster( mDataMicros );
             if( t == Long.MIN_VALUE || t == Long.MAX_VALUE ) {
                 return t;
             }

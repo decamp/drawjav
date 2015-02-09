@@ -63,7 +63,7 @@ public class TestVideoExportNode {
 
 
         EventHandler() {
-            mPlayCont.control().playStart();
+            mPlayCont.control().clockStart();
             try {
                 mExporter.addVideoWriter( new File( "/tmp/testA.mp4" ), 20, -1, mStartMicros, Long.MAX_VALUE );
                 //mExporter.addVideoWriter( new File( "/tmp/testB.mp4" ), -1, 10*1024*1024, 2000000L, 4000000L );

@@ -25,24 +25,6 @@ import bits.util.concurrent.ThreadLock;
 @SuppressWarnings( { "unchecked", "rawtypes" } )
 public class RealtimeDriver implements StreamDriver {
     
-    @Deprecated public static RealtimeDriver newInstance( PlayController playCont,
-                                                          Source source )
-    {
-        return newInstance( playCont, source, null );
-    }
-    
-    
-    @Deprecated public static RealtimeDriver newInstance( PlayController playCont,
-                                                          Source source,
-                                                          PacketScheduler syncer )
-    {
-        if( syncer == null ) {
-            syncer = new PacketScheduler( playCont );
-        }
-        return new RealtimeDriver( playCont, source, syncer );
-    }
-
-
     private static Logger sLog = Logger.getLogger( RealtimeDriver.class.getName() );
 
     private final PlayController  mPlayCont;
@@ -59,7 +41,7 @@ public class RealtimeDriver implements StreamDriver {
         mSyncer = optSyncer != null ? optSyncer : new PacketScheduler( playCont );
         mPlayHandler = new PlayHandler();
         mLock = new ThreadLock();
-        mPlayCont.caster().addListener( mPlayHandler );
+        mPlayCont.clock().addListener( mPlayHandler );
 
         mThread = new Thread( RealtimeDriver.class.getSimpleName() ) {
             public void run() {
@@ -156,6 +138,7 @@ public class RealtimeDriver implements StreamDriver {
                 }
             }
 
+
             mLock.unblock();
             return ret;
         }
@@ -217,20 +200,20 @@ public class RealtimeDriver implements StreamDriver {
     }
     
     
-    private final class PlayHandler implements PlayControl {
+    private final class PlayHandler implements SyncClockControl {
 
-        public void playStart( long execMicros ) {}
+        public void clockStart( long execMicros ) {}
 
-        public void playStop( long execMicros ) {}
+        public void clockStop( long execMicros ) {}
 
-        public void seek( long execMicros, long seekMicros ) {
+        public void clockSeek( long execMicros, long seekMicros ) {
             synchronized( mLock ) {
                 mDriver.seek( seekMicros );
                 mLock.interrupt();
             }
         }
 
-        public void setRate( long execMicros, double rate ) {}
+        public void clockRate( long execMicros, Frac rate ) {}
         
     }
     

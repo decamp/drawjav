@@ -26,7 +26,7 @@ public class PacketSchedulerTest {
     
     public static void test1() throws Exception {
         PlayController playCont  = PlayController.createAuto();
-        AsyncPlayControl control = playCont.control();
+        ClockControl control     = playCont.control();
         LongPrinter printer      = new LongPrinter();
         PacketScheduler exec     = new PacketScheduler( playCont );
         List<LongSource> drivers = new ArrayList<LongSource>();
@@ -35,15 +35,15 @@ public class PacketSchedulerTest {
             drivers.add( new LongSource( playCont, exec, printer ) );
         }
         
-        control.playStart();
+        control.clockStart();
         
         Thread.sleep( 2500L );
-        control.seek( 0 );
+        control.clockSeek( 0 );
         
         Thread.sleep( 2500L );
-        control.playStop();
+        control.clockStop();
         Thread.sleep( 1000L );
-        control.playStart();
+        control.clockStart();
         Thread.sleep( 2000L );
         exec.close();
         
@@ -78,7 +78,7 @@ public class PacketSchedulerTest {
     }
     
     
-    private static final class LongSource implements PlayControl, Closeable {
+    private static final class LongSource implements SyncClockControl, Closeable {
 
         private final PlayController         mPlayCont;
         private final StreamHandle           mStream;
@@ -105,7 +105,7 @@ public class PacketSchedulerTest {
             mPool = new HardPool<LongPacket>( 16 );
             mLock = new ThreadLock();
             mSink = exec.openPipe( sink, mLock, 4 );
-            mPlayCont.caster().addListener( this );
+            mPlayCont.clock().addListener( this );
 
             Thread thread = new Thread() {
                 public void run() {
@@ -167,15 +167,15 @@ public class PacketSchedulerTest {
 
         
         @Override
-        public void playStart( long execMicros ) {}
+        public void clockStart( long execMicros ) {}
 
         
         @Override
-        public void playStop( long execMicros ) {}
+        public void clockStop( long execMicros ) {}
 
         
         @Override
-        public void seek( long execMicros, long gotoMicros ) {
+        public void clockSeek( long execMicros, long gotoMicros ) {
             System.out.println( "SEEK" );
             synchronized( mLock ) {
                 mNeedSeek = true;
@@ -186,7 +186,7 @@ public class PacketSchedulerTest {
        
         
         @Override
-        public void setRate( long execMicros, double rate ) {}
+        public void clockRate( long execMicros, Frac rate ) {}
         
     }
     

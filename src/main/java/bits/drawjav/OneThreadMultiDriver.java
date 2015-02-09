@@ -53,7 +53,7 @@ public class OneThreadMultiDriver implements StreamDriver {
         mScheduler = optSyncer != null ? optSyncer : new PacketScheduler( playCont );
 
         mPlayHandler = new PlayHandler();
-        mPlayCont.caster().addListener( mPlayHandler );
+        mPlayCont.clock().addListener( mPlayHandler );
 
         mThread = new Thread( OneThreadMultiDriver.class.getSimpleName() ) {
             public void run() {
@@ -252,13 +252,13 @@ public class OneThreadMultiDriver implements StreamDriver {
 
 
 
-    private final class PlayHandler implements PlayControl {
+    private final class PlayHandler implements SyncClockControl {
         
-        public void playStart( long execMicros ) {}
+        public void clockStart( long execMicros ) {}
 
-        public void playStop( long execMicros ) {}
+        public void clockStop( long execMicros ) {}
 
-        public void seek( long execMicros, long seekMicros ) {
+        public void clockSeek( long execMicros, long seekMicros ) {
             synchronized( mLock ) {
                 int len = mDrivers.size();
                 for( int i = 0; i < len; i++ ) {
@@ -268,7 +268,7 @@ public class OneThreadMultiDriver implements StreamDriver {
             }
         }
 
-        public void setRate( long execMicros, double rate ) {}
+        public void clockRate( long execMicros, Frac rate ) {}
     }
     
     
@@ -309,20 +309,6 @@ public class OneThreadMultiDriver implements StreamDriver {
         }
 
     }
-
-
-    @Deprecated public static OneThreadMultiDriver newInstance( PlayController playCont ) {
-        return newInstance( playCont, null );
-    }
-
-
-    @Deprecated public static OneThreadMultiDriver newInstance( PlayController playCont, PacketScheduler scheduler ) {
-        if( scheduler == null ) {
-            scheduler = new PacketScheduler( playCont );
-        }
-        return new OneThreadMultiDriver( playCont, scheduler );
-    }
-
 
 
 }

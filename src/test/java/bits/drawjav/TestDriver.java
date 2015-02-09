@@ -34,8 +34,8 @@ public class TestDriver {
     public static void main( String[] args ) throws Exception {
 //        testRealtime();
 //        testSynced();
-        testMultiRealtime();
-//        testMultiSynced();
+//        testMultiRealtime();
+        testMultiSynced();
     }
     
     
@@ -59,20 +59,20 @@ public class TestDriver {
         //driver.openAudioStream(sh, sh.audioFormat(), player);
         new VideoFrame( null, tex );
 
-        playCont.control().seek( 0 );
+        playCont.control().clockSeek( 0 );
         driver.start();
-        playCont.control().playStart();
+        playCont.control().clockStart();
 
         try {
             Thread.sleep( 2000L );
             System.out.println( "STOP" );
-            playCont.control().playStop();
+            playCont.control().clockStop();
             Thread.sleep( 2000L );
             System.out.println("SEEK");
-            playCont.control().seek( 100000L );
+            playCont.control().clockSeek( 100000L );
             Thread.sleep( 2000L );
             System.out.println("PLAY");
-            playCont.control().playStart();
+            playCont.control().clockStart();
 //            
 //            while( true ) {
 //                Thread.sleep( 5000L );
@@ -114,14 +114,14 @@ public class TestDriver {
         try {
             Thread.sleep( 1000L );
             System.out.println("SEEK");
-            playCont.control().seek( 5000000L );
+            playCont.control().clockSeek( 5000000L );
             System.out.println("PLAY");
-            playCont.control().playStart();
+            playCont.control().clockStart();
             
             while( true ) {
                 Thread.sleep( 5000L );
                 System.out.println("SEEK");
-                playCont.control().seek( 3000000L );
+                playCont.control().clockSeek( 3000000L );
             }
         } catch( Exception ex ) {}
         
@@ -154,26 +154,26 @@ public class TestDriver {
         
         new VideoFrame( null, tex1, tex2 );
         
-        playCont.control().seek( 0L );
+        playCont.control().clockSeek( 0L );
         driver.start();
-        playCont.control().playStart();
+        playCont.control().clockStart();
         
         try {
             Thread.sleep( 1000L );
             System.out.println("SEEK");
-            playCont.control().seek( 0L );
+            playCont.control().clockSeek( 0L );
             System.out.println("PLAY");
-            playCont.control().playStart();
+            playCont.control().clockStart();
             
             while( true ) {
                 Thread.sleep( 5000L );
                 System.out.println("SEEK");
-                playCont.control().seek( 12000000L );
+                playCont.control().clockSeek( 12000000L );
                 Thread.sleep( 2000L );
-                playCont.control().playStop();
+                playCont.control().clockStop();
                 System.out.println( "PAUSE" );
                 Thread.sleep( 2000L );
-                playCont.control().playStart();
+                playCont.control().clockStart();
                 System.out.println( "PLAY" );
             }
         } catch(Exception ignore) {}
@@ -209,9 +209,9 @@ public class TestDriver {
         
         new VideoFrame( update, tex1, tex2 );
         
-        playCont.control().seek( 0L );
+        playCont.control().clockSeek( 0L );
         driver.start();
-        playCont.control().playStart();
+        playCont.control().clockStart();
         
     }
 
@@ -280,8 +280,6 @@ public class TestDriver {
                 s.end();
             }
         }
-
-        public void displayChanged( GLAutoDrawable arg0, boolean arg1, boolean arg2 ) {}
 
         public void init( GLAutoDrawable arg0 ) {}
 

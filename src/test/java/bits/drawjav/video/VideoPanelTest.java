@@ -11,6 +11,7 @@ import javax.swing.JFrame;
 
 import bits.drawjav.*;
 import bits.jav.Jav;
+import bits.microtime.Frac;
 import bits.microtime.PlayController;
 
 
@@ -47,10 +48,10 @@ public class VideoPanelTest {
         driver.openVideoStream( null, decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ), null, panel );
 //                                new PictureFormat( -1, -1, Jav.AV_PIX_FMT_BGRA, new bits.jav.util.Rational( 1, 1 ) ), panel );
 
-        playCont.control().setRate( 1.0 );
-        playCont.control().seek( 100000L );
+        playCont.control().clockRate( new Frac( 1, 1 ) );
+        playCont.control().clockSeek( 100000L );
         driver.start();
-        playCont.control().playStart();
+        playCont.control().clockStart();
         
 //        new DumbDriver( decoder, panel );
     }

@@ -61,15 +61,15 @@ public class TestAudioPlayer {
         final AudioLinePlayer liner   = new AudioLinePlayer( dstFormat, play, 1024 * 512 );
         final AudioResamplerPipe pipe = new AudioResamplerPipe( liner, dstFormat, alloc  );
 
-        play.control().playStart();
+        play.control().clockStart();
         
         new Thread() {
             public void run() {
                 try {
                     Thread.sleep( 3000L );
-                    play.control().playStop( System.currentTimeMillis() * 1000L + 100000L );
+                    play.control().clockStop( System.currentTimeMillis() * 1000L + 100000L );
                     Thread.sleep( 1000L );
-                    play.control().playStart( System.currentTimeMillis() * 1000L + 100000L );
+                    play.control().clockStart( System.currentTimeMillis() * 1000L + 100000L );
                 } catch( Exception ignored ) {}
             }
         }.start();

@@ -8,8 +8,6 @@ package bits.drawjav;
 
 import java.io.*;
 
-import bits.draw3d.DrawEnv;
-import bits.draw3d.DrawNodeAdapter;
 import bits.drawjav.audio.AudioFormat;
 import bits.drawjav.audio.AudioPacket;
 import bits.drawjav.video.PictureFormat;
@@ -33,7 +31,7 @@ public class SyncedDriver implements StreamDriver, Ticker {
         mPlayCont    = playCont;
         mDriver      = new PassiveDriver( source );
         mPlayHandler = new PlayHandler();
-        playCont.caster().addListener( mPlayHandler );
+        playCont.clock().addListener( mPlayHandler );
     }
     
     
@@ -97,7 +95,7 @@ public class SyncedDriver implements StreamDriver, Ticker {
     
     public void close() throws IOException {
         mDriver.close();
-        mPlayCont.caster().removeListener( mPlayHandler );
+        mPlayCont.clock().removeListener( mPlayHandler );
     }
     
     
@@ -127,17 +125,17 @@ public class SyncedDriver implements StreamDriver, Ticker {
     }
 
     
-    private final class PlayHandler implements PlayControl {
+    private final class PlayHandler implements SyncClockControl {
 
-        public void playStart( long execMicros ) {}
+        public void clockStart( long execMicros ) {}
 
-        public void playStop( long execMicros ) {}
+        public void clockStop( long execMicros ) {}
 
-        public void seek( long execMicros, long seekMicros ) {
+        public void clockSeek( long execMicros, long seekMicros ) {
             mDriver.seek( seekMicros );
         }
 
-        public void setRate( long execMicros, double rate ) {}
+        public void clockRate( long execMicros, Frac rate ) {}
         
     }
     
