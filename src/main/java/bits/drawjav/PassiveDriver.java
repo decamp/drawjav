@@ -27,31 +27,31 @@ import bits.microtime.*;
  * @author decamp
  */
 public class PassiveDriver implements StreamDriver {
-    
+
     private static Logger sLog = Logger.getLogger( SyncedDriver.class.getName() );
-    
-    private final Source mSource;
+
+    private final PacketReader mReader;
     private final ManyToManyFormatter mSink = new ManyToManyFormatter();
-    
-    private boolean mClosed         = false;
-    private boolean mReadable       = true;
-    private boolean mEof            = false;
+
+    private boolean     mClosed     = false;
+    private boolean     mReadable   = true;
+    private boolean     mEof        = false;
     private IOException mErrorState = null;
-    
-    private boolean mNeedSeek      = false;
-    private long mSeekMicros       = Long.MIN_VALUE;
-    private long mSeekWarmupMicros = 500000L;
-    private boolean mNeedClear     = false;
-    private boolean mClearOnSeek   = true;
-    
+
+    private boolean mNeedSeek         = false;
+    private long    mSeekMicros       = Long.MIN_VALUE;
+    private long    mSeekWarmupMicros = 500000L;
+    private boolean mNeedClear        = false;
+    private boolean mClearOnSeek      = true;
+
     private Packet mNextPacket = null;
-    
-    
-    public PassiveDriver( Source source ) {
-        mSource = source;
+
+
+    public PassiveDriver( PacketReader reader ) {
+        mReader = reader;
     }
-    
-    
+
+
     /**
      * @return true iff this PassiveDriver MIGHT have more packets.
      *        If this PassiveDriver has reached the end of its source
@@ -60,14 +60,14 @@ public class PassiveDriver implements StreamDriver {
     public boolean hasNext() {
         return mReadable;
     }
-    
+
     /**
      * @return true iff this PassiveDriver has reached the end of its source.
      */
     public boolean eof() {
         return mEof;
     }
-    
+
     /**
      * @return true iff this PassiveDriver has somewhere to send data.
      */
@@ -130,7 +130,7 @@ public class PassiveDriver implements StreamDriver {
             mNeedClear = mClearOnSeek;
             
             try {
-                mSource.seek( mSeekMicros - mSeekWarmupMicros );
+                mReader.seek( mSeekMicros - mSeekWarmupMicros );
             } catch( IOException ex ) {
                 mErrorState = ex;
                 updateStatus();
@@ -142,7 +142,7 @@ public class PassiveDriver implements StreamDriver {
         }
         
         try {
-            Packet p = mSource.readNext();
+            Packet p = mReader.readNext();
             if( p == null ) {
                 return false;
             }
@@ -350,8 +350,8 @@ public class PassiveDriver implements StreamDriver {
     public void start() {}
     
     
-    public Source source() {
-        return mSource;
+    public PacketReader source() {
+        return mReader;
     }
     
     
@@ -360,7 +360,7 @@ public class PassiveDriver implements StreamDriver {
     }
 
     @Override
-    public synchronized StreamHandle openVideoStream( Source ignored,
+    public synchronized StreamHandle openVideoStream( PacketReader ignored,
                                                       StreamHandle stream,
                                                       PictureFormat destFormat,
                                                       Sink<? super VideoPacket> sink )
@@ -369,7 +369,7 @@ public class PassiveDriver implements StreamDriver {
         if( mClosed ) {
             throw new ClosedChannelException();
         }
-        if( ignored != null && !ignored.equals( mSource ) ) {
+        if( ignored != null && !ignored.equals( mReader ) ) {
             throw new IllegalArgumentException( "Unrecognized source." );
         }
         
@@ -381,7 +381,7 @@ public class PassiveDriver implements StreamDriver {
         
         if( !active ) {
             try {
-                mSource.openStream( stream );
+                mReader.openStream( stream );
             } catch( IOException ex ) {
                 mSink.closeStream( ret );
                 throw ex;
@@ -394,7 +394,7 @@ public class PassiveDriver implements StreamDriver {
     
 
     @Override
-    public synchronized StreamHandle openAudioStream( Source ignored,
+    public synchronized StreamHandle openAudioStream( PacketReader ignored,
                                                       StreamHandle stream,
                                                       AudioFormat format,
                                                       Sink<? super AudioPacket> sink )
@@ -403,7 +403,7 @@ public class PassiveDriver implements StreamDriver {
         if( mClosed ) {
             throw new ClosedChannelException();
         }
-        if( ignored != null && !ignored.equals( mSource ) ) {
+        if( ignored != null && !ignored.equals( mReader ) ) {
             throw new IllegalArgumentException( "Unrecognized source." );
         }
         
@@ -415,7 +415,7 @@ public class PassiveDriver implements StreamDriver {
         
         if( !active ) {
             try {
-                mSource.openStream( stream );
+                mReader.openStream( stream );
             } catch( IOException ex ) {
                 mSink.closeStream( ret );
                 throw ex;
@@ -438,7 +438,7 @@ public class PassiveDriver implements StreamDriver {
             if( sourceStream != null && !mSink.hasSinkFor( sourceStream ) ) {
                 if( !mSink.hasSinkFor( sourceStream ) ) {
                     try {
-                        mSource.closeStream( sourceStream );
+                        mReader.closeStream( sourceStream );
                     } catch( IOException ex ) {
                         warn( "Failed to close source stream.", ex );
                     }
@@ -475,7 +475,7 @@ public class PassiveDriver implements StreamDriver {
         
         if( closeSource ) {
             try {
-                mSource.close();
+                mReader.close();
             } catch( IOException ex ) {
                 warn( "Failed to close av source.", ex );
             }

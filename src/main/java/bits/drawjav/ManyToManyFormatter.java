@@ -57,7 +57,7 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
 
 
 
-    public StreamHandle openVideoStream( Source ignored,
+    public StreamHandle openVideoStream( PacketReader ignored,
                                          StreamHandle stream,
                                          PictureFormat destFormat,
                                          Sink<? super VideoPacket> sink )
@@ -91,7 +91,7 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
     }
     
     
-    public StreamHandle openAudioStream( Source ignored,
+    public StreamHandle openAudioStream( PacketReader ignored,
                                          StreamHandle source,
                                          AudioFormat destFormat,
                                          Sink<? super AudioPacket> sink )

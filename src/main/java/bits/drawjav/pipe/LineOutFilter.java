@@ -4,23 +4,23 @@
  * http://opensource.org/licenses/BSD-2-Clause
  */
 
-package bits.drawjav.audio;
+package bits.drawjav.pipe;
 
-import bits.drawjav.*;
+import bits.drawjav.audio.AudioFormat;
+import bits.drawjav.audio.AudioPacket;
 import bits.jav.Jav;
 import bits.microtime.*;
 
+import javax.sound.sampled.*;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-
-import javax.sound.sampled.*;
 
 
 /**
  * @author Philip DeCamp
  */
-public class AudioLinePlayer implements Sink<AudioPacket>, SyncClockControl {
+public class LineOutFilter implements Filter, SinkPad<AudioPacket>, SyncClockControl {
 
     public static final  int   DEFAULT_BUFFER_LENGTH = 1024 * 256 * 2;
     private static final int   LINE_BUFFER_SIZE      = 1024 * 256 * 2;
@@ -33,33 +33,32 @@ public class AudioLinePlayer implements Sink<AudioPacket>, SyncClockControl {
     private final PlayController mPlayCont;
     private final PlayClock      mClock;
 
-    private final int    mChannels;
-    private final long   mFrequency;
-    private final int    mBytesPerFrame;
+    private final int  mChannels;
+    private final long mFrequency;
+    private final int  mBytesPerFrame;
 
     private final byte[] mBuf;
-    private int mBufIndex;
-    private int mBufSize;
+    private       int    mBufIndex;
+    private       int    mBufSize;
+
+    private volatile boolean mClosed       = false;
+    private volatile boolean mStateChanged = true;
 
 
-    private boolean mClosed       = false;
-    private boolean mStateChanged = true;
-
-
-    public AudioLinePlayer( AudioFormat format ) throws IOException {
+    public LineOutFilter( AudioFormat format ) throws IOException {
         this( format, null, DEFAULT_BUFFER_LENGTH );
     }
 
 
-    public AudioLinePlayer( AudioFormat format, PlayController optPlayCont ) throws IOException {
+    public LineOutFilter( AudioFormat format, PlayController optPlayCont ) throws IOException {
         this( format, optPlayCont, DEFAULT_BUFFER_LENGTH );
     }
 
 
-    public AudioLinePlayer( AudioFormat format, PlayController optPlayCont, int bufferBytes ) throws IOException {
-        mChannels      = format.channels();
-        mFormat        = new javax.sound.sampled.AudioFormat( format.sampleRate(), 16, mChannels, true, true );
-        mFrequency     = format.sampleRate();
+    public LineOutFilter( AudioFormat format, PlayController optPlayCont, int bufferBytes ) throws IOException {
+        mChannels = format.channels();
+        mFormat = new javax.sound.sampled.AudioFormat( format.sampleRate(), 16, mChannels, true, true );
+        mFrequency = format.sampleRate();
         mBytesPerFrame = mChannels * 2;
 
         bufferBytes -= bufferBytes % mBytesPerFrame;
@@ -90,7 +89,7 @@ public class AudioLinePlayer implements Sink<AudioPacket>, SyncClockControl {
 
         mPlayCont.clock().addListener( this );
 
-        new Thread( AudioLinePlayer.class.getName() ) {
+        new Thread( LineOutFilter.class.getName() ) {
             public void run() {
                 playLoop();
             }
@@ -120,11 +119,11 @@ public class AudioLinePlayer implements Sink<AudioPacket>, SyncClockControl {
             return 0;
         }
 
-        int writeFrames;
+        int outFrames;
 
         while( true ) {
-            writeFrames = ( mBuf.length - mBufSize ) / mBytesPerFrame;
-            if( writeFrames > 0 ) {
+            outFrames = ( mBuf.length - mBufSize ) / mBytesPerFrame;
+            if( outFrames > 0 ) {
                 break;
             }
             try {
@@ -134,12 +133,11 @@ public class AudioLinePlayer implements Sink<AudioPacket>, SyncClockControl {
             }
         }
 
-        writeFrames = Math.min( writeFrames, frames / mChannels );
-        final int samplesRead = writeFrames * mChannels;
+        final int ret = outFrames = Math.min( outFrames, frames / mChannels );
 
-        while( writeFrames > 0 ) {
+        while( outFrames > 0 ) {
             int pos   = (mBufIndex + mBufSize) % mBuf.length;
-            int samps = mChannels * Math.min( writeFrames, ( mBuf.length - pos ) / mBytesPerFrame );
+            int samps = mChannels * Math.min( outFrames, ( mBuf.length - pos ) / mBytesPerFrame );
 
             for( int i = 0; i < samps; i++ ) {
                 int s = (int)( buf[offset + i] * MAX_VALUE );
@@ -147,25 +145,25 @@ public class AudioLinePlayer implements Sink<AudioPacket>, SyncClockControl {
                 mBuf[pos + 2*i + 1] = (byte)(  s       & 0xFF );
             }
 
-            mBufSize    += samps * 2;
-            offset      += samps;
-            writeFrames -= samps / mChannels;
+            mBufSize  += samps * 2;
+            offset    += samps;
+            outFrames -= samps / mChannels;
         }
 
         notifyAll();
-        return samplesRead;
+        return ret;
     }
 
 
-    public synchronized int consumeAudio( FloatBuffer buf, int offset, int frames ) throws InterruptedIOException {
+    public synchronized int consumeAudio( FloatBuffer src, int offset, int frames ) throws InterruptedIOException {
         if( frames <= 0 ) {
             return 0;
         }
 
-        int writeFrames;
+        int outFrames;
         while( true ) {
-            writeFrames = ( mBuf.length - mBufSize ) / mBytesPerFrame;
-            if( writeFrames > 0 ) {
+            outFrames = ( mBuf.length - mBufSize ) / mBytesPerFrame;
+            if( outFrames > 0 ) {
                 break;
             }
             try {
@@ -175,26 +173,25 @@ public class AudioLinePlayer implements Sink<AudioPacket>, SyncClockControl {
             }
         }
 
-        writeFrames = Math.min( writeFrames, frames );
-        final int samplesRead = writeFrames * mChannels;
+        final int ret = outFrames = Math.min( outFrames, frames );
 
-        while( writeFrames > 0 ) {
+        while( outFrames > 0 ) {
             int pos   = ( mBufIndex + mBufSize ) % mBuf.length;
-            int samps = mChannels * Math.min( writeFrames, ( mBuf.length - pos ) / mBytesPerFrame );
+            int samps = mChannels * Math.min( outFrames, ( mBuf.length - pos ) / mBytesPerFrame );
 
             for( int i = 0; i < samps; i++ ) {
-                int s = (int)( buf.get( i + offset ) * MAX_VALUE );
+                int s = (int)( src.get( i + offset ) * MAX_VALUE );
                 mBuf[pos + 2*i  ] = (byte)( (s >> 8) & 0xFF );
                 mBuf[pos + 2*i+1] = (byte)(  s       & 0xFF );
             }
 
-            mBufSize    += samps * 2;
-            offset      += samps;
-            writeFrames -= samps / mChannels;
+            mBufSize  += samps * 2;
+            offset    += samps;
+            outFrames -= samps / mChannels;
         }
 
         notifyAll();
-        return samplesRead;
+        return ret;
     }
 
 
@@ -213,88 +210,123 @@ public class AudioLinePlayer implements Sink<AudioPacket>, SyncClockControl {
     }
 
 
+    //// Channel Methods /////
 
-
-    //// Sink Methods /////
-
-    public void consume( AudioPacket packet ) throws IOException {
-        AudioFormat format = packet.audioFormat();
-        if( format == null ) {
-            return;
-        }
-
-        int chans = format.channels();
-        if( chans != mChannels ) {
-            return;
-        }
-
-        switch( format.sampleFormat() ) {
-        case Jav.AV_SAMPLE_FMT_FLT:
-            break;
-        case Jav.AV_SAMPLE_FMT_FLTP:
-            if( chans ==  1 ) {
-                break;
-            } else {
-                return;
-            }
-        default:
-            return;
-        }
-
-        ByteBuffer bb = packet.javaBufElem( 0 );
-        if( bb == null ) {
-            return;
-        }
-
-        FloatBuffer fb = bb.asFloatBuffer();
-        consumeAudio( fb, fb.position(), packet.nbSamples() );
-    }
-
-
-    public void clear() {
-        clearAudio();
-    }
-
-
-    public void close() {
-        close( mPlayCont.clock().masterMicros() );
-    }
-
-
-    public synchronized void close( long execTimeMicros ) {
+    @Override
+    public synchronized void close() {
         mClosed       = true;
         mStateChanged = true;
         notifyAll();
     }
 
-
+    @Override
     public boolean isOpen() {
         return !mClosed;
     }
 
 
 
+    //// Filter Methods /////
+
+    @Override
+    public int sinkPadNum() {
+        return 1;
+    }
+
+    @Override
+    public SinkPad sinkPad( int idx ) {
+        return this;
+    }
+
+    @Override
+    public int sourcePadNum() {
+        return 0;
+    }
+
+    @Override
+    public SourcePad sourcePad( int idx ) {
+        return null;
+    }
+
+    @Override
+    public void clear() {
+        clearAudio();
+    }
+
+
+
+    //// SinkPad Methods /////
+
+    @Override
+    public boolean blocks() {
+        return true;
+    }
+
+    @Override
+    public int available() {
+        return mLine.available() > 0 ? 1 : 0;
+    }
+
+    @Override
+    public FilterErr offer( AudioPacket packet, long blockMicros ) throws IOException {
+        AudioFormat format = packet.audioFormat();
+        if( format == null ) {
+            return FilterErr.ERROR;
+        }
+
+        int chans = format.channels();
+        int sampFormat = format.sampleFormat();
+
+        if( chans != mChannels || mChannels == 1 && sampFormat == Jav.AV_SAMPLE_FMT_FLTP ) {
+            return FilterErr.ERROR;
+        }
+
+        if( sampFormat != Jav.AV_SAMPLE_FMT_FLT && sampFormat != Jav.AV_SAMPLE_FMT_FLTP ) {
+            return FilterErr.ERROR;
+        }
+
+        ByteBuffer bb = packet.javaBufElem( 0 );
+        if( bb == null ) {
+            return FilterErr.ERROR;
+        }
+
+        FloatBuffer fb = bb.asFloatBuffer();
+        int numFrames = fb.remaining() / mChannels;
+        while( numFrames > 0 ) {
+            int n = consumeAudio( fb, fb.position(), numFrames );
+            if( n < 0 ) {
+                return FilterErr.ERROR;
+            }
+            numFrames -= n;
+            fb.position( fb.position() + n );
+        }
+
+        return FilterErr.DONE;
+    }
+
+
 
     ///// Clock Control Methods //////
 
+    @Override
     public synchronized void clockStart( long execTimeMicros ) {
         mStateChanged = true;
         notifyAll();
     }
 
-
+    @Override
     public synchronized void clockStop( long execTimeMicros ) {
         mStateChanged = true;
         notifyAll();
     }
 
-
+    @Override
     public synchronized void clockSeek( long execTimeMicros, long gotoTimeMicros ) {
         mStateChanged = true;
         notifyAll();
     }
 
-
+    @Override
     public synchronized void clockRate( long execTimeMicros, Frac rate ) {
         mStateChanged = true;
         notifyAll();
@@ -380,7 +412,7 @@ STATE_CHANGE:
 
 
     private int writeToLine() {
-        int startBytes = ( Math.min( mLine.available(), mBufSize ) / mBytesPerFrame ) * mBytesPerFrame;
+        int startBytes = ( Math.min( mLine.available(), mBufSize ) / mBytesPerFrame) * mBytesPerFrame;
         int bytesLeft  = startBytes;
 
         while( bytesLeft > 0 ) {

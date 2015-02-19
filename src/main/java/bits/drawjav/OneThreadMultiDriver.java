@@ -33,7 +33,7 @@ public class OneThreadMultiDriver implements StreamDriver {
     private final PacketScheduler mScheduler;
     private final PlayHandler     mPlayHandler;
 
-    private final Map<Source, Node>       mSourceMap = new HashMap<Source, Node>();
+    private final Map<PacketReader, Node> mSourceMap = new HashMap<PacketReader, Node>();
     private final Map<StreamHandle, Node> mStreamMap = new HashMap<StreamHandle, Node>();
     private final PrioHeap<Node>          mDrivers   = new PrioHeap<Node>();
 
@@ -43,7 +43,7 @@ public class OneThreadMultiDriver implements StreamDriver {
     private int  mVideoQueueCap    = 8;
     private int  mAudioQueueCap    = 16;
 
-    private boolean mClosing = false;
+    private boolean mClosing       = false;
     private boolean mCloseComplete = false;
 
 
@@ -99,7 +99,7 @@ public class OneThreadMultiDriver implements StreamDriver {
     }
 
 
-    public StreamHandle openVideoStream( Source source,
+    public StreamHandle openVideoStream( PacketReader source,
                                          StreamHandle sourceStream,
                                          PictureFormat destFormat,
                                          Sink<? super VideoPacket> sink )
@@ -109,7 +109,7 @@ public class OneThreadMultiDriver implements StreamDriver {
     }
                               
 
-    public StreamHandle openAudioStream( Source source,
+    public StreamHandle openAudioStream( PacketReader source,
                                          StreamHandle sourceStream,
                                          AudioFormat destFormat,
                                          Sink<? super AudioPacket> sink )
@@ -120,7 +120,7 @@ public class OneThreadMultiDriver implements StreamDriver {
 
 
     private StreamHandle openStream( boolean isVideo,
-                                     Source source,
+                                     PacketReader source,
                                      StreamHandle stream,
                                      PictureFormat pictureFormat,
                                      AudioFormat audioFormat,
@@ -274,10 +274,10 @@ public class OneThreadMultiDriver implements StreamDriver {
     
     private static final class Node extends HeapNode implements Comparable<Node> {
 
-        final Source mSource;
+        final PacketReader  mSource;
         final PassiveDriver mDriver;
 
-        Node( Source source, PassiveDriver driver  ) {
+        Node( PacketReader source, PassiveDriver driver ) {
             mSource = source;
             mDriver = driver;
         }

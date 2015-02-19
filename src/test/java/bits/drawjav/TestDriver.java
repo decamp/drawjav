@@ -44,7 +44,7 @@ public class TestDriver {
         File file = TEST_FILE;
         
         final PlayController playCont = PlayController.createAuto();
-        final FormatDecoder decoder   = FormatDecoder.openFile( file, true, 0L );
+        final FormatReader decoder   = FormatReader.openFile( file, true, 0L, null );
         final RealtimeDriver driver   = new RealtimeDriver( playCont, decoder, null );
         final VideoTexture tex        = new VideoTexture();
         
@@ -87,7 +87,7 @@ public class TestDriver {
         File file = TEST_FILE;
         
         final PlayController playCont = PlayController.createStepping( 0, 1000000 / 30 );
-        final FormatDecoder decoder   = FormatDecoder.openFile( file, true, 0L );
+        final FormatReader decoder   = FormatReader.openFile( file, true, 0L, null );
         final SyncedDriver driver     = new SyncedDriver( playCont, decoder ); 
         final VideoTexture tex        = new VideoTexture();
         
@@ -137,8 +137,8 @@ public class TestDriver {
         System.out.println( file1.getAbsolutePath() );
 
         final PlayController playCont  = PlayController.createAuto();
-        final FormatDecoder decoder1   = FormatDecoder.openFile( file1, true, 0L );
-        final FormatDecoder decoder2   = FormatDecoder.openFile( file2, true, 0L );
+        final FormatReader decoder1   = FormatReader.openFile( file1, true, 0L, null );
+        final FormatReader decoder2   = FormatReader.openFile( file2, true, 0L, null );
         final OneThreadMultiDriver driver = new OneThreadMultiDriver( playCont, null );
         final VideoTexture tex1        = new VideoTexture();
         final VideoTexture tex2        = new VideoTexture();
@@ -185,8 +185,8 @@ public class TestDriver {
         File file2 = new File( "../../ext/video.ts" );
         
         final PlayController playCont  = PlayController.createStepping( 0L, 1000000L / 30L );
-        final FormatDecoder decoder1   = FormatDecoder.openFile( file1, true, 0L );
-        final FormatDecoder decoder2   = FormatDecoder.openFile( file2, true, 0L );
+        final FormatReader decoder1   = FormatReader.openFile( file1, true, 0L, null );
+        final FormatReader decoder2   = FormatReader.openFile( file2, true, 0L, null );
         final MultiSyncedDriver driver = new MultiSyncedDriver( playCont );
         final VideoTexture tex1        = new VideoTexture();
         final VideoTexture tex2        = new VideoTexture();

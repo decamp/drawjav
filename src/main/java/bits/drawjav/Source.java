@@ -1,28 +1,23 @@
-/*
- * Copyright (c) 2014. Massachusetts Institute of Technology
- * Released under the BSD 2-Clause License
- * http://opensource.org/licenses/BSD-2-Clause
- */
-
-package bits.drawjav;
-
-import java.io.IOException;
-import java.nio.channels.Channel;
-import java.util.*;
-
-/**
- * @author decamp
- */
-public interface Source extends Channel {
-    public int streamCount();
-    public StreamHandle stream( int index );
-    public List<StreamHandle> streams();
-
-    public void openStream( StreamHandle stream ) throws IOException;
-    public void closeStream( StreamHandle stream ) throws IOException;
-    public void seek( long micros ) throws IOException;
-    public Packet readNext() throws IOException;
-    
-    public void close() throws IOException;
-    public boolean isOpen();
-}
+//package bits.drawjav;
+//
+//import bits.util.concurrent.ThreadLock;
+//
+//import java.io.IOException;
+//import java.nio.channels.Channel;
+//import java.util.List;
+//
+//
+///**
+// * @author Philip DeCamp
+// */
+//public interface Source<T> extends Channel {
+//    public static final int POLL_TIMEOUT = -2;
+//    public static final int POLL_EOI     = -1;
+//    public static final int POLL_NOTHING =  0;
+//    public static final int POLL_PACKET  =  1;
+//
+//    public int available();
+//    public int poll( List<? super T> out, long blockMicros ) throws IOException;
+//    public boolean canBlock();
+//    public ThreadLock lock();
+//}

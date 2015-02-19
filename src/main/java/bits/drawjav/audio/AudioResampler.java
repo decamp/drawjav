@@ -6,413 +6,276 @@
 
 package bits.drawjav.audio;
 
-import bits.jav.util.Rational;
+import java.io.*;
+import java.util.logging.Logger;
+
+import bits.drawjav.*;
+import bits.jav.Jav;
+import bits.jav.JavException;
+import bits.jav.swresample.SwrContext;
+import bits.jav.util.*;
 
 
 /**
-* Based on audio resampler used in Vorbis Tools. <br/>
-* Supports arbitrary sample-rate conversion. <br/>
-* Uses kaiser-windowed sinc filter.
-*
-* This file is kept around because it's nice to have a pure java tool around.
-* However, it's recommended you use swsresample instead.
-*/
-public class AudioResampler {
+ * TODO: Add support for conversion flags.
+ *
+ * @author decamp
+ */
+public class AudioResampler implements PacketConverter<AudioPacket> {
 
-    private final int     mChannels;
-    private final int     mInFreq;
-    private final int     mOutFreq;
-    private final int     mTaps;
-    private final float[] mTable;
-    private final float[] mTail;
-    private final Pool[]  mPools;
+    private static final Logger sLog = Logger.getLogger( AudioResampler.class.getName() );
 
-    /**
-     * @param inFreq        Input frequency of resampler. Must be greater than zero.
-     * @param outFreq       Output frequency of resampler. Must be greater than zero.
-     * @param numChannels   Number of channels of audio signal. All audio sample arres are interleaved. Must be greater than zero.
-     **/
-    public AudioResampler( int inFreq, int outFreq, int numChannels ) {
-        this( inFreq, outFreq, numChannels, 1.0, 0.80, 45, 16.0 );
-    }
+    private final AudioAllocator mAlloc;
 
-    /**
-     * @param inFreq       Input frequency of resampler. Must be greater than zero.
-     * @param outFreq      Output frequency of resampler. Must be greater than zero.
-     * @param numChannels  Number of channels of audio signal. All audio sample arres are interleaved. Must be greater than zero.
-     * @param gain         Amount by which to amplify audio signal.  Gain is multiplier, not decibels. Default is 1.0.
-     * @param cutoff       Not entirely sure. {@code  0.01 < cutoff <= 1.0 }  Default is 0.80.
-     * @param taps         Not entirely sure. {@code  2 < taps <= 1000 } Default is 45.
-     * @param beta         Not entirely sure. {@code  beta > 16.0 } Default is 16.0.
-     */
-    public AudioResampler( int inFreq,
-                           int outFreq,
-                           int numChannels,
-                           double gain,
-                           double cutoff,
-                           int taps,
-                           double beta )
-    {
-        assert numChannels > 0;
-        assert outFreq > 0;
-        assert inFreq > 0;
-        assert cutoff >= 0.01 && cutoff <= 1.0;
-        assert taps > 2 && taps <= 1000;
-        assert beta > 2.0;
+    private AudioFormat mSourceFormat        = null;
+    private AudioFormat mPredictSourceFormat = null;
+    private AudioFormat mRequestedFormat     = null;
+    private AudioFormat mDestFormat          = null;
 
-        int factor = Rational.gcd( inFreq, outFreq );
-        mChannels  = numChannels;
-        mInFreq    = inFreq / factor;
-        mOutFreq   = outFreq / factor;
-        mTaps      = taps;
-        mTable     = new float[mOutFreq * mTaps];
-        mTail      = new float[mTaps];
+    private int mConversionFlags = 0;
 
-        if( mOutFreq < mInFreq ) {
-            // push the cutoff frequency down to the output frequency
-            cutoff = cutoff * mOutFreq / mInFreq;
+    private boolean mNeedsInit = false;
 
-            // compensate for the sharper roll-off requirement
-            // (this method I found empirically, and don't understand, but it's fast)
-            beta = beta * mOutFreq * mOutFreq / ( mInFreq * mInFreq );
-        }
+    // Values that get set on init.
+    private SwrContext mConverter = null;
+    private Rational   mRateRatio = null;
 
-        filtSinc( mTable, mOutFreq, cutoff, gain, mTaps );
-        winKaiser( mTable, beta, mTaps );
+    // Get updated each source packet.
+    private StreamHandle mStream       = null;
+    private long         mStreamMicros = Jav.AV_NOPTS_VALUE;
+    private AudioTimer   mTimer        = new AudioTimer();
+
+    private final long[] mWork = new long[2];
+
+    private boolean mDisposed = false;
 
 
-
-        mPools = new Pool[numChannels];
-        for( int i = 0; i < numChannels; i++ ) {
-            mPools[i] = new Pool(mTaps);
-        }
-    }
-
-
-
-    /**
-     * The input frequency of the resampler.
-     * This may not be the same as provided to the constructor,
-     * but the ratio between input and output will be the same.
-     *
-     * @return input frequency of resampler
-     */
-    public int inputFrequency() {
-        return mInFreq;
-    }
-
-    /**
-     * The output frequency of the resampler.
-     * This may not be the same as provided to the constructor,
-     * but the ratio between the input and output frequencies will be the same.
-     *
-     * @return output frequency of resampler
-     */
-    public int outputFrequency() {
-        return mOutFreq;
-    }
-
-    /**
-     * @return Number of channels of audio signal.
-     */
-    public int channels() {
-        return mChannels;
-    }
-
-    /**
-     * @param inFrames  Number of possible input frames.
-     * @return the recommended size of output buffer to use for receiving output.
-     */
-    public int recommendOutBufferSize( int inFrames ) {
-        //The 16 * mChannels provides a bit of leeway.
-        return ( inFrames * mOutFreq / mInFreq + 16 ) * mChannels;
-    }
-
-    /**
-     * @return the recommended size of output buffer to use for draining samples.
-     */
-    public int recommendDrainBufferSize() {
-        return recommendOutBufferSize( mChannels * (mTaps / 2) );
-    }
-
-    /**
-     * @param outFrames Size of an output buffer in frames.
-     * @return the maximum number of input samples that can be processed and stored in a buffer of size "outFrames".
-     */
-    public int recommendInBufferSize( int outFrames ) {
-        int n = ( outFrames - 16 * mChannels ) * mInFreq / mOutFreq;
-        return Math.max( 0, n );
-    }
-
-    /**
-     * Resamples some number of input frames.
-     *
-     * @param in      Input array containing samples (interleaved if multiple channels).
-     * @param inOff   Offset into input array
-     * @param out     Output buffer
-     * @param outOff  Offset into output array
-     * @param len     Number of input FRAMES to convert, or SAMPLES PER CHANNEL. NOT number of array VALUES.
-     *
-     * @return the number of output frames generated (interleaved if multiple channels).
-     */
-    public int process( float[] in, int inOff, float[] out, int outOff, int len ) {
-        int ret = 0;
-
-        for( int i = 0; i < mChannels; i++ ) {
-            ret = push( mPools[i],
-                        in,
-                        inOff + i,
-                        mChannels,
-                        out,
-                        outOff + i,
-                        mChannels,
-                        len );
-        }
-
-        return ret;
-    }
-
-    /**
-     * Drains all buffered data into an output buffer. Multichannel data will be interleaved.
-     *
-     * @param out     Output buffer.
-     * @param outOff  Offset into output buffer.
-     * @return the number of samples placed into the output buffer.
-     */
-    public int drain( float[] out, int outOff ) {
-        int ret = 0;
-        for( int i = 0; i < mChannels; i++ ) {
-            ret += push( mPools[i], mTail, 0, 1, out, outOff + i, mChannels, mTaps / 2 - 1 );
-            mPools[i].reset();
-        }
-
-        return ret;
-    }
-
-    /**
-     * Clears state.
-     */
-    public void clear() {
-        for(int i = 0; i < mPools.length; i++) {
-            mPools[i].reset();
-        }
-    }
-
-
-
-    private int push( Pool pool,
-                      float[] src,
-                      int srcOff,
-                      int srcStep,
-                      float[] dst,
-                      int dstOff,
-                      int dstStep,
-                      int srcLen )
-    {
-//      assert(pool->mFill);
-//      assert(dest);
-//      assert(source);
-//      assert(pool->mFill != -1);
-
-        final int destBaseOff = dstOff;
-        final int poolEnd     = mTaps;
-
-        int poolHead = pool.mFill;
-        int newPool  = 0;
-
-        //Fill pool.
-        while( poolHead < poolEnd && srcLen > 0 ) {
-            pool.mBuf[poolHead++] = src[srcOff];
-            srcOff += srcStep;
-            srcLen--;
-        }
-
-        if( srcLen <= 0 ) {
-            return 0;
-        }
-
-        final int sourceBaseOff = srcOff;
-        final int endPoint      = srcOff + srcLen * srcStep;
-
-        while( srcOff < endPoint ) {
-            dst[dstOff] = sum( mTable,
-                               pool.mOffset * mTaps,
-                               mTaps,
-                               src,
-                               srcOff,
-                               sourceBaseOff,
-                               pool.mBuf,
-                               poolEnd,
-                               srcStep );
-
-            dstOff += dstStep;
-            pool.mOffset += mInFreq;
-
-            while( pool.mOffset >= mOutFreq ) {
-                pool.mOffset -= mOutFreq;
-                srcOff += srcStep;
-            }
-        }
-
-        // Pretend that source has that underrun data we're not going to get.
-        srcLen += ( srcOff - endPoint ) / srcStep;
-
-        // If we didn't get enough to completely replace the pool, then shift things about a bit.
-        int refill;
-        if( srcLen < mTaps ) {
-            refill = srcLen;
-            while( refill < poolEnd ) {
-                pool.mBuf[newPool++] = pool.mBuf[refill++];
-            }
-            refill = srcOff - srcLen * srcStep;
+    public AudioResampler( AudioAllocator optAlloc ) {
+        if( optAlloc == null ) {
+            mAlloc = new OneStreamAudioAllocator( 8, -1, 1024 * 4 );
         } else {
-            refill = srcOff - mTaps * srcStep;
+            mAlloc = optAlloc;
+            optAlloc.ref();
         }
-
-        // Pull in fresh pool data.
-        while( refill < endPoint ) {
-            pool.mBuf[newPool++] = src[refill];
-            refill += srcStep;
-        }
-
-        assert( newPool > 0 );
-        assert( newPool <= poolEnd );
-
-        pool.mFill = newPool;
-        return ( dstOff - destBaseOff ) / dstStep;
     }
 
 
-
-    private static float sum( float[] scale,
-                              int scaleOff,
-                              int count,
-                              float[] src,
-                              int srcOff,
-                              int triggerOff,
-                              float[] reset,
-                              int resetOff,
-                              int srcStep )
-    {
-        float total = 0.0f;
-
-        while( count-- > 0 ) {
-            total += src[srcOff] * scale[scaleOff];
-            if( srcOff == triggerOff ) {
-                src        = reset;
-                srcOff     = resetOff;
-                srcStep    = 1;
-                triggerOff = -100000;
-            }
-            srcOff -= srcStep;
-            scaleOff++;
-        }
-
-        return total;
+    public AudioFormat sourceFormat() {
+        return mSourceFormat != null ? mSourceFormat : mPredictSourceFormat;
     }
 
 
-    private static double iZero( double x ) {
-        int n = 0;
-        double u = 1.0;
-        double s = 1.0;
-        double t;
+    public void sourceFormat( AudioFormat format ) {
+        if( format == mPredictSourceFormat || format != null && format.equals( mPredictSourceFormat ) ) {
+            mPredictSourceFormat = format;
+            mSourceFormat = null;
+            return;
+        }
 
-        do {
-            n += 2;
-            t = x / n;
-            u *= t * t;
-            s += u;
-        } while( u > 1e-21 * s );
+        mPredictSourceFormat = format;
+        mSourceFormat = null;
+        mNeedsInit = true;
 
-        return s;
+        // Source format may affect destination format if requested format is partially defined.
+        updateDestFormat();
+    }
+
+    /**
+     * @return destination format requested by user. May be partially defined.
+     */
+    public AudioFormat requestedFormat() {
+        return mRequestedFormat;
+    }
+
+    /**
+     * @return computed destination format. May be different from {@code #requestedFormat()}.
+     */
+    public AudioFormat destFormat() {
+        return mDestFormat;
+    }
+
+    /**
+     * @param format Requested output format
+     */
+    public void destFormat( AudioFormat format ) {
+        // Assign format == mRequestedFormat either way.
+        // Better to use identical objects than merely equivalent objects.
+        if( format == mRequestedFormat || format != null && format.equals( mRequestedFormat ) ) {
+            mRequestedFormat = format;
+        } else {
+            mRequestedFormat = format;
+            updateDestFormat();
+        }
     }
 
 
-    private static void filtSinc( float[] dest, int step, double freq, double gain, int width ) {
-        int off = 0;
-        int len = dest.length;
-
-        final double s = freq / step;
-        final int endOff = len;
-        int baseOff = 0;
-
-        assert( width <= len );
-
-        if( ( len & 1 ) == 0 ) {
-            dest[off] = 0.0f;
-            off += width;
-            if( off >= endOff ) {
-                off = ++baseOff;
-            }
-            len--;
-        }
-
-        final int mid = len / 2;
-        int x = -mid;
-
-        while( len-- > 0 ) {
-            dest[off] = (float)( ( ( x != 0 ) ? Math.sin( x * Math.PI * s ) / ( x * Math.PI ) * step: freq ) * gain );
-            x++;
-            off += width;
-            if( off >= endOff ) {
-                off = ++baseOff;
-            }
-        }
-
-        assert( off == width );
+    public int conversionFlags() {
+        return mConversionFlags;
     }
 
 
-    private static void winKaiser( float[] dest, double alpha, int width ) {
-        final int endOff = dest.length;
-        int len = dest.length;
-        int off = 0;
-        int baseOff = 0;
-
-        assert( width <= len );
-
-        if( ( len & 1 ) == 0 ) {
-            dest[off] = 0.0f;
-            off += width;
-            if( off >= endOff ) {
-                off = ++baseOff;
-            }
-            len--;
+    public void conversionFlags( int flags ) {
+        if( flags == mConversionFlags ) {
+            return;
         }
-
-        int x = -( len / 2 );
-        double midsq = (double)( x - 1 ) * (double)( x - 1 );
-        double iAlpha = iZero( alpha );
-
-        while( len-- > 0 ) {
-            dest[off] *= iZero( alpha * Math.sqrt( 1.0 - ( (double)x * (double)x ) / midsq ) ) / iAlpha;
-            x++;
-            off += width;
-            if( off >= endOff ) {
-                off = ++baseOff;
-            }
-        }
-
-        assert( off == endOff );
+        mConversionFlags = flags;
+        mNeedsInit = true;
     }
 
 
-
-    private static class Pool {
-        final float[] mBuf;
-        int mOffset;
-        int mFill;
-
-        public Pool( int capacity ) {
-            mBuf = new float[capacity];
-            reset();
+    public AudioPacket convert( AudioPacket source ) throws JavException {
+        AudioFormat format = source.audioFormat();
+        if( format != mSourceFormat ) {
+            if( format != null && format.equals( mSourceFormat ) ) {
+                mSourceFormat = format;
+            } else {
+                mSourceFormat = format;
+                mNeedsInit = true;
+                updateDestFormat();
+            }
         }
 
-        public void reset() {
-            mOffset = 0;
-            mFill   = mBuf.length / 2 + 1;
+        if( mNeedsInit ) {
+            init();
         }
+
+        if( mConverter == null ) {
+            source.ref();
+            return source;
+        }
+
+        int srcLen = source.nbSamples();
+        int dstLen = (int)Rational.rescale( srcLen, mRateRatio.num(), mRateRatio.den() );
+        mStream = source.stream();
+
+        return doConvert( source, srcLen, dstLen );
+    }
+
+
+    public AudioPacket drain() throws JavException {
+        try {
+            if( mConverter == null ) {
+                return null;
+            }
+            int dstLen = (int)mConverter.getDelay( mDestFormat.sampleRate() );
+            if( dstLen == 0 ) {
+                return null;
+            }
+            return doConvert( null, 0, dstLen );
+        } finally {
+            mStreamMicros = Jav.AV_NOPTS_VALUE;
+        }
+    }
+    
+
+    public void clear() {
+        if( mConverter != null ) {
+            try {
+                AudioPacket p = drain();
+                if( p != null ) {
+                    p.deref();
+                }
+            } catch( IOException ex ) {
+                sLog.warning( "Error occurred during AudioPacketResampler.clear(). Releasing SwrContext." );
+                invalidateConverter();
+            }
+        }
+
+        mStreamMicros = Jav.AV_NOPTS_VALUE;
+    }
+    
+    
+    public void close() {
+        if( mDisposed ) {
+            return;
+        }
+        mDisposed = true;
+        mAlloc.deref();
+        if( mConverter != null ) {
+            mConverter.release();
+            mConverter = null;
+        }
+    }
+
+
+    private void updateDestFormat() {
+        AudioFormat source = mSourceFormat != null ? mSourceFormat : mPredictSourceFormat;
+        AudioFormat dest = AudioFormat.merge( source, mRequestedFormat );
+        if( dest.equals( mDestFormat ) ) {
+            return;
+        }
+        mDestFormat = dest;
+        invalidateConverter();
+    }
+
+
+    private void invalidateConverter() {
+        if( mNeedsInit ) {
+            return;
+        }
+        if( mConverter != null ) {
+            mConverter.release();
+            mConverter = null;
+        }
+        mNeedsInit = true;
+    }
+
+
+    private void init() throws JavException {
+        mNeedsInit = false;
+        AudioFormat src = mSourceFormat;
+        AudioFormat dst = mDestFormat;
+        if( !AudioFormat.isFullyDefined( src ) || !AudioFormat.isFullyDefined( dst ) ) {
+            return;
+        }
+
+        if( dst.equals( src ) ) {
+            return;
+        }
+
+        long srcLayout = src.channelLayout();
+        if( srcLayout == Jav.AV_CH_LAYOUT_NATIVE ) {
+            srcLayout = JavChannelLayout.getDefault( src.channels() );
+        }
+        long dstLayout = dst.channelLayout();
+        if( dstLayout == Jav.AV_CH_LAYOUT_NATIVE ) {
+            dstLayout = JavChannelLayout.getDefault( dst.channels() );
+        }
+
+        mRateRatio = Rational.reduce( dst.sampleRate(), src.sampleRate() );
+        mConverter = SwrContext.allocAndInit( srcLayout,
+                                              src.sampleFormat(),
+                                              src.sampleRate(),
+                                              dstLayout,
+                                              dst.sampleFormat(),
+                                              dst.sampleRate() );
+    }
+
+
+    private AudioPacket doConvert( AudioPacket src, int srcLen, int dstLen ) throws JavException {
+        AudioPacket dst = mAlloc.alloc( mDestFormat, dstLen );
+        int err = mConverter.convert( src, srcLen, dst, dstLen );
+        if( err <= 0 ) {
+            dst.deref();
+            if( err < 0 ) {
+                throw new JavException( err );
+            } else {
+                return null;
+            }
+        }
+
+        if( src != null ) {
+            long micros = src.startMicros();
+            if( micros != mStreamMicros ) {
+                mTimer.init( micros, mDestFormat.sampleRate() );
+            }
+        }
+
+        mTimer.computeTimestamps( err, mWork );
+        dst.init( mStream, mDestFormat, mWork[0], mWork[1] );
+        mStreamMicros = mWork[1];
+
+        return dst;
     }
 
 }

@@ -10,7 +10,6 @@ import java.io.*;
 import java.nio.channels.ClosedChannelException;
 import java.util.*;
 
-import bits.draw3d.*;
 import bits.drawjav.audio.*;
 import bits.drawjav.video.*;
 import bits.microtime.*;
@@ -25,7 +24,7 @@ public class MultiSyncedDriver implements Ticker, StreamDriver {
 
     private final PlayController mPlayCont;
 
-    private final Map<Source, Node>       mSourceMap        = new HashMap<Source, Node>();
+    private final Map<PacketReader, Node> mSourceMap        = new HashMap<PacketReader, Node>();
     private final Map<StreamHandle, Node> mStreamMap        = new HashMap<StreamHandle, Node>();
     private       List<Node>              mSources          = new ArrayList<Node>();
     private       long                    mSeekWarmupMicros = 2000000L;
@@ -66,7 +65,7 @@ public class MultiSyncedDriver implements Ticker, StreamDriver {
     }
 
 
-    public synchronized StreamHandle openVideoStream( Source source,
+    public synchronized StreamHandle openVideoStream( PacketReader source,
                                                       StreamHandle stream,
                                                       PictureFormat destFormat,
                                                       Sink<? super VideoPacket> sink )
@@ -76,7 +75,7 @@ public class MultiSyncedDriver implements Ticker, StreamDriver {
     }
     
     
-    public synchronized StreamHandle openAudioStream( Source source,
+    public synchronized StreamHandle openAudioStream( PacketReader source,
                                                       StreamHandle stream,
                                                       AudioFormat format,
                                                       Sink<? super AudioPacket> sink )
@@ -88,7 +87,7 @@ public class MultiSyncedDriver implements Ticker, StreamDriver {
 
     @SuppressWarnings( { "unchecked", "rawtypes" } )
     private StreamHandle openStream( boolean isVideo,
-                                     Source source,
+                                     PacketReader source,
                                      StreamHandle stream,
                                      PictureFormat pictureFormat,
                                      AudioFormat audioFormat,
@@ -161,17 +160,18 @@ public class MultiSyncedDriver implements Ticker, StreamDriver {
 
 
     private static final class Node {
-        final Source mSource;
+        final PacketReader mSource;
         final SyncedDriver mDriver;
 
-        Node( PlayController playCont, Source source ) {
+        Node( PlayController playCont, PacketReader source ) {
             mSource = source;
             mDriver = new SyncedDriver( playCont, source );
         }
     }
 
 
-    @Deprecated public static MultiSyncedDriver newInstance( PlayController playCont ) {
+    @Deprecated
+    public static MultiSyncedDriver newInstance( PlayController playCont ) {
         return new MultiSyncedDriver( playCont );
     }
 

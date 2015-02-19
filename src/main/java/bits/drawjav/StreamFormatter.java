@@ -35,7 +35,7 @@ public interface StreamFormatter {
      * @throws IllegalArgumentException if source/sourceStream are invalid.
      * @throws IOException for most other failures.
      */
-    public StreamHandle openVideoStream( Source source,
+    public StreamHandle openVideoStream( PacketReader source,
                                          StreamHandle sourceStream,
                                          PictureFormat destFormat,
                                          Sink<? super VideoPacket> sink )
@@ -56,7 +56,7 @@ public interface StreamFormatter {
      * @throws IllegalArgumentException if source/sourceStream are invalid.
      * @throws IOException for most other failures.
      */
-    public StreamHandle openAudioStream( Source source,
+    public StreamHandle openAudioStream( PacketReader source,
                                          StreamHandle sourceStream,
                                          AudioFormat destFormat,
                                          Sink<? super AudioPacket> sink )

@@ -58,7 +58,7 @@ public class VideoPlayTest {
         
         {
             PlayController playCont = PlayController.createAuto();
-            FormatDecoder decoder = FormatDecoder.openFile( file, true, 0L );
+            FormatReader decoder = FormatReader.openFile( file, true, 0L, null );
             decoder.openStream( decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ) );
 
             PictureFormat fmt = new PictureFormat( -1, -1, Jav.AV_PIX_FMT_BGR24 );
@@ -76,7 +76,7 @@ public class VideoPlayTest {
         Thread.sleep( 500L );
         System.gc();
         Thread.sleep( 500L );
-        System.out.println( "OKAY" );
+        System.out.println( "DONE" );
        
         
         

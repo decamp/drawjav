@@ -16,20 +16,19 @@ import bits.drawjav.*;
  * @author decamp
  */
 public class AudioResamplerPipe implements Sink<AudioPacket> {
-    
+
     private final Sink<? super AudioPacket> mSink;
-    private final AudioPacketResampler mResampler;
-    
-    
+    private final AudioResampler            mResampler;
+
+
     public AudioResamplerPipe( Sink<? super AudioPacket> sink,
                                AudioFormat destFormat,
                                AudioAllocator alloc )
     {
-        mSink      = sink;
-        mResampler = new AudioPacketResampler( alloc );
+        mSink = sink;
+        mResampler = new AudioResampler( alloc );
         mResampler.destFormat( destFormat );
     }
-
 
 
     public AudioFormat destFormat() {

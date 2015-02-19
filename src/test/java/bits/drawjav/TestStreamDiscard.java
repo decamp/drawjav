@@ -29,7 +29,7 @@ public class TestStreamDiscard {
 
 
     static void test1() throws Exception {
-        FormatDecoder dec = FormatDecoder.openFile( TEST_FILE );
+        FormatReader dec = FormatReader.openFile( TEST_FILE );
         dec.openStream( dec.stream( 0 ) );
         dec.openStream( dec.stream( 1 ) );
 
@@ -49,7 +49,7 @@ public class TestStreamDiscard {
 
     static void test2() throws Exception {
         File file = new File( "resources_ext/video.ts" );
-        FormatDecoder dec = FormatDecoder.openFile( file, true, 0L );
+        FormatReader dec = FormatReader.openFile( file, true, 0L, null );
 
         for( int i: new int[]{ 0, 1, 2 } ) {
             dec.openStream( dec.stream( i ) );
@@ -144,7 +144,7 @@ public class TestStreamDiscard {
     }
 
 
-    static Packet next( FormatDecoder dec, StreamHandle stream ) throws IOException {
+    static Packet next( FormatReader dec, StreamHandle stream ) throws IOException {
         while( true ) {
             Packet p = dec.readNext();
             if( p != null ) {

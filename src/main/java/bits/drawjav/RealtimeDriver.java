@@ -35,7 +35,7 @@ public class RealtimeDriver implements StreamDriver {
     private final Thread          mThread;
 
 
-    public RealtimeDriver( PlayController playCont, Source source, PacketScheduler optSyncer ) {
+    public RealtimeDriver( PlayController playCont, PacketReader source, PacketScheduler optSyncer ) {
         mPlayCont = playCont;
         mDriver = new PassiveDriver( source );
         mSyncer = optSyncer != null ? optSyncer : new PacketScheduler( playCont );
@@ -78,7 +78,7 @@ public class RealtimeDriver implements StreamDriver {
     }
 
     
-    public Source source() {
+    public PacketReader source() {
         return mDriver.source();
     }
     
@@ -88,7 +88,7 @@ public class RealtimeDriver implements StreamDriver {
     }
     
     
-    public StreamHandle openVideoStream( Source source,
+    public StreamHandle openVideoStream( PacketReader source,
                                          StreamHandle stream,
                                          PictureFormat destFormat,
                                          Sink<? super VideoPacket> sink )
@@ -98,7 +98,7 @@ public class RealtimeDriver implements StreamDriver {
     }
     
     
-    public StreamHandle openAudioStream( Source source,
+    public StreamHandle openAudioStream( PacketReader source,
                                          StreamHandle stream,
                                          AudioFormat format,
                                          Sink<? super AudioPacket> sink )
@@ -109,7 +109,7 @@ public class RealtimeDriver implements StreamDriver {
 
 
     public StreamHandle openStream( boolean isVideo,
-                                    Source source,
+                                    PacketReader source,
                                     StreamHandle stream,
                                     PictureFormat pictureFormat,
                                     AudioFormat audioFormat,

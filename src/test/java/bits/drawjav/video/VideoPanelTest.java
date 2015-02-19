@@ -40,7 +40,7 @@ public class VideoPanelTest {
         
         File file = TEST_FILE;
         PlayController playCont = PlayController.createAuto();
-        FormatDecoder decoder   = FormatDecoder.openFile( file, true, 0L );
+        FormatReader decoder   = FormatReader.openFile( file, true, 0L, null );
         decoder.openStream( decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ) );
         
         RealtimeDriver driver = new RealtimeDriver( playCont, decoder, null );
@@ -61,29 +61,30 @@ public class VideoPanelTest {
     @SuppressWarnings( { "unchecked", "rawtypes", "unused" } )
     private static final class DumbDriver extends Thread {
 
-        private final Source mSource;
+        private final PacketReader mSource;
         private final Sink<Packet> mSink;
-        
-        public DumbDriver( Source source, Sink sink ) {
+
+        public DumbDriver( PacketReader source, Sink sink ) {
             mSource = source;
-            mSink   = sink;
+            mSink = sink;
             start();
         }
-        
-        
+
+
         public void run() {
             while( true ) {
                 try {
                     Thread.sleep( 25L );
-                }catch( InterruptedException ignored ) {}
-                
+                } catch( InterruptedException ignored ) {
+                }
+
                 while( true ) {
                     try {
                         Packet packet = mSource.readNext();
                         if( packet != null ) {
                             mSink.consume( packet );
                             break;
-                        }   
+                        }
                     } catch( IOException ex ) {
                         return;
                     }

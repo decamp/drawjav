@@ -27,7 +27,7 @@ public class SyncedDriver implements StreamDriver, Ticker {
     private final PlayHandler mPlayHandler;
     
         
-    public SyncedDriver( PlayController playCont, Source source ) {
+    public SyncedDriver( PlayController playCont, PacketReader source ) {
         mPlayCont    = playCont;
         mDriver      = new PassiveDriver( source );
         mPlayHandler = new PlayHandler();
@@ -58,7 +58,7 @@ public class SyncedDriver implements StreamDriver, Ticker {
     }
 
 
-    public Source source() {
+    public PacketReader source() {
         return mDriver.source();
     }
     
@@ -68,7 +68,7 @@ public class SyncedDriver implements StreamDriver, Ticker {
     }
     
 
-    public StreamHandle openVideoStream( Source source,
+    public StreamHandle openVideoStream( PacketReader source,
                                          StreamHandle stream,
                                          PictureFormat destFormat,
                                          Sink<? super VideoPacket> sink )
@@ -78,7 +78,7 @@ public class SyncedDriver implements StreamDriver, Ticker {
     }
     
     
-    public StreamHandle openAudioStream( Source source,
+    public StreamHandle openAudioStream( PacketReader source,
                                          StreamHandle stream,
                                          AudioFormat format,
                                          Sink<? super AudioPacket> sink )
