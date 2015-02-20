@@ -85,7 +85,7 @@ public class OneStreamAudioAllocator extends AbstractRefable implements AudioAll
             drop( ret );
         }
 
-        if( format != null && numSamples >= 0 ) {
+        if( format != null && numSamples > 0 ) {
             return AudioPacket.createFilled( this, format, numSamples, 0 );
         } else {
             return AudioPacket.createAuto( this );

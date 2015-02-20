@@ -21,27 +21,27 @@ import bits.util.ref.*;
 public class VideoPacket extends JavFrame implements Packet {
     
     
-    public static VideoPacket createAuto( ObjectPool<? super VideoPacket> pool ) {
+    public static VideoPacket createAuto( ObjectPool<? super VideoPacket> optPool ) {
         long p = nAllocFrame();
         if( p == 0 ) {
             throw new OutOfMemoryError( "Allocation failed." );
         }
-        return new VideoPacket( p, pool );
+        return new VideoPacket( p, optPool );
     }
     
     
-    public static VideoPacket createFilled( ObjectPool<? super VideoPacket> pool,
+    public static VideoPacket createFilled( ObjectPool<? super VideoPacket> optPool,
                                             PictureFormat format )
                                             throws JavException
     {
         int size = nComputeVideoBufferSize( format.width(), format.height(), format.pixelFormat() );
         ByteBuffer buf = ByteBuffer.allocateDirect( size );
         buf.order( ByteOrder.nativeOrder() );
-        return createFilled( pool, format, buf );
+        return createFilled( optPool, format, buf );
     }
     
     
-    public static VideoPacket createFilled( ObjectPool<? super VideoPacket> pool,
+    public static VideoPacket createFilled( ObjectPool<? super VideoPacket> optPool,
                                             PictureFormat format,
                                             ByteBuffer buf )
                                             throws JavException
@@ -50,7 +50,7 @@ public class VideoPacket extends JavFrame implements Packet {
         if( pointer == 0 ) {
             throw new OutOfMemoryError();
         }
-        VideoPacket ret = new VideoPacket( pointer, pool );
+        VideoPacket ret = new VideoPacket( pointer, optPool );
         ret.fillVideoFrame( format.width(), format.height(), format.pixelFormat(), buf );
         ret.pictureFormat( format );
         return ret;

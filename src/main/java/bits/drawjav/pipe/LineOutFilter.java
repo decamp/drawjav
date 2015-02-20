@@ -41,7 +41,9 @@ public class LineOutFilter implements Filter, SinkPad<AudioPacket>, SyncClockCon
     private       int    mBufIndex;
     private       int    mBufSize;
 
-    private volatile boolean mClosed       = false;
+    private Exception mException = null;
+
+    private volatile boolean mOpen         = true;
     private volatile boolean mStateChanged = true;
 
 
@@ -214,37 +216,39 @@ public class LineOutFilter implements Filter, SinkPad<AudioPacket>, SyncClockCon
 
     @Override
     public synchronized void close() {
-        mClosed       = true;
+        if( !mOpen ) {
+            return;
+        }
+        mOpen         = false;
         mStateChanged = true;
         notifyAll();
     }
 
     @Override
     public boolean isOpen() {
-        return !mClosed;
+        return mOpen;
     }
-
 
 
     //// Filter Methods /////
 
     @Override
-    public int sinkPadNum() {
+    public int sinkNum() {
         return 1;
     }
 
     @Override
-    public SinkPad sinkPad( int idx ) {
+    public SinkPad sink( int idx ) {
         return this;
     }
 
     @Override
-    public int sourcePadNum() {
+    public int sourceNum() {
         return 0;
     }
 
     @Override
-    public SourcePad sourcePad( int idx ) {
+    public SourcePad source( int idx ) {
         return null;
     }
 
@@ -254,13 +258,7 @@ public class LineOutFilter implements Filter, SinkPad<AudioPacket>, SyncClockCon
     }
 
 
-
     //// SinkPad Methods /////
-
-    @Override
-    public boolean blocks() {
-        return true;
-    }
 
     @Override
     public int available() {
@@ -268,40 +266,59 @@ public class LineOutFilter implements Filter, SinkPad<AudioPacket>, SyncClockCon
     }
 
     @Override
-    public FilterErr offer( AudioPacket packet, long blockMicros ) throws IOException {
+    public FilterErr offer( AudioPacket packet, long blockMicros )  {
+        if( packet == null ) {
+            return FilterErr.DONE;
+        }
+
         AudioFormat format = packet.audioFormat();
         if( format == null ) {
-            return FilterErr.ERROR;
+            mException = new IllegalArgumentException( "Wrong audio format." );
+            return FilterErr.EXCEPTION;
         }
 
         int chans = format.channels();
         int sampFormat = format.sampleFormat();
 
         if( chans != mChannels || mChannels == 1 && sampFormat == Jav.AV_SAMPLE_FMT_FLTP ) {
-            return FilterErr.ERROR;
+            mException = new IllegalArgumentException( "Wrong channel number." );
+            return FilterErr.EXCEPTION;
         }
 
         if( sampFormat != Jav.AV_SAMPLE_FMT_FLT && sampFormat != Jav.AV_SAMPLE_FMT_FLTP ) {
-            return FilterErr.ERROR;
+            mException = new IllegalArgumentException( "Wrong sample format." );
+            return FilterErr.EXCEPTION;
         }
 
         ByteBuffer bb = packet.javaBufElem( 0 );
         if( bb == null ) {
-            return FilterErr.ERROR;
+            return FilterErr.EXCEPTION;
         }
 
-        FloatBuffer fb = bb.asFloatBuffer();
-        int numFrames = fb.remaining() / mChannels;
-        while( numFrames > 0 ) {
-            int n = consumeAudio( fb, fb.position(), numFrames );
-            if( n < 0 ) {
-                return FilterErr.ERROR;
+        try {
+            FloatBuffer fb = bb.asFloatBuffer();
+            int numFrames = fb.remaining() / mChannels;
+            while( numFrames > 0 ) {
+                int n = 0;
+                n = consumeAudio( fb, fb.position(), numFrames );
+                if( n < 0 ) {
+                    return FilterErr.EXCEPTION;
+                }
+                numFrames -= n;
+                fb.position( fb.position() + n );
             }
-            numFrames -= n;
-            fb.position( fb.position() + n );
-        }
+            return FilterErr.DONE;
 
-        return FilterErr.DONE;
+        } catch( InterruptedIOException e ) {
+            return FilterErr.NONE;
+        }
+    }
+
+    @Override
+    public synchronized Exception exception() {
+        Exception ret = mException;
+        mException = null;
+        return ret;
     }
 
 
@@ -338,7 +355,7 @@ public class LineOutFilter implements Filter, SinkPad<AudioPacket>, SyncClockCon
         boolean isPlaying = false;
 
 STATE_CHANGE:
-        while( !mClosed ) {
+        while( mOpen ) {
             mStateChanged = false;
             if( mClock.isPlaying() ) {
                 // Start the audio line, if necessary.

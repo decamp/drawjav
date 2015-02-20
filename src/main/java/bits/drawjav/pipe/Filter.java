@@ -7,9 +7,9 @@ import java.nio.channels.Channel;
  * @author Philip DeCamp
  */
 public interface Filter extends Channel {
-    int sinkPadNum();
-    SinkPad sinkPad( int idx );
-    int sourcePadNum();
-    SourcePad sourcePad( int idx );
+    int sinkNum();
+    SinkPad sink( int idx );
+    int sourceNum();
+    SourcePad source( int idx );
     void clear();
 }

@@ -7,8 +7,6 @@ import bits.jav.Jav;
 import bits.microtime.PlayController;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 
 /**
@@ -49,10 +47,10 @@ public class AudioPlayer {
         }
 
         public void run() {
-            SourcePad source0 = mReader.sourcePad( 0 );
-            SinkPad   sink1   = mResampler.sinkPad( 0 );
-            SourcePad source1 = mResampler.sourcePad( 0 );
-            SinkPad   sink2   = mLineOut.sinkPad( 0 );
+            SourcePad source0 = mReader.source( 0 );
+            SinkPad   sink1   = mResampler.sink( 0 );
+            SourcePad source1 = mResampler.source( 0 );
+            SinkPad   sink2   = mLineOut.sink( 0 );
 
             AudioPacket packet = null;
             AudioPacket[] arr = { null };
@@ -72,7 +70,7 @@ public class AudioPlayer {
                     case TIMEOUT:
                         System.out.println( "Timeout" );
                         continue;
-                    case NO_INPUT:
+                    case UNDERFLOW:
                         System.out.println( "EOD" );
                         return;
                     }
@@ -87,7 +85,7 @@ public class AudioPlayer {
                     case TIMEOUT:
                         System.out.println( "1 Timeout" );
                         continue;
-                    case NO_INPUT:
+                    case UNDERFLOW:
                         System.out.println( "1 EOD" );
                         return;
                     }
@@ -103,7 +101,7 @@ public class AudioPlayer {
                         err = sink2.offer( arr[0], 0 );
                         if( err == FilterErr.DONE ) {
                             break;
-                        } else if( err == FilterErr.NO_INPUT ) {
+                        } else if( err == FilterErr.UNDERFLOW ) {
                             System.err.println( "1 EOD" );
                             return;
                         }

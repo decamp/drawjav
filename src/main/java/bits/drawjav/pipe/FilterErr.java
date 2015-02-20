@@ -7,6 +7,8 @@ public enum FilterErr {
     NONE,
     DONE,
     TIMEOUT,
-    NO_INPUT,
-    ERROR
+    EXCEPTION,
+
+    @Deprecated UNDERFLOW,
+    @Deprecated OVERFLOW
 }

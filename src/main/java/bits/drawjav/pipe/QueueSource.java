@@ -2,7 +2,6 @@ package bits.drawjav.pipe;
 
 import bits.collect.RingList;
 import bits.drawjav.Packet;
-import bits.util.concurrent.ThreadLock;
 
 import java.util.Queue;
 
@@ -10,13 +9,13 @@ import java.util.Queue;
 /**
  * @author Philip DeCamp
  */
-public class SourceQueue<T extends Packet> implements SourcePad<T> {
+public class QueueSource<T extends Packet> implements SourcePad<T> {
 
-    private final Queue<T>   mQueue;
-    private final int        mMaxCap;
+    private final Queue<T> mQueue;
+    private final int      mMaxCap;
 
 
-    public SourceQueue( int capacity ) {
+    public QueueSource( int capacity ) {
         if( capacity <= 0 ) {
             capacity = 0;
         }
@@ -45,7 +44,7 @@ public class SourceQueue<T extends Packet> implements SourcePad<T> {
         }
 
         if( blockMicros <= 0 ) {
-            return FilterErr.NONE;
+            return FilterErr.UNDERFLOW;
         }
 
         long now = System.currentTimeMillis();
@@ -54,7 +53,7 @@ public class SourceQueue<T extends Packet> implements SourcePad<T> {
             try {
                 wait( blockMicros / 1000L );
             } catch( InterruptedException e ) {
-                return FilterErr.NONE;
+                return FilterErr.UNDERFLOW;
             }
 
             ret = mQueue.poll();
@@ -71,6 +70,11 @@ public class SourceQueue<T extends Packet> implements SourcePad<T> {
     @Override
     public synchronized int available() {
         return mQueue.size();
+    }
+
+    @Override
+    public Exception exception() {
+        return null;
     }
 
 }

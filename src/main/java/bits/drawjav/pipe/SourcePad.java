@@ -10,4 +10,5 @@ import java.io.IOException;
 public interface SourcePad<T extends Packet> {
     FilterErr remove( T[] out, long blockMicros  ) throws IOException;
     int available();
+    Exception exception();
 }

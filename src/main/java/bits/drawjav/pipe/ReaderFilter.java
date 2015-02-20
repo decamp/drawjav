@@ -22,7 +22,8 @@ public class ReaderFilter implements Filter, SyncClockControl {
     private final List<StreamSource>              mActive = new ArrayList<StreamSource>();
     private final Map<StreamHandle, StreamSource> mMap    = new HashMap<StreamHandle, StreamSource>();
 
-    private FilterErr mErr        = FilterErr.NONE;
+    private FilterErr mState      = FilterErr.NONE;
+    private Exception mException  = null;
     private boolean   mNeedSeek   = false;
     private long      mSeekMicros = 0;
 
@@ -42,22 +43,22 @@ public class ReaderFilter implements Filter, SyncClockControl {
 
 
 
-    public int sinkPadNum() {
+    public int sinkNum() {
         return 0;
     }
 
 
-    public SinkPad sinkPad( int idx ) {
+    public SinkPad sink( int idx ) {
         return null;
     }
 
 
-    public int sourcePadNum() {
+    public int sourceNum() {
         return mActive.size();
     }
 
 
-    public SourcePad sourcePad( int idx ) {
+    public SourcePad source( int idx ) {
         return mActive.get( idx );
     }
 
@@ -85,7 +86,7 @@ public class ReaderFilter implements Filter, SyncClockControl {
 
     @Override
     public void clockSeek( long execMicros, long seekMicros ) {
-        mErr = FilterErr.NONE;
+        mState = FilterErr.NONE;
         mNeedSeek = true;
         mSeekMicros = seekMicros;
     }
@@ -104,6 +105,7 @@ public class ReaderFilter implements Filter, SyncClockControl {
     private final class StreamSource implements SourcePad {
         StreamHandle mStream;
         Queue mQueue = new RingList( MAX_QUEUE_SIZE );
+        Exception mException = null;
 
         StreamSource( StreamHandle stream ) {
             mStream = stream;
@@ -132,8 +134,8 @@ public class ReaderFilter implements Filter, SyncClockControl {
                     return FilterErr.DONE;
                 }
 
-                if( mErr != FilterErr.NONE ) {
-                    return mErr;
+                if( mState != FilterErr.NONE ) {
+                    return mState;
                 }
 
                 Packet packet = mReader.readNext();
@@ -156,15 +158,20 @@ public class ReaderFilter implements Filter, SyncClockControl {
                 return FilterErr.NONE;
 
             } catch( EOFException ex ) {
-                mErr = FilterErr.NO_INPUT;
-                return mErr;
+                mState = FilterErr.UNDERFLOW;
+                return mState;
 
             } catch( IOException e ) {
-                mErr = FilterErr.ERROR;
-                e.printStackTrace();
-                return mErr;
+                mState = FilterErr.EXCEPTION;
+                mException = e;
+                return mState;
             }
         }
+
+        public Exception exception() {
+            return mException;
+        }
+
 
         private void clear() {
             while( !mQueue.isEmpty() ) {

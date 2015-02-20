@@ -18,7 +18,6 @@ public class TestAudioPlayer {
         testPlay();
     }
 
-
     static void testPlay() throws Exception {
         File file = TEST_FILE;
         MemoryManager mem = new PoolMemoryManager( 128, -1, 0, 0 );

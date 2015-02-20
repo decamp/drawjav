@@ -22,22 +22,17 @@ import bits.util.ref.*;
  */
 public class AudioPacket extends JavFrame implements Packet {
     
-    
-    public static AudioPacket createAuto() {
-        return createAuto( null );
-    }
-    
-    
-    public static AudioPacket createAuto( ObjectPool<? super AudioPacket> pool ) {
+
+    public static AudioPacket createAuto( ObjectPool<? super AudioPacket> optPool ) {
         long p = nAllocFrame();
         if( p == 0 ) {
             throw new OutOfMemoryError("Allocation failed.");
         }
-        return new AudioPacket( p, pool );
+        return new AudioPacket( p, optPool );
     }
     
     
-    public static AudioPacket createFilled( ObjectPool<? super AudioPacket> pool,
+    public static AudioPacket createFilled( ObjectPool<? super AudioPacket> optPool,
                                             AudioFormat format,
                                             int samplesPerChannel,
                                             int align )
@@ -56,11 +51,11 @@ public class AudioPacket extends JavFrame implements Packet {
 
         ByteBuffer buf = ByteBuffer.allocateDirect( size );
         buf.order( ByteOrder.nativeOrder() );
-        return createFilled( pool, format, samplesPerChannel, align, buf );
+        return createFilled( optPool, format, samplesPerChannel, align, buf );
     }
     
     
-    public static AudioPacket createFilled( ObjectPool<? super AudioPacket> pool,
+    public static AudioPacket createFilled( ObjectPool<? super AudioPacket> optPool,
                                             AudioFormat format,
                                             int samplesPerChannel,
                                             int align,
@@ -71,7 +66,7 @@ public class AudioPacket extends JavFrame implements Packet {
             throw new OutOfMemoryError();
         }
 
-        AudioPacket ret = new AudioPacket( pointer, pool );
+        AudioPacket ret = new AudioPacket( pointer, optPool );
         ret.fillAudioFrame( format.channels(),
                             samplesPerChannel,
                             format.sampleFormat(),
@@ -90,8 +85,8 @@ public class AudioPacket extends JavFrame implements Packet {
 
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public AudioPacket( long pointer, ObjectPool<? super AudioPacket> pool ) {
-        super( pointer, (ObjectPool)pool );
+    public AudioPacket( long pointer, ObjectPool<? super AudioPacket> optPool ) {
+        super( pointer, (ObjectPool)optPool );
     }
 
 

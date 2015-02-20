@@ -7,6 +7,7 @@
 package bits.drawjav.pipe;
 
 import bits.drawjav.audio.*;
+import bits.jav.Jav;
 import bits.jav.JavException;
 
 import java.io.IOException;
@@ -19,7 +20,7 @@ public class ResamplerFilter implements Filter {
 
     private final AudioResampler mResampler;
     private final Sink        mSink  = new Sink();
-    private final SourceQueue mQueue = new SourceQueue<AudioPacket>( 1 );
+    private final QueueSource mQueue = new QueueSource<AudioPacket>( 1 );
 
 
     public ResamplerFilter( AudioFormat destFormat, AudioAllocator alloc ) {
@@ -43,22 +44,22 @@ public class ResamplerFilter implements Filter {
     }
 
     @Override
-    public int sinkPadNum() {
+    public int sinkNum() {
         return 1;
     }
 
     @Override
-    public SinkPad sinkPad( int idx ) {
+    public SinkPad sink( int idx ) {
         return mSink;
     }
 
     @Override
-    public int sourcePadNum() {
+    public int sourceNum() {
         return 1;
     }
 
     @Override
-    public SourcePad sourcePad( int idx ) {
+    public SourcePad source( int idx ) {
         return mQueue;
     }
 
@@ -69,10 +70,8 @@ public class ResamplerFilter implements Filter {
 
 
     private class Sink implements SinkPad<AudioPacket> {
-        @Override
-        public boolean blocks() {
-            return false;
-        }
+
+        private Exception mException = null;
 
         @Override
         public int available() {
@@ -81,24 +80,38 @@ public class ResamplerFilter implements Filter {
 
         @Override
         public FilterErr offer( AudioPacket packet, long blockMicros ) {
+            mException = null;
+
+            // Check for empty packet.
+            AudioFormat fmt = packet.audioFormat();
+            if( fmt.sampleFormat() == Jav.AV_SAMPLE_FMT_NONE ) {
+                mQueue.offer( packet );
+                packet.ref();
+                return FilterErr.DONE;
+            }
+
+            // Not empty. Run converter.
             AudioPacket p = null;
             try {
                 p = mResampler.convert( packet );
             } catch( JavException e ) {
-                return FilterErr.ERROR;
+                return FilterErr.EXCEPTION;
             }
 
             if( p == null ) {
                 return FilterErr.NONE;
             }
 
-            System.out.println( packet.nbSamples() + "\t" + p.nbSamples() );
-            System.out.println( packet.sampleRate() + "\t" + p.sampleRate() );
-
             mQueue.offer( p );
             p.deref();
             return FilterErr.DONE;
         }
+
+        @Override
+        public Exception exception() {
+            return null;
+        }
+
     }
 
 }
