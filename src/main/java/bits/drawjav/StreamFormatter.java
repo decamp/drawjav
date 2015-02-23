@@ -22,7 +22,7 @@ public interface StreamFormatter {
 
     /**
      * Opens a video stream, formats all packets on that stream to
-     * specified format, and passes them on to {@code sink}.
+     * specified format, and passes them on to {@code input}.
      *
      * @param source        Specifies source of the stream.
      *                      Some StreamFormatters may only work with a pre-defined source or set of sources.
@@ -43,7 +43,7 @@ public interface StreamFormatter {
 
     /**
      * Opens an audio stream, formats all packets on that stream to
-     * specified format, and passes them on to {@code sink}.
+     * specified format, and passes them on to {@code input}.
      *
      * @param source        Specifies source of the stream.
      *                      Some StreamFormatters may only work with a pre-defined source or set of sources.

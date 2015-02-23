@@ -199,7 +199,7 @@ public class OneToManyFormatter implements Sink<Packet> {
             try {
                 sink.close();
             } catch( IOException ex ) {
-                sLog.log( Level.WARNING, "Failed to close sink.", ex );
+                sLog.log( Level.WARNING, "Failed to close input.", ex );
             }
         }
         

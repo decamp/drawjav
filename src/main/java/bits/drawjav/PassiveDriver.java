@@ -193,7 +193,7 @@ public class PassiveDriver implements StreamDriver {
     }
     
     /**
-     * Sends currently held packet to sink.
+     * Sends currently held packet to input.
      * 
      * @return true iff packet successfully sent.
      */
@@ -237,10 +237,10 @@ public class PassiveDriver implements StreamDriver {
     }
     
     /**
-     * Sends arbitrary packet to sink. 
-     * Will clear sink if clear is pending.  
+     * Sends arbitrary packet to input.
+     * Will clear input if clear is pending.
      * 
-     * @param packet To send to sink.
+     * @param packet To send to input.
      * @return true if successful.
      */
     public boolean send( Packet packet ) {
@@ -284,7 +284,7 @@ public class PassiveDriver implements StreamDriver {
     }
     
     /**
-     * Clears sink and currently held packet. 
+     * Clears input and currently held packet.
      */
     public void clear() {
         synchronized( this ) {
@@ -330,7 +330,7 @@ public class PassiveDriver implements StreamDriver {
     }
 
     /**
-     * @return true if this PassiveDriver will clear the sink
+     * @return true if this PassiveDriver will clear the input
      *              after a seek call.
      */
     public boolean clearOnSeek() {
@@ -339,7 +339,7 @@ public class PassiveDriver implements StreamDriver {
     
     /**
      * @param clearOnSeek Specifies whether this PassiveDriver will
-     *               clear its sink after every seek call.
+     *               clear its input after every seek call.
      */
     public void clearOnSeek( boolean clearOnSeek ) {
         mClearOnSeek = clearOnSeek;

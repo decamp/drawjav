@@ -2,9 +2,10 @@ package bits.drawjav.pipe;
 
 import bits.collect.RingList;
 import bits.drawjav.*;
-import bits.microtime.Frac;
-import bits.microtime.SyncClockControl;
+import bits.microtime.*;
 import bits.util.ref.Refable;
+import com.google.common.eventbus.EventBus;
+import com.google.common.eventbus.Subscribe;
 
 import java.io.*;
 import java.util.*;
@@ -22,7 +23,6 @@ public class ReaderFilter implements Filter, SyncClockControl {
     private final List<StreamSource>              mActive = new ArrayList<StreamSource>();
     private final Map<StreamHandle, StreamSource> mMap    = new HashMap<StreamHandle, StreamSource>();
 
-    private FilterErr mState      = FilterErr.NONE;
     private Exception mException  = null;
     private boolean   mNeedSeek   = false;
     private long      mSeekMicros = 0;
@@ -43,27 +43,32 @@ public class ReaderFilter implements Filter, SyncClockControl {
 
 
 
-    public int sinkNum() {
+    public int inputNum() {
         return 0;
     }
 
 
-    public SinkPad sink( int idx ) {
+    public InPad input( int idx ) {
         return null;
     }
 
 
-    public int sourceNum() {
+    public int outputNum() {
         return mActive.size();
     }
 
 
-    public SourcePad source( int idx ) {
+    public OutPad output( int idx ) {
         return mActive.get( idx );
     }
 
 
-    public void clear() {}
+
+    public void open( EventBus bus ) {
+        if( bus != null ) {
+            bus.register( this );
+        }
+    }
 
 
     public boolean isOpen() {
@@ -71,12 +76,24 @@ public class ReaderFilter implements Filter, SyncClockControl {
     }
 
 
-    public void close() throws IOException {
-        mReader.close();
+    public void close() {
+        try {
+            mReader.close();
+        } catch( IOException e ) {
+            mException = e;
+        }
         doClear();
     }
 
 
+    public void clear() {}
+
+
+
+    @Subscribe
+    public void processClockEvent( ClockEvent event ) {
+        event.apply( this );
+    }
 
     @Override
     public void clockStart( long execMicros ) {}
@@ -86,8 +103,8 @@ public class ReaderFilter implements Filter, SyncClockControl {
 
     @Override
     public void clockSeek( long execMicros, long seekMicros ) {
-        mState = FilterErr.NONE;
-        mNeedSeek = true;
+        mException  = null;
+        mNeedSeek   = true;
         mSeekMicros = seekMicros;
     }
 
@@ -102,71 +119,63 @@ public class ReaderFilter implements Filter, SyncClockControl {
     }
 
 
-    private final class StreamSource implements SourcePad {
+    private final class StreamSource extends OutPadAdapter {
         StreamHandle mStream;
         Queue mQueue = new RingList( MAX_QUEUE_SIZE );
-        Exception mException = null;
 
         StreamSource( StreamHandle stream ) {
             mStream = stream;
         }
 
-
-        public boolean blocks() {
-            return true;
+        @Override
+        public int status() {
+            return mException == null ? OKAY : EXCEPTION;
         }
 
-        public int available() {
-            return mQueue.size();
-        }
-
-        public FilterErr remove( Packet[] out, long blockMicros ) {
+        @Override
+        public int poll( Refable[] out ) {
             try {
+                if( mException != null ) {
+                    return EXCEPTION;
+                }
+
                 if( mNeedSeek ) {
                     mNeedSeek = false;
                     doClear();
                     mReader.seek( mSeekMicros );
-                    return FilterErr.NONE;
+                    return UNFINISHED;
                 }
 
                 if( !mQueue.isEmpty() ) {
                     out[0] = (Packet)mQueue.remove();
-                    return FilterErr.DONE;
-                }
-
-                if( mState != FilterErr.NONE ) {
-                    return mState;
+                    return OKAY;
                 }
 
                 Packet packet = mReader.readNext();
                 if( packet == null ) {
-                    return FilterErr.NONE;
+                    return UNFINISHED;
                 }
 
                 StreamSource dest = mMap.get( packet.stream() );
                 if( dest == null ) {
                     packet.deref();
-                    return FilterErr.NONE;
+                    return UNFINISHED;
                 }
 
                 if( dest == this ) {
                     out[0] = packet;
-                    return FilterErr.DONE;
+                    return OKAY;
                 }
 
                 dest.mQueue.offer( packet );
-                return FilterErr.NONE;
-
-            } catch( EOFException ex ) {
-                mState = FilterErr.UNDERFLOW;
-                return mState;
+                return UNFINISHED;
 
             } catch( IOException e ) {
-                mState = FilterErr.EXCEPTION;
                 mException = e;
-                return mState;
+                return EXCEPTION;
             }
         }
+
 
         public Exception exception() {
             return mException;

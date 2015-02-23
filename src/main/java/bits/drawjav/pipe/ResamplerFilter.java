@@ -6,9 +6,12 @@
 
 package bits.drawjav.pipe;
 
+import bits.drawjav.StreamHandle;
 import bits.drawjav.audio.*;
 import bits.jav.Jav;
 import bits.jav.JavException;
+import bits.util.ref.Refable;
+import com.google.common.eventbus.EventBus;
 
 import java.io.IOException;
 
@@ -19,14 +22,18 @@ import java.io.IOException;
 public class ResamplerFilter implements Filter {
 
     private final AudioResampler mResampler;
-    private final Sink        mSink  = new Sink();
-    private final QueueSource mQueue = new QueueSource<AudioPacket>( 1 );
+
+    private final MyIn  mInPad  = new MyIn();
+    private final MyOut mOutPad = new MyOut();
+
+    private AudioPacket mPacket;
+    private Exception mException;
 
 
-    public ResamplerFilter( AudioFormat destFormat, AudioAllocator alloc ) {
+    public ResamplerFilter( AudioAllocator alloc ) {
         mResampler = new AudioResampler( alloc );
-        mResampler.destFormat( destFormat );
     }
+
 
 
     public AudioFormat destFormat() {
@@ -34,7 +41,10 @@ public class ResamplerFilter implements Filter {
     }
 
 
-    public void close() throws IOException {
+    public void open( EventBus bus ) {}
+
+
+    public void close() {
         mResampler.close();
     }
 
@@ -44,23 +54,23 @@ public class ResamplerFilter implements Filter {
     }
 
     @Override
-    public int sinkNum() {
+    public int inputNum() {
         return 1;
     }
 
     @Override
-    public SinkPad sink( int idx ) {
-        return mSink;
+    public InPad input( int idx ) {
+        return mInPad;
     }
 
     @Override
-    public int sourceNum() {
+    public int outputNum() {
         return 1;
     }
 
     @Override
-    public SourcePad source( int idx ) {
-        return mQueue;
+    public OutPad output( int idx ) {
+        return mOutPad;
     }
 
     @Override
@@ -69,25 +79,26 @@ public class ResamplerFilter implements Filter {
     }
 
 
-    private class Sink implements SinkPad<AudioPacket> {
-
-        private Exception mException = null;
-
+    private class MyIn extends InPadAdapter<AudioPacket> {
         @Override
-        public int available() {
-            return mQueue.available() == 0 ? 1 : 0;
+        public int status() {
+            return mException != null ? EXCEPTION :
+                   mPacket != null ? DRAIN_FILTER : OKAY;
         }
 
         @Override
-        public FilterErr offer( AudioPacket packet, long blockMicros ) {
+        public int offer( AudioPacket packet ) {
             mException = null;
+            if( mPacket != null ) {
+                return DRAIN_FILTER;
+            }
 
             // Check for empty packet.
             AudioFormat fmt = packet.audioFormat();
             if( fmt.sampleFormat() == Jav.AV_SAMPLE_FMT_NONE ) {
-                mQueue.offer( packet );
+                mPacket = packet;
                 packet.ref();
-                return FilterErr.DONE;
+                return OKAY;
             }
 
             // Not empty. Run converter.
@@ -95,23 +106,56 @@ public class ResamplerFilter implements Filter {
             try {
                 p = mResampler.convert( packet );
             } catch( JavException e ) {
-                return FilterErr.EXCEPTION;
+                mException = e;
+                return EXCEPTION;
             }
 
             if( p == null ) {
-                return FilterErr.NONE;
+                return UNFINISHED;
             }
 
-            mQueue.offer( p );
-            p.deref();
-            return FilterErr.DONE;
+            mPacket = p;
+            return OKAY;
         }
 
         @Override
         public Exception exception() {
-            return null;
+            Exception ret = mException;
+            mException = null;
+            return ret;
+        }
+    }
+
+
+    private class MyOut extends OutPadAdapter {
+        @Override
+        public int status() {
+            return mPacket == null ? FILL_FILTER : OKAY;
         }
 
+        @Override
+        public int poll( Refable[] out ) {
+            if( mPacket == null ) {
+                return FILL_FILTER;
+            }
+            out[0] = mPacket;
+            mPacket = null;
+            return OKAY;
+        }
+
+        @Override
+        public void config( StreamHandle stream ) throws IOException {
+            if( stream == null ) {
+                return;
+            }
+
+            AudioFormat fmt = stream.audioFormat();
+            if( fmt == null ) {
+                throw new IllegalArgumentException( "Missing picture format." );
+            }
+
+            mResampler.destFormat( fmt );
+        }
     }
 
 }

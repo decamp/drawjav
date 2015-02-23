@@ -3,6 +3,8 @@ package bits.drawjav;
 import bits.microtime.*;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 
 /**
@@ -11,42 +13,44 @@ import java.util.*;
 public class ClockEventQueue implements SyncClockControl {
 
 
+    private final Queue<ClockEvent> mQueue = new LinkedList<ClockEvent>();
+
+
     public ClockEventQueue( int maxCap ) {}
 
     @Override
-    public void clockStart( long execMicros ) {
-
+    public synchronized void clockStart( long exec ) {
+        mQueue.offer( ClockEvent.createClockStart( this, exec ) );
     }
 
     @Override
-    public void clockStop( long execMicros ) {
-
+    public synchronized void clockStop( long exec ) {
+        mQueue.offer( ClockEvent.createClockStop( this, exec ) );
     }
 
     @Override
-    public void clockSeek( long execMicros, long seekMicros ) {
-
+    public synchronized void clockSeek( long exec, long seek ) {
+        mQueue.offer( ClockEvent.createClockSeek( this, exec, seek ) );
     }
 
     @Override
-    public void clockRate( long execMicros, Frac rate ) {
-
+    public synchronized void clockRate( long exec, Frac rate ) {
+        mQueue.offer( ClockEvent.createClockRate( this, exec, rate ) );
     }
 
 
-
-    public ClockEvent peek() {
-        return null;
+    public synchronized ClockEvent peek() {
+        return mQueue.peek();
     }
 
 
-    public ClockEvent poll() {
-        return null;
+    public synchronized ClockEvent poll() {
+        return mQueue.poll();
     }
 
 
-    public ClockEvent remove() {
-        return null;
+    public synchronized ClockEvent remove() {
+        return mQueue.remove();
     }
 
 }

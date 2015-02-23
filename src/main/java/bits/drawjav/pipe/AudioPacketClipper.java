@@ -13,9 +13,10 @@ import bits.jav.Jav;
 import bits.jav.util.JavMem;
 import bits.jav.util.JavSampleFormat;
 import bits.microtime.*;
+import bits.util.ref.Refable;
+import com.google.common.eventbus.EventBus;
+import com.google.common.eventbus.Subscribe;
 
-import java.io.IOException;
-import java.util.List;
 import java.util.logging.Logger;
 
 
@@ -31,16 +32,14 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
 
     private static final Logger sLog = Logger.getLogger( AudioPacketClipper.class.getName() );
 
-    public static final long    EMPTY_PACKET_MICROS  = 1000000L;
-    private static final boolean SPLIT_EMPTY_PACKETS = true;
+    public static final long EMPTY_PACKET_MICROS = 100000L;
 
     private boolean mOpen = true;
     private AudioAllocator mAlloc;
-    private AudioAllocator mEmptyAlloc;
     private AudioFormat    mFormat;
 
-    private final SinkPad   mSink   = new Sink();
-    private final SourcePad mSource = new Source();
+    private final InPad  mSink   = new Input();
+    private final OutPad mSource = new Source();
 
     private final FullClock mClock = new FullClock( Clock.SYSTEM_CLOCK );
 
@@ -58,41 +57,57 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
     private long         mOutStop;
 
 
-    public AudioPacketClipper( AudioAllocator optFullAlloc, AudioAllocator optEmptyAlloc ) {
+    public AudioPacketClipper( AudioAllocator optFullAlloc ) {
         if( optFullAlloc == null ) {
             mAlloc = new OneStreamAudioAllocator( 32, -1, 1204 * 4 );
         } else {
             mAlloc = optFullAlloc;
             mAlloc.ref();
         }
-
-        if( optEmptyAlloc == null ) {
-            mEmptyAlloc = new OneStreamAudioAllocator( 32, -1, 0 );
-        } else {
-            mEmptyAlloc = optEmptyAlloc;
-            mEmptyAlloc.ref();
-        }
     }
 
 
     @Override
-    public int sinkNum() {
+    public int inputNum() {
         return 1;
     }
 
     @Override
-    public SinkPad sink( int idx ) {
+    public InPad<AudioPacket> input( int idx ) {
         return mSink;
     }
 
     @Override
-    public int sourceNum() {
+    public int outputNum() {
         return 1;
     }
 
     @Override
-    public SourcePad source( int idx ) {
+    public OutPad output( int idx ) {
         return mSource;
+    }
+
+    @Override
+    public void open( EventBus bus ) {
+        if( bus != null ) {
+            bus.register( this );
+        }
+    }
+
+    @Override
+    public void close() {
+        if( !mOpen ) {
+            return;
+        }
+        mOpen = false;
+        mAlloc.deref();
+        mAlloc = null;
+        clear();
+    }
+
+    @Override
+    public synchronized boolean isOpen() {
+        return mOpen;
     }
 
     @Override
@@ -103,44 +118,10 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
         }
     }
 
-    @Override
-    public void close() throws IOException {
-        if( !mOpen ) {
-            return;
-        }
-        mOpen = false;
-        mAlloc.deref();
-        mAlloc = null;
-        mEmptyAlloc.deref();
-        mEmptyAlloc = null;
-        clear();
+    @Subscribe
+    public void processClockEvent( ClockEvent event ) {
+        event.apply( this );
     }
-
-    @Override
-    public synchronized boolean isOpen() {
-        return mOpen;
-    }
-
-
-    public synchronized FilterErr process( AudioPacket packet, List<? super AudioPacket> out ) throws IOException {
-        if( packet == null ) {
-            return FilterErr.DONE;
-        }
-
-        AudioPacket result = null;
-        if( mForward ) {
-            result = clipForward( packet, mClipMicros, mAlloc );
-        } else {
-            result = clipBackward( packet, mClipMicros, mAlloc );
-        }
-
-        if( result != null ) {
-            out.add( result );
-        }
-
-        return FilterErr.DONE;
-    }
-
 
     @Override
     public synchronized void clockStart( long execMicros ) {
@@ -170,18 +151,25 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
 
 
 
-    private void initEmptyOutput( AudioPacket ref ) {
+    private void initSilenceOutput( AudioPacket ref ) {
         mOutIsEmpty = true;
         mOutStart   = ref.startMicros();
         mOutPos     = mClipMicros;
         mOutStop    = ref.stopMicros();
         mOutStream  = ref.stream();
-        mOutFormat  = ref.audioFormat();
-        createNextEmptyOutPacket();
+        mOutFormat  = null;
+        if( mOutStream != null ) {
+            mOutFormat = mOutStream.audioFormat();
+        }
+        if( mOutFormat == null ) {
+            mOutFormat = ref.audioFormat();
+        }
+
+        createNextSilencePacket();
     }
 
 
-    private boolean createNextEmptyOutPacket() {
+    private boolean createNextSilencePacket() {
         long t0;
         long t1;
         if( mForward ) {
@@ -200,21 +188,33 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
             mOutPos = t0;
         }
 
-        mOutPacket = mEmptyAlloc.alloc( mOutFormat, 0 );
+        final int samps = (int)Frac.multLong( t1 - t0, mOutFormat.sampleRate(), 1000000 );
+        mOutPacket = mAlloc.alloc( mOutFormat, samps );
         mOutPacket.init( mOutStream, mOutFormat, t0, t1 );
+        mOutPacket.nbSamples( samps );
+
+        final boolean planar = JavSampleFormat.isPlanar( mOutFormat.sampleFormat() );
+        final int     chans  = planar ? mOutFormat.channels() : 1;
+        final int     len    = mOutPacket.lineSize( 0 );
+        for( int i = 0; i < chans; i++ ) {
+            JavMem.memset( mOutPacket.extendedDataElem( i ), 0, len );
+        }
+
         return true;
     }
 
 
-    private class Sink implements SinkPad {
+
+    private class Input extends InPadAdapter<Packet> {
+
         @Override
-        public FilterErr offer( Packet packet, long blockMicros ) {
+        public int offer( Packet packet ) {
             if( packet == null ) {
-                return FilterErr.DONE;
+                return OKAY;
             }
 
             if( mOutPacket != null ) {
-                return FilterErr.OVERFLOW;
+                return DRAIN_FILTER;
             }
 
             AudioPacket p = (AudioPacket)packet;
@@ -225,63 +225,43 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
                     mOutPacket = clipBackward( p, mClipMicros, mAlloc );
                 }
                 mOutIsEmpty = false;
-                return FilterErr.DONE;
-            }
-
-            if( !SPLIT_EMPTY_PACKETS ) {
-                if( mForward ) {
-                    mOutPacket = clipForward( p, mClipMicros, mEmptyAlloc );
-                } else {
-                    mOutPacket = clipBackward( p, mClipMicros, mEmptyAlloc );
-                }
-                mOutIsEmpty = false;
-                return FilterErr.DONE;
+                return OKAY;
             }
 
             // Empty packet.
-            initEmptyOutput( p );
-            return FilterErr.DONE;
+            initSilenceOutput( p );
+            return OKAY;
         }
 
         @Override
-        public int available() {
-            return mOutPacket == null ? 1 : 0;
-        }
-
-        @Override
-        public Exception exception() {
-            return null;
+        public int status() {
+            return mOutPacket == null ? OKAY : DRAIN_FILTER;
         }
     }
 
 
-    private class Source implements SourcePad {
+    private class Source extends OutPadAdapter {
+
         @Override
-        public FilterErr remove( Packet[] out, long blockMicros ) throws IOException {
+        public int status() {
+            return mOutPacket == null ? FILL_FILTER : OKAY;
+        }
+
+        @Override
+        public int poll( Refable[] out ) {
             if( mOutPacket == null ) {
-                return FilterErr.UNDERFLOW;
+                return FILL_FILTER;
             }
 
             out[0] = mOutPacket;
             mOutPacket = null;
             if( mOutIsEmpty ) {
-                createNextEmptyOutPacket();
+                createNextSilencePacket();
             }
-            return FilterErr.DONE;
-        }
-
-        @Override
-        public int available() {
-            return mOutPacket == null ? 0 : 1;
-        }
-
-        @Override
-        public Exception exception() {
-            return null;
+            return OKAY;
         }
 
     }
-
 
 
     public static AudioPacket clipForward( AudioPacket packet, long clipMicros, AudioAllocator alloc ) {
@@ -368,45 +348,5 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
         ret.init( packet.stream(), format, packet.startMicros(), clipMicros );
         return ret;
     }
-
-
-//    public static void copyBackward( ByteBuffer src, int srcOff, ByteBuffer dst, int dstOff, int sampNum, int sampSize ) throws IllegalArgumentException {
-//        src.clear();
-//        dst.clear().position( dstOff );
-//        srcOff += ( sampNum - 1 ) * sampSize;
-//
-//        switch( sampSize ) {
-//        case 8:
-//            for( int i = 0; i < sampNum; i++ ) {
-//                dst.putLong( src.getLong( srcOff - i * sampSize ) );
-//            }
-//            break;
-//
-//        case 4:
-//            for( int i = 0; i < sampNum; i++ ) {
-//                dst.putInt( src.getInt( srcOff - i * sampSize ) );
-//            }
-//            break;
-//
-//        case 2:
-//            for( int i = 0; i < sampNum; i++ ) {
-//                dst.putShort( src.getShort( srcOff - i * sampSize) );
-//            }
-//            break;
-//
-//        case 1:
-//            for( int i = 0; i < sampNum; i++ ) {
-//                dst.put( src.get( srcOff - i * sampSize ) );
-//            }
-//            break;
-//
-//        default:
-//            for( int i = 0; i < sampNum; i++ ) {
-//                src.position( srcOff ).limit( srcOff + sampSize );
-//                dst.put( src );
-//                srcOff -= sampSize;
-//            }
-//        }
-//    }
 
 }
