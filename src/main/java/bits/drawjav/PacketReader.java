@@ -22,6 +22,12 @@ public interface PacketReader extends Channel {
     public boolean isStreamOpen( StreamHandle stream );
 
     public void seek( long micros ) throws IOException;
+
+    /**
+     * @return The next packet, or possibly {@code null}. It may take multiple calls to receive a packet.
+     * @throws java.io.EOFException if no more packets are available.
+     * @throws java.io.IOException on other exceptions.
+     */
     public Packet readNext() throws IOException;
 
     public void close() throws IOException;

@@ -16,6 +16,6 @@ import bits.util.ref.Refable;
  *
  * @author Philip DeCamp
  */
-public interface AudioAllocator extends ObjectPool<AudioPacket>, Refable {
+public interface AudioAllocator extends Refable {
     public AudioPacket alloc( AudioFormat format, int numSamples );
 }

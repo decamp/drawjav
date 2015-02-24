@@ -59,7 +59,7 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
 
     public AudioPacketClipper( AudioAllocator optFullAlloc ) {
         if( optFullAlloc == null ) {
-            mAlloc = new OneStreamAudioAllocator( 32, -1, 1204 * 4 );
+            mAlloc = OneStreamAudioAllocator.createPacketLimited( 32, 1204 * 4 );
         } else {
             mAlloc = optFullAlloc;
             mAlloc.ref();

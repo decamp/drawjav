@@ -35,11 +35,19 @@ public class PoolMemoryManager implements MemoryManager {
 
     @Override
     public VideoAllocator videoAllocator( StreamHandle stream, PictureFormat format ) {
-        return new OneStreamVideoAllocator( mVideoItemCap, mVideoByteCap );
+        if( mVideoItemCap > 0 || mVideoByteCap <= 0 ) {
+            return OneStreamVideoAllocator.createPacketLimited( mVideoItemCap );
+        } else {
+            return OneStreamVideoAllocator.createByteLimited( mVideoByteCap );
+        }
     }
 
     @Override
     public AudioAllocator audioAllocator( StreamHandle stream, AudioFormat format ) {
-        return new OneStreamAudioAllocator( mAudioItemCap, mAudioByteCap, -1 );
+        if( mAudioItemCap > 0 || mAudioByteCap <= 0 ) {
+            return OneStreamAudioAllocator.createPacketLimited( mAudioItemCap, -1 );
+        } else {
+            return OneStreamAudioAllocator.createByteLimited( mAudioByteCap, -1 );
+        }
     }
 }

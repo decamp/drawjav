@@ -6,14 +6,13 @@
 
 package bits.drawjav.video;
 
+import java.util.logging.Logger;
+
+import bits.drawjav.CostMetric;
+import bits.drawjav.CostPool;
 import bits.jav.JavException;
 import bits.jav.codec.JavFrame;
 import bits.util.ref.AbstractRefable;
-import bits.util.ref.Refable;
-
-import java.nio.ByteBuffer;
-import java.util.*;
-import java.util.logging.Logger;
 
 
 /**
@@ -27,27 +26,37 @@ import java.util.logging.Logger;
  */
 public class OneStreamVideoAllocator extends AbstractRefable implements VideoAllocator {
 
-    private static final Logger sLog = Logger.getLogger( OneStreamVideoAllocator.class.getName() );
+    private static final Logger LOG = Logger.getLogger( OneStreamVideoAllocator.class.getName() );
 
-    private final Stack<VideoPacket> mPool = new Stack<VideoPacket>();
-    private final long mByteCap;
-    private       int  mItemCap;
+    private static final CostMetric<JavFrame> BYTE_COST = new CostMetric<JavFrame>() {
+        @Override
+        public long costOf( JavFrame p ) {
+            return 512 + p.useableBufElemSize( 0 );
+        }
+    };
+
+    public static OneStreamVideoAllocator createPacketLimited( int maxPackets ) {
+        CostPool<VideoPacket> pool = new CostPool<VideoPacket>( maxPackets, maxPackets * 100, null );
+        return new OneStreamVideoAllocator( pool );
+    }
+
+    public static OneStreamVideoAllocator createByteLimited( long maxBytes ) {
+        CostPool<VideoPacket> pool = new CostPool<VideoPacket>( maxBytes, maxBytes * 100, BYTE_COST );
+        return new OneStreamVideoAllocator( pool );
+    }
+
+
+
+    private final CostPool<VideoPacket> mPool;
 
     private PictureFormat mPoolFormat;
-    private long          mPoolSize;
 
     private boolean mHasFormat        = false;
     private boolean mHasChangedFormat = false;
-    private boolean mDropping         = false;
-
-    // Number of frames not returned.
-    private int mOutstandingNum         = 0;
-    private int mOutstandingCountThresh = 1000;
 
 
-    public OneStreamVideoAllocator( int itemMax, long byteMax ) {
-        mItemCap = itemMax;
-        mByteCap = byteMax;
+    OneStreamVideoAllocator( CostPool<VideoPacket> pool ) {
+        mPool = pool;
     }
 
 
@@ -58,92 +67,29 @@ public class OneStreamVideoAllocator extends AbstractRefable implements VideoAll
         }
 
         mHasFormat = true;
-        VideoPacket packet = poll();
+        VideoPacket packet = mPool.poll();
         if( packet != null ) {
             return packet;
         }
 
-        mOutstandingNum++;
-
-        if( mOutstandingNum > mOutstandingCountThresh && mOutstandingCountThresh > 0 ) {
-            mOutstandingCountThresh = -1;
-            sLog.warning( "Video frames not being recycled. There is likely a memory leak." );
-        }
-
         if( format != null ) {
             try {
-                return VideoPacket.createFilled( this, format );
+                packet = VideoPacket.createFilled( mPool, format );
             } catch( JavException ex ) {
                 throw new RuntimeException( ex );
             }
         } else {
-            return VideoPacket.createAuto( this );
-        }
-    }
-
-
-    public synchronized boolean offer( VideoPacket obj ) {
-        if( mDropping ) {
-            return false;
+            packet = VideoPacket.createAuto( mPool );
         }
 
-        mOutstandingNum--;
-
-        if( mItemCap >= 0 && mPool.size() >= mItemCap ) {
-            return false;
-        }
-
-        PictureFormat fmt = obj.pictureFormat();
-        if( !checkFormat( fmt, mPoolFormat ) ) {
-            return false;
-        }
-
-        long size = itemSize( obj );
-        if( mByteCap >= 0 && mPoolSize + size >= mByteCap ) {
-            return false;
-        }
-
-        mPool.push( obj );
-        mPoolSize += size;
-        return true;
-    }
-
-
-    public synchronized VideoPacket poll() {
-        int n = mPool.size();
-        switch( n ) {
-        case 0:
-            return null;
-        case 1:
-            mPoolSize = 0;
-            mOutstandingNum++;
-            return mPool.pop();
-        default:
-            VideoPacket p = mPool.pop();
-            mPoolSize -= itemSize( p );
-            mOutstandingNum++;
-            return p;
-        }
+        mPool.allocated( packet );
+        return packet;
     }
 
     @Override
     protected void freeObject() {
-        mItemCap = 0;
-
-        List<Refable> clear;
-        synchronized( this ) {
-            if( mPool.isEmpty() ) {
-                return;
-            }
-            clear = new ArrayList<Refable>( mPool );
-            mPool.clear();
-        }
-
-        for( Refable p : clear ) {
-            drop( p );
-        }
+        mPool.close();
     }
-
 
 
     private boolean checkFormat( PictureFormat a, PictureFormat b ) {
@@ -158,34 +104,6 @@ public class OneStreamVideoAllocator extends AbstractRefable implements VideoAll
     }
 
 
-    private void drop( Refable ref ) {
-        // Refable object likely to offer itself on deref, thus the "mDropping" var.
-        // Would be better to have separate method, but I didn't want to change the Refable API.
-        mDropping = true;
-        ref.deref();
-        mDropping = false;
-    }
-
-
-    private int itemSize( VideoPacket p ) {
-        if( mByteCap < 0 ) {
-            return 0;
-        }
-
-        int size = 0;
-        ByteBuffer buf = p.javaBufElem( 0 );
-        if( buf != null ) {
-            size = buf.capacity();
-        } else {
-            PictureFormat fmt = p.pictureFormat();
-            if( fmt != null ) {
-                size = JavFrame.computeVideoBufferSize( fmt.width(), fmt.height(), fmt.pixelFormat() );
-            }
-        }
-        return Math.max( 0, size ) + 256;
-    }
-
-
     private PictureFormat setPoolFormat( PictureFormat format ) {
         if( !PictureFormat.isFullyDefined( format ) ) {
             return mPoolFormat;
@@ -195,13 +113,11 @@ public class OneStreamVideoAllocator extends AbstractRefable implements VideoAll
 
         if( mHasFormat && !mHasChangedFormat ) {
             mHasChangedFormat = true;
-            sLog.warning( "OneStreamVideoAllocator is being used for mutliple video formats. Performance may be degraded." );
+            LOG.warning(
+                    "OneStreamVideoAllocator is being used for mutliple video formats. Performance may be degraded." );
         }
 
-        while( !mPool.isEmpty() ) {
-            drop( mPool.pop() );
-        }
-
+        mPool.clear();
         return format;
     }
 

@@ -15,6 +15,6 @@ import bits.util.ref.Refable;
  *
  * @author Philip DeCamp
  */
-public interface VideoAllocator extends ObjectPool<VideoPacket>, Refable {
+public interface VideoAllocator extends Refable {
     public VideoPacket alloc( PictureFormat format );
 }
