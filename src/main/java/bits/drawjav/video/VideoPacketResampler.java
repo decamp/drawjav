@@ -104,15 +104,14 @@ public class VideoPacketResampler {
 
 
     public VideoPacket convert( VideoPacket source ) throws JavException {
-        PictureFormat format = source.pictureFormat();
-        if( format != mSourceFormat ) {
-            if( format != null && format.equals( mSourceFormat ) ) {
-                mSourceFormat = format;
-            } else {
-                mSourceFormat = format;
-                mNeedsInit = true;
-                updateDestFormat();
-            }
+        if( source.isGap() ) {
+            return source;
+        }
+
+        if( mSourceFormat == null || !mSourceFormat.matches( source ) ) {
+            mSourceFormat = source.toPictureFormat();
+            mNeedsInit = true;
+            updateDestFormat();
         }
 
         if( mNeedsInit ) {
@@ -124,9 +123,8 @@ public class VideoPacketResampler {
             return source;
         }
 
-        format = mDestFormat;
-        VideoPacket dest = mAlloc.alloc( format );
-        dest.init( source.stream(), format, source.startMicros(), source.stopMicros() );
+        VideoPacket dest = mAlloc.alloc( mDestFormat );
+        dest.init( source.stream(), source.startMicros(), source.stopMicros(), mDestFormat, false );
         mConverter.conv( source, dest );
         return dest;
     }

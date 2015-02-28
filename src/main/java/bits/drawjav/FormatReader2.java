@@ -6,20 +6,21 @@
 
 package bits.drawjav;
 
+import bits.drawjav.audio.*;
+import bits.drawjav.video.*;
+import bits.jav.Jav;
+import bits.jav.JavException;
+import bits.jav.codec.*;
+import bits.jav.format.JavFormatContext;
+import bits.jav.format.JavStream;
+import bits.jav.util.Rational;
+import bits.util.Guid;
+
 import java.io.*;
 import java.nio.channels.ClosedChannelException;
 import java.util.*;
 
-import bits.util.Guid;
-import bits.jav.*;
 import static bits.jav.Jav.*;
-
-import bits.jav.codec.*;
-import bits.jav.format.*;
-import bits.jav.util.Rational;
-
-import bits.drawjav.audio.*;
-import bits.drawjav.video.*;
 
 
 /**
@@ -31,40 +32,40 @@ import bits.drawjav.video.*;
  *
  * @author decamp
  */
-public class FormatReader implements PacketReader {
+public class FormatReader2 implements PacketReader {
 
-    public static FormatReader openFile( File file ) throws IOException {
+    public static FormatReader2 openFile( File file ) throws IOException {
         return openFile( file, false, 0L, null );
     }
 
 
-    public static FormatReader openFile( File file,
-                                         boolean overrideStartMicros,
-                                         long startMicros,
-                                         MemoryManager optMem )
-                                         throws IOException
+    public static FormatReader2 openFile( File file,
+                                          boolean overrideStartMicros,
+                                          long startMicros,
+                                          MemoryManager optMem )
+                                          throws IOException
     {
         Jav.init();
         if( !file.exists() ) {
             throw new FileNotFoundException();
         }
         JavFormatContext format = JavFormatContext.openInput( file );
-        return new FormatReader( format, overrideStartMicros, startMicros, optMem );
+        return new FormatReader2( format, overrideStartMicros, startMicros, optMem );
     }
 
 
-    public static FormatReader open( JavFormatContext format ) throws IOException {
+    public static FormatReader2 open( JavFormatContext format ) throws IOException {
         return open( format, false, 0L, null );
     }
 
 
-    public static FormatReader open( JavFormatContext format,
+    public static FormatReader2 open( JavFormatContext format,
                                       boolean overrideStartMicros,
                                       long startMicros,
                                       MemoryManager optMem )
                                       throws IOException
     {
-        return new FormatReader( format, overrideStartMicros, startMicros, optMem );
+        return new FormatReader2( format, overrideStartMicros, startMicros, optMem );
     }
 
 
@@ -89,10 +90,10 @@ public class FormatReader implements PacketReader {
     private boolean mIsOpen = true;
 
 
-    private FormatReader( JavFormatContext format,
-                          boolean overrideStartMicros,
-                          long startMicros,
-                          MemoryManager optMem )
+    private FormatReader2( JavFormatContext format,
+                           boolean overrideStartMicros,
+                           long startMicros,
+                           MemoryManager optMem )
     {
         if( optMem == null ) {
             optMem = new PoolMemoryManager( 64, 1024 * 1024 * 4, 32, 1024 * 1024 * 16 );
@@ -148,7 +149,6 @@ public class FormatReader implements PacketReader {
     public JavFormatContext formatContext() {
         return mFormat;
     }
-
 
     @Override
     public boolean isOpen() {
@@ -306,7 +306,7 @@ public class FormatReader implements PacketReader {
      * queries otherwise.
      *
      * @param micros
-     * @throws JavException
+     * @throws bits.jav.JavException
      */
     public void seekAll( long micros ) throws IOException {
         if( !hasOpenStream() ) {
@@ -394,6 +394,11 @@ public class FormatReader implements PacketReader {
         Packet ret = mStreams[idx].process( mPacket, false );
         mPacketValid = mPacket.size() > 0;
         return ret;
+    }
+
+
+    public Packet readPrev() throws IOException {
+        return null;
     }
 
 

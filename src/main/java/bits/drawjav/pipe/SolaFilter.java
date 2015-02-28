@@ -148,7 +148,7 @@ public class SolaFilter implements Filter {
             long t0 = mSrc.startMicros();
             long t1 = mSrc.stopMicros();
             long mDstStop = t0 + (long)( p * ( t1 - t0 ) );
-            mDst.init( mStream, mFormat, mDstStart, mDstStop );
+            mDst.init( mStream, mDstStart, mDstStop, mFormat, false );
             mDstStart = mDstStop;
             mNeedDrain = true;
         }

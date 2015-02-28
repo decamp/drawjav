@@ -20,7 +20,7 @@ import bits.jav.Jav;
 public class VideoPackets {
 
     public static void toArgb( VideoPacket frame, boolean flip, IntFrame out ) {
-        int h = frame.pictureFormat().height();
+        int h = frame.height();
         if( !flip ) {
             toArgb( frame, 0, h, out );
         } else {
@@ -30,13 +30,14 @@ public class VideoPackets {
 
 
     public static void toArgb( VideoPacket frame, int yStart, int yStop, IntFrame out ) {
-        final PictureFormat format = frame.pictureFormat();
-        final int w = format.width();
+        //final PictureFormat format = frame.pictureFormat();
+        final int w = frame.width();
         final int h = ( yStart < yStop ) ? yStop - yStart : yStart - yStop;
 
-        RowReader reader = readerFor( format.pixelFormat() );
+        int pixFmt = frame.format();
+        RowReader reader = readerFor( pixFmt );
         if( reader == null ) {
-            throw new IllegalArgumentException( "Unsupported pixel format: " + format.pixelFormat() );
+            throw new IllegalArgumentException( "Unsupported pixel format: " + pixFmt );
         }
 
         out.resize( w, h, w );
@@ -61,16 +62,15 @@ public class VideoPackets {
 
     
     public static void toBufferedImage( VideoPacket frame, boolean flip, BufferedImage out, int[] optRow ) {
-        PictureFormat format = frame.pictureFormat();
-        int w = format.width();
-        int h = format.height();
+        int w = frame.width();
+        int h = frame.height();
         if( w != out.getWidth() || h != out.getHeight() ) {
             throw new IllegalArgumentException( "Dimensions don't match." );
         }
-        
-        RowReader reader = readerFor( format.pixelFormat() );
+
+        RowReader reader = readerFor( frame.format() );
         if( reader == null ) {
-            throw new IllegalArgumentException( "Unsupported pixel format: " + format.pixelFormat() );
+            throw new IllegalArgumentException( "Unsupported pixel format: " + frame.format() );
         }
         
         final int[] row = ( optRow != null && optRow.length >= w ) ? optRow : new int[w];

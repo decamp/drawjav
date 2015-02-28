@@ -7,6 +7,7 @@
 package bits.drawjav.audio;
 
 import bits.jav.codec.JavCodecContext;
+import bits.jav.codec.JavFrame;
 import bits.jav.util.JavChannelLayout;
 import bits.jav.util.JavSampleFormat;
 
@@ -23,16 +24,24 @@ import static bits.jav.Jav.*;
  */
 public class AudioFormat {
 
-
     public static AudioFormat fromCodecContext( JavCodecContext cc ) {
-        return new AudioFormat( cc.channels(), cc.sampleRate(), cc.sampleFormat(), cc.channelLayout() );
+        AudioFormat ret = new AudioFormat();
+        ret.set( cc );
+        return ret;
     }
 
 
-    private final int mChannels;
-    private final int mSampleRate;
-    private final int mSampleFormat;
-    private final long mLayout;
+    public static AudioFormat fromPacket( JavFrame frame ) {
+        AudioFormat ret = new AudioFormat();
+        ret.set( frame );
+        return ret;
+    }
+
+
+    public int  mChannels;
+    public int  mSampleRate;
+    public int  mSampleFormat;
+    public long mLayout;
 
 
     public AudioFormat() {
@@ -91,10 +100,38 @@ public class AudioFormat {
 
     /**
      * @return channel layout, as described by Jav.AV_CH_LAYOUT_*.
+     *         Default is Jav.AV_CH_LAYOUT_NATIVE
      */
     public long channelLayout() {
         return mLayout;
     }
+
+
+
+    public void set( JavCodecContext cc ) {
+        mChannels = cc.channels();
+        mSampleRate = cc.sampleRate();
+        mSampleFormat = cc.sampleFormat();
+        mLayout = cc.channelLayout();
+    }
+
+
+    public void set( JavFrame frame ) {
+        mChannels = frame.channels();
+        mSampleRate = frame.sampleRate();
+        mSampleFormat = frame.format();
+        mLayout = frame.channelLayout();
+    }
+
+
+    public boolean matches( JavFrame frame ) {
+        return mChannels == frame.channels() &&
+               mSampleRate == frame.sampleRate() &&
+               mSampleFormat == frame.format() &&
+               mLayout == frame.channelLayout();
+    }
+
+
 
     @Override
     public boolean equals( Object o ) {

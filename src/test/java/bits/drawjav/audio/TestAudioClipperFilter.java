@@ -71,7 +71,7 @@ public class TestAudioClipperFilter {
     public void testSmallEmpty() throws IOException {
         AudioFormat format = new AudioFormat( 1, 44100, Jav.AV_SAMPLE_FMT_NONE );
         AudioPacket p = AudioPacket.createAuto( null );
-        p.init( null, format, 0, 20000L );
+        p.init( null, 0, 20000L, format, false );
 
         AudioPacketClipper clipper = new AudioPacketClipper( null );
         clipper.clockSeek( 0, (p.startMicros() + p.stopMicros()) / 2 );
@@ -107,7 +107,7 @@ public class TestAudioClipperFilter {
     public void testBigEmptyForward() throws IOException {
         AudioFormat format = new AudioFormat( 1, 44100, Jav.AV_SAMPLE_FMT_NONE );
         AudioPacket p = AudioPacket.createAuto( null );
-        p.init( null, format, 0, 320000L );
+        p.init( null, 0, 320000L, format, false );
 
         AudioPacketClipper clipper = new AudioPacketClipper( null );
         clipper.clockSeek( 0, 10000L );
@@ -154,7 +154,7 @@ public class TestAudioClipperFilter {
     public void testBigEmptyBackward() throws IOException {
         AudioFormat format = new AudioFormat( 1, 44100, Jav.AV_SAMPLE_FMT_NONE );
         AudioPacket p = AudioPacket.createAuto( null );
-        p.init( null, format, 0, 320000L );
+        p.init( null, 0, 320000L, format, false );
 
         AudioPacketClipper clipper = new AudioPacketClipper( null );
         clipper.clockSeek( 0, 310000L );

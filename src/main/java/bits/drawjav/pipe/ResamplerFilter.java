@@ -8,7 +8,6 @@ package bits.drawjav.pipe;
 
 import bits.drawjav.StreamHandle;
 import bits.drawjav.audio.*;
-import bits.jav.Jav;
 import bits.jav.JavException;
 import bits.util.ref.Refable;
 import com.google.common.eventbus.EventBus;
@@ -94,8 +93,7 @@ public class ResamplerFilter implements Filter {
             }
 
             // Check for empty packet.
-            AudioFormat fmt = packet.audioFormat();
-            if( fmt.sampleFormat() == Jav.AV_SAMPLE_FMT_NONE ) {
+            if( packet.isGap() ) {
                 mPacket = packet;
                 packet.ref();
                 return OKAY;

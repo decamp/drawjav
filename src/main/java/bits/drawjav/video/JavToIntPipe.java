@@ -44,8 +44,7 @@ public class JavToIntPipe implements Sink<VideoPacket> {
         }
 
         if( mCropTop > 0 || mCropBottom > 0 ) {
-            PictureFormat form = frame.pictureFormat();
-            VideoPackets.toArgb( frame, mCropTop, form.height() - mCropBottom, ff );
+            VideoPackets.toArgb( frame, mCropTop, frame.height() - mCropBottom, ff );
         } else {
             VideoPackets.toArgb( frame, false, ff );
         }

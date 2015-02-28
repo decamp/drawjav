@@ -8,6 +8,7 @@ package bits.drawjav.video;
 
 import bits.jav.Jav;
 import bits.jav.codec.JavCodecContext;
+import bits.jav.codec.JavFrame;
 import bits.jav.util.Rational;
 
 import static bits.jav.Jav.*;
@@ -20,22 +21,31 @@ import static bits.jav.Jav.*;
  */
 public class PictureFormat {
 
+    private static final Rational ZERO = new Rational( 0, 1 );
+
+
     public static PictureFormat fromCodecContext( JavCodecContext cc ) {
-        return new PictureFormat( cc.width(),
-                                  cc.height(),
-                                  cc.pixelFormat(),
-                                  cc.sampleAspectRatio() );
+        PictureFormat ret = new PictureFormat();
+        ret.set( cc );
+        return ret;
     }
 
 
-    private final int      mWidth;
-    private final int      mHeight;
-    private final int      mPixelFormat;
-    private final Rational mSampleAspect;
+    public static PictureFormat fromPacket( JavFrame frame ) {
+        PictureFormat ret = new PictureFormat();
+        ret.set( frame );
+        return ret;
+    }
+
+
+    public int      mWidth;
+    public int      mHeight;
+    public int      mPixelFormat;
+    public Rational mSampleAspect;
 
 
     public PictureFormat() {
-        this( -1, -1, AV_PIX_FMT_NONE, null );
+        this( -1, -1, AV_PIX_FMT_NONE, ZERO );
     }
 
     /**
@@ -44,22 +54,21 @@ public class PictureFormat {
      * @param pixelFormat PixelFormat of picture, or -1 (PIX_FMT_NONE) if undefined.
      */
     public PictureFormat( int width, int height, int pixelFormat ) {
-        this( width, height, pixelFormat, null );
+        this( width, height, pixelFormat, ZERO );
     }
 
     /**
      * @param width        Width of picture, or -1 if undefined.
      * @param height       Height of picture, or -1 if undefined.
      * @param pixelFormat  PixelFormat of picture, or -1 (PIX_FMT_NONE) if undefined.
-     * @param sampleAspect Aspect ratio of samples (pixels), or null if undefined.
+     * @param sampleAspect Aspect ratio of samples (pixels), {@code null or 0/1} if undefined.
      */
     public PictureFormat( int width, int height, int pixelFormat, Rational sampleAspect ) {
         mWidth = width >= 0 ? width : -1;
         mHeight = height >= 0 ? height : -1;
         mPixelFormat = pixelFormat;
-
         if( sampleAspect == null || sampleAspect.num() == 0 || sampleAspect.den() == 0 ) {
-            mSampleAspect = null;
+            mSampleAspect = ZERO;
         } else {
             mSampleAspect = sampleAspect;
         }
@@ -95,15 +104,40 @@ public class PictureFormat {
     }
 
     /**
-     * @return aspect ratio of samples (pixels), or null if undefined.
+     * @return aspect ratio of samples (pixels). {@code 0/1} if undefined.
      */
     public Rational sampleAspect() {
         return mSampleAspect;
     }
 
+
+    public void set( JavCodecContext cc ) {
+        mWidth = cc.width();
+        mHeight = cc.height();
+        mPixelFormat = cc.pixelFormat();
+        mSampleAspect = cc.sampleAspectRatio();
+    }
+
+
+    public void set( JavFrame frame ) {
+        mWidth = frame.width();
+        mHeight = frame.height();
+        mPixelFormat = frame.format();
+        mSampleAspect = frame.sampleAspectRatio();
+    }
+
+
+    public boolean matches( JavFrame frame ) {
+        return mWidth == frame.width() &&
+               mHeight == frame.height() &&
+               mPixelFormat == frame.format() &&
+               mSampleAspect.equals( frame.sampleAspectRatio() );
+    }
+
+
     @Override
     public int hashCode() {
-        return mWidth ^ (mHeight << 16) ^ (mHeight >>> 16) ^ mPixelFormat;
+        return mWidth ^ (mHeight << 16) ^ (mHeight >>> 16) ^ mPixelFormat ^ mSampleAspect.hashCode();
     }
 
     @Override
@@ -112,15 +146,11 @@ public class PictureFormat {
             return false;
         }
         PictureFormat p = (PictureFormat)obj;
-
-        if( mWidth != p.mWidth ||
-            mHeight != p.mHeight ||
-            mPixelFormat != p.mPixelFormat )
-        {
-            return false;
-        }
-
-        return ( mSampleAspect == p.mSampleAspect ) || ( mSampleAspect != null ) && mSampleAspect.equals( p.mSampleAspect );
+        return this == p ||
+               mWidth == p.mWidth &&
+               mHeight == p.mHeight &&
+               mPixelFormat == p.mPixelFormat &&
+               mSampleAspect.equals( p.sampleAspect() );
     }
 
 
@@ -132,7 +162,7 @@ public class PictureFormat {
         s.append( ", fmt: " );
         s.append( mPixelFormat );
 
-        if( mSampleAspect != null ) {
+        if( mSampleAspect.num() != 0 ) {
             s.append( ", aspect: " );
             s.append( mSampleAspect.num() );
             s.append( "/" ).append( mSampleAspect.den() );
@@ -188,7 +218,8 @@ public class PictureFormat {
             return false;
         }
 
-        if( source.sampleAspect() != null && dest.sampleAspect() != null &&
+        if( source.sampleAspect().num() != 0 &&
+            dest.sampleAspect().num() != 0 &&
             !source.sampleAspect().equals( dest.sampleAspect() ) )
         {
             return false;
@@ -224,8 +255,8 @@ public class PictureFormat {
         Rational outAspect = requested.sampleAspect();
         double aspectScale = 1.0;
 
-        if( inAspect != null ) {
-            if( outAspect != null ) {
+        if( inAspect.num() != 0 ) {
+            if( outAspect.num() != 0 ) {
                 aspectScale = outAspect.toDouble() / inAspect.toDouble();
             } else {
                 outAspect = inAspect;
@@ -267,7 +298,7 @@ public class PictureFormat {
             outHeight = 0;
         }
 
-        if( requested.sampleAspect() == null && inAspect != null ) {
+        if( requested.sampleAspect().num() == 0 && inAspect.num() != 0 ) {
             int anum  = inAspect.den() * inWidth * outHeight;
             int aden  = inAspect.num() * outWidth * inHeight;
             outAspect = Rational.reduce( anum, aden );

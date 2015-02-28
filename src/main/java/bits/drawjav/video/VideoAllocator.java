@@ -6,7 +6,6 @@
 
 package bits.drawjav.video;
 
-import bits.util.ref.ObjectPool;
 import bits.util.ref.Refable;
 
 /**

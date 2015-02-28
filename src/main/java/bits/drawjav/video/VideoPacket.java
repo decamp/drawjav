@@ -1,4 +1,4 @@
-/*
+    /*
  * Copyright (c) 2014. Massachusetts Institute of Technology
  * Released under the BSD 2-Clause License
  * http://opensource.org/licenses/BSD-2-Clause
@@ -12,6 +12,7 @@ import bits.drawjav.Packet;
 import bits.drawjav.StreamHandle;
 import bits.jav.JavException;
 import bits.jav.codec.*;
+import bits.jav.util.Rational;
 import bits.util.ref.*;
 
 
@@ -19,7 +20,9 @@ import bits.util.ref.*;
  * @author decamp
  */
 public class VideoPacket extends JavFrame implements Packet {
-    
+
+    private static final Rational ONE = new Rational( 1, 1 );
+
     
     public static VideoPacket createAuto( ObjectPool<? super VideoPacket> optPool ) {
         long p = nAllocFrame();
@@ -52,28 +55,38 @@ public class VideoPacket extends JavFrame implements Packet {
         }
         VideoPacket ret = new VideoPacket( pointer, optPool );
         ret.fillVideoFrame( format.width(), format.height(), format.pixelFormat(), buf );
-        ret.pictureFormat( format );
+        ret.mFormat = format;
+        Rational rat = format.sampleAspect();
+        if( rat != null ) {
+            ret.sampleAspectRatio( rat );
+        }
         return ret;
     }
 
 
-    private StreamHandle mStream;
-    private long         mStartMicros;
-    private long         mStopMicros;
+    private StreamHandle  mStream;
+    private PictureFormat mFormat;
+    private long          mStartMicros;
+    private long          mStopMicros;
+    private boolean       mIsGap;
 
-    private PictureFormat mPictureFormat;
 
-
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    private VideoPacket( long pointer, ObjectPool<? super VideoPacket> pool ) {
+    @SuppressWarnings( { "unchecked", "rawtypes" } )
+    private VideoPacket( long pointer, ObjectPool<? super VideoPacket> pool )
+    {
         super( pointer, (ObjectPool)pool );
     }
 
 
+    @Override
     public StreamHandle stream() {
         return mStream;
     }
 
+
+    public void stream( StreamHandle stream ) {
+        mStream = stream;
+    }
 
     @Override
     public long startMicros() {
@@ -81,45 +94,68 @@ public class VideoPacket extends JavFrame implements Packet {
     }
 
 
+    public void startMicros( long startMicros ) {
+        mStartMicros = startMicros;
+    }
+
     @Override
     public long stopMicros() {
         return mStopMicros;
     }
 
 
-    public PictureFormat pictureFormat() {
-        return mPictureFormat;
+    public void stopMicros( long stopMicros ) {
+        mStopMicros  = stopMicros;
     }
 
-    /**
-     * Associates frame with a different picture format object,
-     * but DOES NOT make any changes to underlying data.
-     *
-     * @param pictureFormat
-     */
-    public void pictureFormat( PictureFormat pictureFormat ) {
-        mPictureFormat = pictureFormat;
+
+    public boolean isGap() {
+        return mIsGap;
+    }
+
+
+    public void isGap( boolean gap ) {
+        mIsGap = gap;
+    }
+
+
+    public void setFormat( PictureFormat format ) {
+        format( format.pixelFormat() );
+        width( format.width() );
+        height( format.height() );
+        sampleAspectRatio( format.sampleAspect() );
+    }
+
+
+    public PictureFormat toPictureFormat() {
+        Rational aspect = sampleAspectRatio();
+        if( aspect.num() == 0 ) {
+            aspect = null;
+        }
+        return new PictureFormat( width(), height(), format(), aspect );
     }
 
     /**
      * Initializes packet object. 
      *
-     * @param stream
-     * @param format
+     * @param optStream
+     * @param optFormat
      * @param startMicros
      * @param stopMicros
      */
-    public void init( StreamHandle stream,
-                      PictureFormat format,
+    public void init( StreamHandle optStream,
                       long startMicros,
-                      long stopMicros )
+                      long stopMicros,
+                      PictureFormat optFormat,
+                      boolean isGap )
     {
-        mStream = stream;
+        mStream = optStream;
         mStartMicros = startMicros;
         mStopMicros = stopMicros;
-
-        pictureFormat( format );
+        mIsGap = isGap;
+        if( optFormat != null ) {
+            setFormat( optFormat );
+        }
     }
-
 
 }

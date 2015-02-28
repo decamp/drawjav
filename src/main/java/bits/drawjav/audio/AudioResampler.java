@@ -124,11 +124,16 @@ public class AudioResampler implements PacketConverter<AudioPacket> {
 
 
     public AudioPacket convert( AudioPacket source ) throws JavException {
-        AudioFormat format = source.audioFormat();
-        if( format != mSourceFormat ) {
-            if( format != null && format.equals( mSourceFormat ) ) {
-                mSourceFormat = format;
-            } else {
+        if( source.isGap() ) {
+            return source;
+        }
+
+        StreamHandle stream = source.stream();
+        if( stream != mStream && !stream.equals( mStream ) ) {
+            mStream = stream;
+
+            AudioFormat format = source.toAudioFormat();
+            if( !format.equals( mSourceFormat ) ) {
                 mSourceFormat = format;
                 mNeedsInit = true;
                 updateDestFormat();
@@ -146,7 +151,6 @@ public class AudioResampler implements PacketConverter<AudioPacket> {
 
         int srcLen = source.nbSamples();
         int dstLen = (int)Rational.rescale( srcLen, mRateRatio.num(), mRateRatio.den() );
-        mStream = source.stream();
 
         return doConvert( source, srcLen, dstLen );
     }
@@ -272,7 +276,7 @@ public class AudioResampler implements PacketConverter<AudioPacket> {
         }
 
         mTimer.computeTimestamps( err, mWork );
-        dst.init( mStream, mDestFormat, mWork[0], mWork[1] );
+        dst.init( mStream, mWork[0], mWork[1], mDestFormat, false );
         mStreamMicros = mWork[1];
 
         return dst;

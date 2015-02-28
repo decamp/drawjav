@@ -56,12 +56,13 @@ public class VideoTexture implements Texture, Sink<VideoPacket> {
             return;
         }
 
-        PictureFormat format = frame.pictureFormat();
-        if( format == null || format.width() <= 0 || format.height() <= 0 ) {
+        int w = frame.width();
+        int h = frame.height();
+        if( w <= 0 || h <= 0 || frame.isGap() ) {
             return;
         }
         
-        switch( format.pixelFormat() ) {
+        switch( frame.format() ) {
         case Jav.AV_PIX_FMT_BGR24:
         case Jav.AV_PIX_FMT_BGRA:
             break;
@@ -272,11 +273,10 @@ public class VideoTexture implements Texture, Sink<VideoPacket> {
     
     private void doBuffer( DrawEnv d ) {
         VideoPacket frame = mCurrentFrame;
-        PictureFormat fmt = frame.pictureFormat();
-        mWidth  = fmt.width();
-        mHeight = fmt.height();
+        mWidth  = frame.width();
+        mHeight = frame.height();
 
-        if( fmt.pixelFormat() == Jav.AV_PIX_FMT_BGR24 ) {
+        if( frame.format() == Jav.AV_PIX_FMT_BGR24 ) {
             mFormat = GL_BGR;
         } else {
             mFormat = GL_BGRA;
@@ -284,7 +284,6 @@ public class VideoTexture implements Texture, Sink<VideoPacket> {
 
         int s = frame.lineSize( 0 );
         d.mGl.glPixelStorei( GL_PACK_ROW_LENGTH, s );
-        //d.mGl.glTexImage2D( GL_TEXTURE_2D, 0, mIntFormat, mWidth, mHeight, 0, mFormat, mDataType, frame.directBuffer() );
         ByteBuffer bb = frame.javaBufElem( 0 );
         d.mGl.glTexImage2D( GL_TEXTURE_2D, 0, mIntFormat, mWidth, mHeight, 0, mFormat, mDataType, bb );
         d.mGl.glPixelStorei( GL_PACK_ROW_LENGTH, 0 );

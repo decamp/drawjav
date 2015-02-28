@@ -42,7 +42,7 @@ public class BasicStreamHandle implements StreamHandle {
         mAudioFormat   = audioFormat;
     }
 
-    
+
     public Guid guid() {
         return mGuid;
     }
@@ -76,5 +76,5 @@ public class BasicStreamHandle implements StreamHandle {
     public int hashCode() {
         return mGuid.hashCode();
     }
-    
+
 }

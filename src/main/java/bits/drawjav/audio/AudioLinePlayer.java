@@ -218,17 +218,12 @@ public class AudioLinePlayer implements Sink<AudioPacket>, SyncClockControl {
     //// Sink Methods /////
 
     public void consume( AudioPacket packet ) throws IOException {
-        AudioFormat format = packet.audioFormat();
-        if( format == null ) {
-            return;
-        }
-
-        int chans = format.channels();
+        int chans = packet.channels();
         if( chans != mChannels ) {
             return;
         }
 
-        switch( format.sampleFormat() ) {
+        switch( packet.format() ) {
         case Jav.AV_SAMPLE_FMT_FLT:
             break;
         case Jav.AV_SAMPLE_FMT_FLTP:

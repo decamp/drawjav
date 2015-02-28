@@ -72,17 +72,16 @@ public class AudioPacket extends JavFrame implements Packet {
                             format.sampleFormat(),
                             buf,
                             align );
-
-        ret.audioFormat( format );
+        ret.mFormat = format;
         return ret;
     }
 
 
     private StreamHandle mStream;
+    private AudioFormat  mFormat;
     private long         mStartMicros;
     private long         mStopMicros;
-    private AudioFormat  mFormat;
-
+    private boolean      mIsGap;
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public AudioPacket( long pointer, ObjectPool<? super AudioPacket> optPool ) {
@@ -90,45 +89,75 @@ public class AudioPacket extends JavFrame implements Packet {
     }
 
 
+    @Override
     public StreamHandle stream() {
         return mStream;
     }
 
 
+    public void stream( StreamHandle stream ) {
+        mStream = stream;
+    }
+
+    @Override
     public long startMicros() {
         return mStartMicros;
     }
 
 
+    public void startMicros( long startMicros ) {
+        mStartMicros = startMicros;
+    }
+
+    @Override
     public long stopMicros() {
         return mStopMicros;
     }
 
 
-    public AudioFormat audioFormat() {
-        return mFormat;
+    public void stopMicros( long stopMicros ) {
+        mStopMicros  = stopMicros;
     }
 
-    /**
-     * Associates frame with a different audio format object.
-     */
-    public void audioFormat( AudioFormat audioFormat ) {
-        mFormat = audioFormat;
-        format( audioFormat.sampleFormat() );
+
+    public boolean isGap() {
+        return mIsGap;
+    }
+
+
+    public void isGap( boolean gap ) {
+        mIsGap = gap;
+    }
+
+
+    public AudioFormat toAudioFormat() {
+        return new AudioFormat( channels(), sampleRate(), format(), channelLayout() );
+    }
+
+
+    public void setFormat( AudioFormat format ) {
+        sampleRate( format.sampleRate() );
+        channels( format.channels() );
+        format( format.sampleFormat() );
+        channelLayout( format.channelLayout() );
     }
 
     /**
      * Initializes packet object.
      */
     public void init( StreamHandle stream,
-                      AudioFormat format,
                       long startMicros,
-                      long stopMicros )
+                      long stopMicros,
+                      AudioFormat format,
+                      boolean isGap )
     {
-        mStream = stream;
+        mStream      = stream;
         mStartMicros = startMicros;
-        mStopMicros = stopMicros;
-        audioFormat( format );
+        mStopMicros  = stopMicros;
+        mIsGap       = isGap;
+        if( format != null ) {
+            setFormat( format );
+        }
     }
 
 }

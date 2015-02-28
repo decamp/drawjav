@@ -222,19 +222,13 @@ public class LineOutFilter implements Filter, InPad<AudioPacket>, SyncClockContr
             return CLOSED;
         }
 
-        if( packet == null ) {
+        if( packet == null || packet.isGap() ) {
             return OKAY;
         }
 
         // Check format compatability.
-        AudioFormat format = packet.audioFormat();
-        if( format == null ) {
-            mException = new IllegalArgumentException( "Missing audio format." );
-            return EXCEPTION;
-        }
-
-        int chans      = format.channels();
-        int sampFormat = format.sampleFormat();
+        int chans      = packet.channels();
+        int sampFormat = packet.format();
 
         switch( sampFormat ) {
         case Jav.AV_SAMPLE_FMT_FLT:
@@ -251,9 +245,6 @@ public class LineOutFilter implements Filter, InPad<AudioPacket>, SyncClockContr
             }
             break;
 
-        case Jav.AV_SAMPLE_FMT_NONE:
-            break;
-
         default:
             mException = new IllegalArgumentException( "Unsupported sample format: " + sampFormat );
             return EXCEPTION;
@@ -266,27 +257,26 @@ public class LineOutFilter implements Filter, InPad<AudioPacket>, SyncClockContr
 
         mPacket = packet;
         mPacket.ref();
-        mPacketBuf = null;
         int frames = mPacket.nbSamples();
         mPacketSamplesRemaining = frames * mChannels;
 
-        if( sampFormat != Jav.AV_SAMPLE_FMT_NONE ) {
-            mPacketBuf = packet.javaBufElem( 0 ).order( ByteOrder.nativeOrder() ).asFloatBuffer();
-            if( mPacketBuf == null ) {
-                // Copy data to different buffer.
-                int bytes = Math.min( packet.lineSize( 0 ), frames * mBytesPerFrame );
-                if( mAltPacketBuf == null || bytes > mAltPacketBuf.capacity() ) {
-                    mAltPacketBuf = ByteBuffer.allocateDirect( bytes );
-                    mAltPacketBuf.order( ByteOrder.nativeOrder() );
-                } else {
-                    mAltPacketBuf.clear();
-                }
-
-                mAltPacketBuf.limit( bytes );
-                JavMem.copy( packet.data(), mAltPacketBuf );
-                mAltPacketBuf.flip();
-                mPacketBuf = mAltPacketBuf.asFloatBuffer();
+        ByteBuffer bb = packet.javaBufElem( 0 );
+        if( bb != null ) {
+            mPacketBuf = bb.asFloatBuffer();
+        } else {
+            // Copy data to different buffer.
+            int bytes = Math.min( packet.lineSize( 0 ), frames * mBytesPerFrame );
+            if( mAltPacketBuf == null || bytes > mAltPacketBuf.capacity() ) {
+                mAltPacketBuf = ByteBuffer.allocateDirect( bytes );
+                mAltPacketBuf.order( ByteOrder.nativeOrder() );
+            } else {
+                mAltPacketBuf.clear();
             }
+
+            mAltPacketBuf.limit( bytes );
+            JavMem.copy( packet.data(), mAltPacketBuf );
+            mAltPacketBuf.flip();
+            mPacketBuf = mAltPacketBuf.asFloatBuffer();
         }
 
         notifyAll();

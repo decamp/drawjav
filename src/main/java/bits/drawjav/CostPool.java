@@ -103,7 +103,7 @@ public class CostPool<T extends Refable> implements ObjectPool<T>, Channel {
 
         mPool.push( item );
         mPoolCost += cost;
-        return false;
+        return true;
     }
 
     /**
