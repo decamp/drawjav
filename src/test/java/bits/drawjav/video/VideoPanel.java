@@ -22,44 +22,44 @@ import bits.jav.util.Rational;
 /**
  * @author decamp
  */
-public class VideoPanel extends JPanel implements Sink<VideoPacket> {
+public class VideoPanel extends JPanel implements Sink<DrawPacket> {
 
     private final VideoPacketResampler mResampler = new VideoPacketResampler( null );
-    private VideoPacket mSrc         = null;
-    private BufferedImage mImage     = null;
-    private int[] mRow               = null;
-    
+    private       DrawPacket           mSrc       = null;
+    private       BufferedImage        mImage     = null;
+    private       int[]                mRow       = null;
+
     private int mFrameWidth  = -1;
     private int mFrameHeight = -1;
     private int mPanelWidth  = -1;
     private int mPanelHeight = -1;
     private Box mDstBox      = null;
-    
+
     Set<Object> testSet = new HashSet<Object>();
-    
-    
+
+
     public VideoPanel() {
         setDoubleBuffered( false );
     }
-    
-    
+
+
     @Override
-    public void consume( VideoPacket packet ) throws IOException {
+    public void consume( DrawPacket packet ) throws IOException {
         if( mSrc != null ) {
             mSrc.deref();
             mSrc = null;
         }
-        
+
         mSrc = packet;
-        
+
         if( mSrc != null ) {
             mSrc.ref();
-        } 
-        
+        }
+
         repaint();
     }
-    
-    
+
+
     @Override
     public synchronized void clear() {
         if( mSrc == null ) {
@@ -86,7 +86,7 @@ public class VideoPanel extends JPanel implements Sink<VideoPacket> {
         final int w = getWidth();
         final int h = getHeight();
         
-        VideoPacket frame = null;
+        DrawPacket frame = null;
         synchronized( this ) {
             frame = mSrc;
             if( frame != null ) {
@@ -108,7 +108,7 @@ public class VideoPanel extends JPanel implements Sink<VideoPacket> {
         }
         
         try {
-            VideoPacket p = mResampler.convert( frame );
+            DrawPacket p = mResampler.convert( frame );
             bufferImage( p );
             g.drawImage( mImage, mDstBox.x(), mDstBox.y(), mDstBox.width(), mDstBox.height(), null );
             p.deref();
@@ -149,7 +149,7 @@ public class VideoPanel extends JPanel implements Sink<VideoPacket> {
     }
     
 
-    private void bufferImage( VideoPacket packet ) {
+    private void bufferImage( DrawPacket packet ) {
         int w = packet.width();
         int h = packet.height();
         int lineSize  = packet.lineSize( 0 );

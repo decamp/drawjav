@@ -8,8 +8,7 @@ package bits.drawjav.video;
 
 import java.util.logging.Logger;
 
-import bits.drawjav.CostMetric;
-import bits.drawjav.CostPool;
+import bits.drawjav.*;
 import bits.jav.JavException;
 import bits.jav.codec.JavFrame;
 import bits.util.ref.AbstractRefable;
@@ -36,18 +35,17 @@ public class OneStreamVideoAllocator extends AbstractRefable implements VideoAll
     };
 
     public static OneStreamVideoAllocator createPacketLimited( int maxPackets ) {
-        CostPool<VideoPacket> pool = new CostPool<VideoPacket>( maxPackets, maxPackets * 100, null );
+        CostPool<DrawPacket> pool = new CostPool<DrawPacket>( maxPackets, maxPackets * 100, null );
         return new OneStreamVideoAllocator( pool );
     }
 
     public static OneStreamVideoAllocator createByteLimited( long maxBytes ) {
-        CostPool<VideoPacket> pool = new CostPool<VideoPacket>( maxBytes, maxBytes * 100, BYTE_COST );
+        CostPool<DrawPacket> pool = new CostPool<DrawPacket>( maxBytes, maxBytes * 100, BYTE_COST );
         return new OneStreamVideoAllocator( pool );
     }
 
 
-
-    private final CostPool<VideoPacket> mPool;
+    private final CostPool<DrawPacket> mPool;
 
     private PictureFormat mPoolFormat;
 
@@ -55,31 +53,31 @@ public class OneStreamVideoAllocator extends AbstractRefable implements VideoAll
     private boolean mHasChangedFormat = false;
 
 
-    OneStreamVideoAllocator( CostPool<VideoPacket> pool ) {
+    OneStreamVideoAllocator( CostPool<DrawPacket> pool ) {
         mPool = pool;
     }
 
 
     @Override
-    public synchronized VideoPacket alloc( PictureFormat format ) {
+    public synchronized DrawPacket alloc( PictureFormat format ) {
         if( !checkFormat( format, mPoolFormat ) ) {
             format = setPoolFormat( format );
         }
 
         mHasFormat = true;
-        VideoPacket packet = mPool.poll();
+        DrawPacket packet = mPool.poll();
         if( packet != null ) {
             return packet;
         }
 
         if( format != null ) {
             try {
-                packet = VideoPacket.createFilled( mPool, format );
+                packet = DrawPacket.createVideo( mPool, format );
             } catch( JavException ex ) {
                 throw new RuntimeException( ex );
             }
         } else {
-            packet = VideoPacket.createAuto( mPool );
+            packet = DrawPacket.createAuto( mPool );
         }
 
         mPool.allocated( packet );

@@ -19,39 +19,39 @@ import bits.jav.Jav;
  *  
  * @author Philip DeCamp  
  */
-public class VideoTexture implements Texture, Sink<VideoPacket> {
+public class VideoTexture implements Texture, Sink<DrawPacket> {
 
-    private VideoPacket mNextFrame    = null;
-    private VideoPacket mCurrentFrame = null;
-    
-    private final int[] mId = { 0 };
-    private int mIntFormat = GL_RGBA;
-    private int mFormat    = GL_RGBA;
-    private int mDataType  = GL_UNSIGNED_BYTE;
-    private int mWidth     = -1;
-    private int mHeight    = -1;
-    private int mDepth     = 1;
-    
-    private final Map<Integer,Integer> mParams = new HashMap<Integer,Integer>(4);
-    
+    private DrawPacket mNextFrame    = null;
+    private DrawPacket mCurrentFrame = null;
+
+    private final int[] mId        = { 0 };
+    private       int   mIntFormat = GL_RGBA;
+    private       int   mFormat    = GL_RGBA;
+    private       int   mDataType  = GL_UNSIGNED_BYTE;
+    private       int   mWidth     = -1;
+    private       int   mHeight    = -1;
+    private       int   mDepth     = 1;
+
+    private final Map<Integer, Integer> mParams = new HashMap<Integer, Integer>( 4 );
+
     private boolean mNeedUpdate = true;
     private boolean mNeedInit   = true;
     private boolean mDisposed   = false;
-    
+
     private final int[] mRevert = { 0, 0 };
-    
-    
+
+
     public VideoTexture() {
         param( GL_TEXTURE_MIN_FILTER, GL_LINEAR );
         param( GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     }
 
-    
+
     //==========================
     // Sink methods
     //==========================
-    
-    public void consume( VideoPacket frame ) {
+
+    public void consume( DrawPacket frame ) {
         if( frame == null || frame.dataElem( 0 ) == 0 ) {
             return;
         }
@@ -61,7 +61,7 @@ public class VideoTexture implements Texture, Sink<VideoPacket> {
         if( w <= 0 || h <= 0 || frame.isGap() ) {
             return;
         }
-        
+
         switch( frame.format() ) {
         case Jav.AV_PIX_FMT_BGR24:
         case Jav.AV_PIX_FMT_BGRA:
@@ -272,7 +272,7 @@ public class VideoTexture implements Texture, Sink<VideoPacket> {
     
     
     private void doBuffer( DrawEnv d ) {
-        VideoPacket frame = mCurrentFrame;
+        DrawPacket frame = mCurrentFrame;
         mWidth  = frame.width();
         mHeight = frame.height();
 

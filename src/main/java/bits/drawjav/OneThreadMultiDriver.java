@@ -12,9 +12,7 @@ import java.util.*;
 import java.util.logging.*;
 
 import bits.drawjav.audio.AudioFormat;
-import bits.drawjav.audio.AudioPacket;
 import bits.drawjav.video.PictureFormat;
-import bits.drawjav.video.VideoPacket;
 import bits.microtime.*;
 import bits.util.concurrent.ThreadLock;
 
@@ -102,7 +100,7 @@ public class OneThreadMultiDriver implements StreamDriver {
     public StreamHandle openVideoStream( PacketReader source,
                                          StreamHandle sourceStream,
                                          PictureFormat destFormat,
-                                         Sink<? super VideoPacket> sink )
+                                         Sink<? super DrawPacket> sink )
                                          throws IOException 
     {
         return openStream( true, source, sourceStream, destFormat, null, sink );
@@ -112,7 +110,7 @@ public class OneThreadMultiDriver implements StreamDriver {
     public StreamHandle openAudioStream( PacketReader source,
                                          StreamHandle sourceStream,
                                          AudioFormat destFormat,
-                                         Sink<? super AudioPacket> sink )
+                                         Sink<? super DrawPacket> sink )
                                          throws IOException 
     {
         return openStream( false, source, sourceStream, null, destFormat, sink );

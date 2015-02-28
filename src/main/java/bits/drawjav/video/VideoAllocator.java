@@ -6,6 +6,7 @@
 
 package bits.drawjav.video;
 
+import bits.drawjav.DrawPacket;
 import bits.util.ref.Refable;
 
 /**
@@ -15,5 +16,5 @@ import bits.util.ref.Refable;
  * @author Philip DeCamp
  */
 public interface VideoAllocator extends Refable {
-    public VideoPacket alloc( PictureFormat format );
+    public DrawPacket alloc( PictureFormat format );
 }

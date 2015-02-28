@@ -68,7 +68,7 @@ public class MultiSyncedDriver implements Ticker, StreamDriver {
     public synchronized StreamHandle openVideoStream( PacketReader source,
                                                       StreamHandle stream,
                                                       PictureFormat destFormat,
-                                                      Sink<? super VideoPacket> sink )
+                                                      Sink<? super DrawPacket> sink )
                                                       throws IOException 
     {
         return openStream( true, source, stream, destFormat, null, sink );
@@ -78,7 +78,7 @@ public class MultiSyncedDriver implements Ticker, StreamDriver {
     public synchronized StreamHandle openAudioStream( PacketReader source,
                                                       StreamHandle stream,
                                                       AudioFormat format,
-                                                      Sink<? super AudioPacket> sink )
+                                                      Sink<? super DrawPacket> sink )
                                                       throws IOException
     {
         return openStream( false, source, stream, null, format, sink );

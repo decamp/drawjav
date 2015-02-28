@@ -34,15 +34,15 @@ public class TestAudioClipperFilter {
         reader.openStream( stream );
 
         AudioPacketClipper clipper = new AudioPacketClipper( null );
-        AudioPacket p = null;
+        DrawPacket p = null;
         while( p == null ) {
-            p = (AudioPacket)reader.readNext();
+            p = (DrawPacket)reader.readNext();
         }
 
         clipper.clockSeek( 0, (p.startMicros() + p.stopMicros()) / 2 );
 
         int err;
-        AudioPacket[] arr = { null };
+        DrawPacket[] arr = { null };
 
         err = clipper.input( 0 ).offer( p );
 
@@ -50,7 +50,7 @@ public class TestAudioClipperFilter {
         err = clipper.output( 0 ).poll( arr );
         assertEquals( Pad.OKAY, err );
 
-        AudioPacket clipped = arr[0];
+        DrawPacket clipped = arr[0];
         assertEquals( p.nbSamples() / 2, clipped.nbSamples() );
         assertEquals( ( p.startMicros() + p.stopMicros() ) / 2, clipped.startMicros() );
         assertEquals( p.stopMicros(), clipped.stopMicros() );
@@ -70,13 +70,13 @@ public class TestAudioClipperFilter {
     @Test
     public void testSmallEmpty() throws IOException {
         AudioFormat format = new AudioFormat( 1, 44100, Jav.AV_SAMPLE_FMT_NONE );
-        AudioPacket p = AudioPacket.createAuto( null );
+        DrawPacket p = DrawPacket.createAuto( null );
         p.init( null, 0, 20000L, format, false );
 
         AudioPacketClipper clipper = new AudioPacketClipper( null );
         clipper.clockSeek( 0, (p.startMicros() + p.stopMicros()) / 2 );
-        AudioPacket clipped;
-        AudioPacket[] arr = { null };
+        DrawPacket clipped;
+        DrawPacket[] arr = { null };
         int err;
 
         err = clipper.input( 0 ).offer( p );
@@ -106,13 +106,13 @@ public class TestAudioClipperFilter {
     @Test
     public void testBigEmptyForward() throws IOException {
         AudioFormat format = new AudioFormat( 1, 44100, Jav.AV_SAMPLE_FMT_NONE );
-        AudioPacket p = AudioPacket.createAuto( null );
+        DrawPacket p = DrawPacket.createAuto( null );
         p.init( null, 0, 320000L, format, false );
 
         AudioPacketClipper clipper = new AudioPacketClipper( null );
         clipper.clockSeek( 0, 10000L );
-        AudioPacket clipped;
-        AudioPacket[] arr = { null };
+        DrawPacket clipped;
+        DrawPacket[] arr = { null };
         int err;
 
         assertEquals( Pad.OKAY, clipper.input( 0 ).offer( p ) );
@@ -153,14 +153,14 @@ public class TestAudioClipperFilter {
     @Test
     public void testBigEmptyBackward() throws IOException {
         AudioFormat format = new AudioFormat( 1, 44100, Jav.AV_SAMPLE_FMT_NONE );
-        AudioPacket p = AudioPacket.createAuto( null );
+        DrawPacket p = DrawPacket.createAuto( null );
         p.init( null, 0, 320000L, format, false );
 
         AudioPacketClipper clipper = new AudioPacketClipper( null );
         clipper.clockSeek( 0, 310000L );
         clipper.clockRate( 0, new Frac( -1, 1 ) );
-        AudioPacket clipped;
-        AudioPacket[] arr = { null };
+        DrawPacket clipped;
+        DrawPacket[] arr = { null };
         int err;
 
         assertEquals( Pad.OKAY, clipper.input( 0 ).offer( p ) );

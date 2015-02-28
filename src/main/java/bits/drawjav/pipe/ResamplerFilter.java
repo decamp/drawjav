@@ -6,6 +6,7 @@
 
 package bits.drawjav.pipe;
 
+import bits.drawjav.DrawPacket;
 import bits.drawjav.StreamHandle;
 import bits.drawjav.audio.*;
 import bits.jav.JavException;
@@ -25,14 +26,13 @@ public class ResamplerFilter implements Filter {
     private final MyIn  mInPad  = new MyIn();
     private final MyOut mOutPad = new MyOut();
 
-    private AudioPacket mPacket;
-    private Exception mException;
+    private DrawPacket mPacket;
+    private Exception  mException;
 
 
     public ResamplerFilter( AudioAllocator alloc ) {
         mResampler = new AudioResampler( alloc );
     }
-
 
 
     public AudioFormat destFormat() {
@@ -78,7 +78,7 @@ public class ResamplerFilter implements Filter {
     }
 
 
-    private class MyIn extends InPadAdapter<AudioPacket> {
+    private class MyIn extends InPadAdapter<DrawPacket> {
         @Override
         public int status() {
             return mException != null ? EXCEPTION :
@@ -86,7 +86,7 @@ public class ResamplerFilter implements Filter {
         }
 
         @Override
-        public int offer( AudioPacket packet ) {
+        public int offer( DrawPacket packet ) {
             mException = null;
             if( mPacket != null ) {
                 return DRAIN_FILTER;
@@ -100,7 +100,7 @@ public class ResamplerFilter implements Filter {
             }
 
             // Not empty. Run converter.
-            AudioPacket p = null;
+            DrawPacket p = null;
             try {
                 p = mResampler.convert( packet );
             } catch( JavException e ) {

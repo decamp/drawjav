@@ -10,9 +10,7 @@ import java.io.*;
 import java.util.logging.*;
 
 import bits.drawjav.audio.AudioFormat;
-import bits.drawjav.audio.AudioPacket;
 import bits.drawjav.video.PictureFormat;
-import bits.drawjav.video.VideoPacket;
 import bits.microtime.*;
 import bits.util.concurrent.ThreadLock;
 
@@ -91,7 +89,7 @@ public class RealtimeDriver implements StreamDriver {
     public StreamHandle openVideoStream( PacketReader source,
                                          StreamHandle stream,
                                          PictureFormat destFormat,
-                                         Sink<? super VideoPacket> sink )
+                                         Sink<? super DrawPacket> sink )
                                          throws IOException 
     {
         return openStream( true, source, stream, destFormat, null, sink );
@@ -101,7 +99,7 @@ public class RealtimeDriver implements StreamDriver {
     public StreamHandle openAudioStream( PacketReader source,
                                          StreamHandle stream,
                                          AudioFormat format,
-                                         Sink<? super AudioPacket> sink )
+                                         Sink<? super DrawPacket> sink )
                                          throws IOException 
     {
         return openStream( false, source, stream, null, format, sink );

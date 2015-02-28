@@ -13,9 +13,7 @@ import java.util.*;
 import java.util.logging.*;
 
 import bits.drawjav.audio.AudioFormat;
-import bits.drawjav.audio.AudioPacket;
 import bits.drawjav.video.PictureFormat;
-import bits.drawjav.video.VideoPacket;
 import bits.jav.Jav;
 
 
@@ -60,7 +58,7 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
     public StreamHandle openVideoStream( PacketReader ignored,
                                          StreamHandle stream,
                                          PictureFormat destFormat,
-                                         Sink<? super VideoPacket> sink )
+                                         Sink<? super DrawPacket> sink )
                                          throws IOException
     {
         final int type = stream.type();
@@ -94,7 +92,7 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
     public StreamHandle openAudioStream( PacketReader ignored,
                                          StreamHandle source,
                                          AudioFormat destFormat,
-                                         Sink<? super AudioPacket> sink )
+                                         Sink<? super DrawPacket> sink )
                                          throws IOException
     {
         final int type = source.type();

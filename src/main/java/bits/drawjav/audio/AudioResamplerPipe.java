@@ -15,13 +15,13 @@ import bits.drawjav.*;
 /**
  * @author decamp
  */
-public class AudioResamplerPipe implements Sink<AudioPacket> {
+public class AudioResamplerPipe implements Sink<DrawPacket> {
 
-    private final Sink<? super AudioPacket> mSink;
-    private final AudioResampler            mResampler;
+    private final Sink<? super DrawPacket> mSink;
+    private final AudioResampler           mResampler;
 
 
-    public AudioResamplerPipe( Sink<? super AudioPacket> sink,
+    public AudioResamplerPipe( Sink<? super DrawPacket> sink,
                                AudioFormat destFormat,
                                AudioAllocator alloc )
     {
@@ -36,8 +36,8 @@ public class AudioResamplerPipe implements Sink<AudioPacket> {
     }
     
     
-    public void consume( AudioPacket packet ) throws IOException {
-        AudioPacket p = mResampler.convert( packet );
+    public void consume( DrawPacket packet ) throws IOException {
+        DrawPacket p = mResampler.convert( packet );
         if( p != null ) {
             mSink.consume( p );
             p.deref();

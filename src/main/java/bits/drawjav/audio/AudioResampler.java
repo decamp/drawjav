@@ -10,6 +10,7 @@ import java.io.*;
 import java.util.logging.Logger;
 
 import bits.drawjav.*;
+import bits.drawjav.DrawPacket;
 import bits.jav.Jav;
 import bits.jav.JavException;
 import bits.jav.swresample.SwrContext;
@@ -21,7 +22,7 @@ import bits.jav.util.*;
  *
  * @author decamp
  */
-public class AudioResampler implements PacketConverter<AudioPacket> {
+public class AudioResampler implements PacketConverter<DrawPacket> {
 
     private static final Logger sLog = Logger.getLogger( AudioResampler.class.getName() );
 
@@ -123,7 +124,7 @@ public class AudioResampler implements PacketConverter<AudioPacket> {
     }
 
 
-    public AudioPacket convert( AudioPacket source ) throws JavException {
+    public DrawPacket convert( DrawPacket source ) throws JavException {
         if( source.isGap() ) {
             return source;
         }
@@ -156,7 +157,7 @@ public class AudioResampler implements PacketConverter<AudioPacket> {
     }
 
 
-    public AudioPacket drain() throws JavException {
+    public DrawPacket drain() throws JavException {
         try {
             if( mConverter == null ) {
                 return null;
@@ -175,7 +176,7 @@ public class AudioResampler implements PacketConverter<AudioPacket> {
     public void clear() {
         if( mConverter != null ) {
             try {
-                AudioPacket p = drain();
+                DrawPacket p = drain();
                 if( p != null ) {
                     p.deref();
                 }
@@ -256,8 +257,8 @@ public class AudioResampler implements PacketConverter<AudioPacket> {
     }
 
 
-    private AudioPacket doConvert( AudioPacket src, int srcLen, int dstLen ) throws JavException {
-        AudioPacket dst = mAlloc.alloc( mDestFormat, dstLen );
+    private DrawPacket doConvert( DrawPacket src, int srcLen, int dstLen ) throws JavException {
+        DrawPacket dst = mAlloc.alloc( mDestFormat, dstLen );
         int err = mConverter.convert( src, srcLen, dst, dstLen );
         if( err <= 0 ) {
             dst.deref();

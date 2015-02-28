@@ -127,7 +127,7 @@ public class OneToManyFormatter implements Sink<Packet> {
 
     
     public StreamHandle openVideoStream( PictureFormat destFormat, 
-                                         Sink<? super VideoPacket> sink )
+                                         Sink<? super DrawPacket> sink )
                                          throws IOException 
     {
         if( mStream.type() != Jav.AVMEDIA_TYPE_VIDEO ) {
@@ -143,7 +143,7 @@ public class OneToManyFormatter implements Sink<Packet> {
     
     
     public StreamHandle openAudioStream( AudioFormat destFormat,
-                                         Sink<? super AudioPacket> sink )
+                                         Sink<? super DrawPacket> sink )
                                          throws IOException
     {
         if( mStream.type() != Jav.AVMEDIA_TYPE_AUDIO ) {

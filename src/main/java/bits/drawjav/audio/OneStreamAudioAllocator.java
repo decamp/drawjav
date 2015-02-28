@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 
 import bits.drawjav.CostMetric;
 import bits.drawjav.CostPool;
+import bits.drawjav.DrawPacket;
 import bits.jav.codec.JavFrame;
 import bits.jav.util.JavSampleFormat;
 import bits.util.ref.AbstractRefable;
@@ -31,45 +32,44 @@ public class OneStreamAudioAllocator extends AbstractRefable implements AudioAll
 
 
     public static OneStreamAudioAllocator createPacketLimited( int maxPackets, int defaultSampleNum ) {
-        CostPool<AudioPacket> pool = new CostPool<AudioPacket>( maxPackets, maxPackets * 100, null );
+        CostPool<DrawPacket> pool = new CostPool<DrawPacket>( maxPackets, maxPackets * 100, null );
         return new OneStreamAudioAllocator( pool, defaultSampleNum );
     }
 
 
     public static OneStreamAudioAllocator createByteLimited( long maxBytes, int defaultSampleNum ) {
-        CostPool<AudioPacket> pool = new CostPool<AudioPacket>( maxBytes, maxBytes * 100, BYTE_COST );
+        CostPool<DrawPacket> pool = new CostPool<DrawPacket>( maxBytes, maxBytes * 100, BYTE_COST );
         return new OneStreamAudioAllocator( pool, defaultSampleNum );
     }
 
 
-
-    private final CostPool<AudioPacket> mPool;
+    private final CostPool<DrawPacket> mPool;
 
     private AudioFormat mPoolFormat;
-    private int mDefaultSampleNum;
+    private int         mDefaultSampleNum;
 
     private boolean mHasFormat        = false;
     private boolean mHasChangedFormat = false;
 
 
-    OneStreamAudioAllocator( CostPool<AudioPacket> pool, int defaultSampleNum ) {
+    OneStreamAudioAllocator( CostPool<DrawPacket> pool, int defaultSampleNum ) {
         mPool = pool;
         mDefaultSampleNum = defaultSampleNum;
     }
 
 
-    public synchronized AudioPacket alloc( AudioFormat format ) {
+    public synchronized DrawPacket alloc( AudioFormat format ) {
         return alloc( format, mDefaultSampleNum );
     }
 
     @Override
-    public synchronized AudioPacket alloc( AudioFormat format, int numSamples ) {
+    public synchronized DrawPacket alloc( AudioFormat format, int numSamples ) {
         if( !checkFormat( format, mPoolFormat ) ) {
             format = setPoolFormat( format );
         }
 
         mHasFormat = true;
-        AudioPacket ret = mPool.poll();
+        DrawPacket ret = mPool.poll();
 
         if( ret != null ) {
             if( format == null || numSamples < 0 ) {
@@ -79,7 +79,11 @@ public class OneStreamAudioAllocator extends AbstractRefable implements AudioAll
             // Check if packet can hold requested number of samples.
             // This calculation isn't that correct for planar packets, but if the packet was
             // allocated here, there will always only be one buffer.
-            int minSize = JavSampleFormat.getBufferSize( format.channels(), numSamples, format.sampleFormat(), 0, null );
+            int minSize = JavSampleFormat.getBufferSize( format.channels(),
+                                                         numSamples,
+                                                         format.sampleFormat(),
+                                                         0,
+                                                         null );
             if( ret.useableBufElemSize( 0 ) >= minSize ) {
                 ret.nbSamples( numSamples );
                 return ret;
@@ -89,9 +93,9 @@ public class OneStreamAudioAllocator extends AbstractRefable implements AudioAll
         }
 
         if( format != null && numSamples > 0 ) {
-            ret = AudioPacket.createFilled( mPool, format, numSamples, 0 );
+            ret = DrawPacket.createAudio( mPool, format, numSamples, 0 );
         } else {
-            ret = AudioPacket.createAuto( mPool );
+            ret = DrawPacket.createAuto( mPool );
         }
 
         mPool.allocated( ret );

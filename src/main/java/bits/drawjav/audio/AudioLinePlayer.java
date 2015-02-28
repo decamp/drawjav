@@ -20,7 +20,7 @@ import javax.sound.sampled.*;
 /**
  * @author Philip DeCamp
  */
-public class AudioLinePlayer implements Sink<AudioPacket>, SyncClockControl {
+public class AudioLinePlayer implements Sink<DrawPacket>, SyncClockControl {
 
     public static final  int   DEFAULT_BUFFER_LENGTH = 1024 * 256 * 2;
     private static final int   LINE_BUFFER_SIZE      = 1024 * 256 * 2;
@@ -217,7 +217,7 @@ public class AudioLinePlayer implements Sink<AudioPacket>, SyncClockControl {
 
     //// Sink Methods /////
 
-    public void consume( AudioPacket packet ) throws IOException {
+    public void consume( DrawPacket packet ) throws IOException {
         int chans = packet.channels();
         if( chans != mChannels ) {
             return;

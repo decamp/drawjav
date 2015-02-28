@@ -9,6 +9,7 @@ package bits.drawjav.video;
 import java.awt.image.BufferedImage;
 import java.nio.*;
 
+import bits.drawjav.DrawPacket;
 import bits.jav.Jav;
 
 
@@ -19,7 +20,7 @@ import bits.jav.Jav;
  */
 public class VideoPackets {
 
-    public static void toArgb( VideoPacket frame, boolean flip, IntFrame out ) {
+    public static void toArgb( DrawPacket frame, boolean flip, IntFrame out ) {
         int h = frame.height();
         if( !flip ) {
             toArgb( frame, 0, h, out );
@@ -29,7 +30,7 @@ public class VideoPackets {
     }
 
 
-    public static void toArgb( VideoPacket frame, int yStart, int yStop, IntFrame out ) {
+    public static void toArgb( DrawPacket frame, int yStart, int yStop, IntFrame out ) {
         //final PictureFormat format = frame.pictureFormat();
         final int w = frame.width();
         final int h = ( yStart < yStop ) ? yStop - yStart : yStart - yStop;
@@ -61,7 +62,7 @@ public class VideoPackets {
     }
 
     
-    public static void toBufferedImage( VideoPacket frame, boolean flip, BufferedImage out, int[] optRow ) {
+    public static void toBufferedImage( DrawPacket frame, boolean flip, BufferedImage out, int[] optRow ) {
         int w = frame.width();
         int h = frame.height();
         if( w != out.getWidth() || h != out.getHeight() ) {

@@ -11,7 +11,6 @@ import java.nio.channels.ClosedChannelException;
 import java.util.*;
 import java.util.logging.*;
 
-import bits.drawjav.video.VideoPacket;
 import bits.microtime.*;
 import bits.util.concurrent.ThreadLock;
 import bits.util.ref.*;
@@ -246,7 +245,7 @@ public class PacketScheduler {
                 command.mPacket      = p;
                 
                 // If cleared, get video packet out as soon as possible.
-                if( mNeedRush && ( p instanceof VideoPacket) ) {
+                if( mNeedRush && ( p instanceof DrawPacket) ) {
                     mNeedRush = false;
                     command.mDataMicros = Long.MIN_VALUE;
                 } else {

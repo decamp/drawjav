@@ -1,7 +1,6 @@
 package bits.drawjav.pipe;
 
-import bits.drawjav.MemoryManager;
-import bits.drawjav.StreamHandle;
+import bits.drawjav.*;
 import bits.drawjav.audio.*;
 import bits.jav.Jav;
 import bits.jav.util.JavMem;
@@ -30,16 +29,16 @@ public class SolaFilter implements Filter {
     private StreamHandle   mStream     = null;
     private AudioFormat    mFormat     = null;
     private AudioAllocator mAlloc      = null;
-    private AudioPacket    mSrc        = null;
+    private DrawPacket     mSrc        = null;
     private FloatBuffer    mSrcBuf     = null;
     private FloatBuffer    mWorkFloats = null;
     private ByteBuffer     mWorkBytes  = null;
 
-    private AudioPacket    mDst        = null;
-    private FloatBuffer    mDstBuf     = null;
-    private long           mDstStart   = Long.MIN_VALUE;
-    private long           mDstStop    = Long.MIN_VALUE;
-    private boolean        mNeedDrain  = false;
+    private DrawPacket  mDst       = null;
+    private FloatBuffer mDstBuf    = null;
+    private long        mDstStart  = Long.MIN_VALUE;
+    private long        mDstStop   = Long.MIN_VALUE;
+    private boolean     mNeedDrain = false;
 
 
     public SolaFilter( MemoryManager mem ) {
@@ -171,7 +170,7 @@ public class SolaFilter implements Filter {
     }
 
 
-    private final class Input extends InPadAdapter<AudioPacket> {
+    private final class Input extends InPadAdapter<DrawPacket> {
 
         @Override
         public int status() {
@@ -180,7 +179,7 @@ public class SolaFilter implements Filter {
         }
 
         @Override
-        public int offer( AudioPacket packet ) {
+        public int offer( DrawPacket packet ) {
             if( !mOpen ) {
                 return CLOSED;
             }

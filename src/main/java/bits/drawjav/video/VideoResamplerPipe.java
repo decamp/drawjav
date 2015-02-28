@@ -16,23 +16,22 @@ import bits.drawjav.*;
  * 
  * @author decamp
  */
-public class VideoResamplerPipe implements Sink<VideoPacket> {
+public class VideoResamplerPipe implements Sink<DrawPacket> {
 
 
-    private final Sink<? super VideoPacket> mSink;
-    private final VideoPacketResampler mConverter;
+    private final Sink<? super DrawPacket> mSink;
+    private final VideoPacketResampler     mConverter;
 
-    public VideoResamplerPipe( Sink<? super VideoPacket> sink,
+    public VideoResamplerPipe( Sink<? super DrawPacket> sink,
                                PictureFormat sourceFormat,
                                VideoAllocator alloc )
     {
-        mSink  = sink;
+        mSink = sink;
         mConverter = new VideoPacketResampler( alloc );
         mConverter.sourceFormat( sourceFormat );
     }
-    
-    
-    
+
+
     public void setPictureConversion( PictureFormat format, int swsFlags ) {
         mConverter.destFormat( format );
         mConverter.conversionFlags( swsFlags );
@@ -44,8 +43,8 @@ public class VideoResamplerPipe implements Sink<VideoPacket> {
     }
     
     
-    public void consume( VideoPacket packet ) throws IOException {
-        VideoPacket ret = null;
+    public void consume( DrawPacket packet ) throws IOException {
+        DrawPacket ret = null;
         try {
             ret = mConverter.convert( packet );
             mSink.consume( ret );

@@ -7,9 +7,7 @@
 package bits.drawjav;
 
 import bits.drawjav.audio.AudioFormat;
-import bits.drawjav.audio.AudioPacket;
 import bits.drawjav.video.PictureFormat;
-import bits.drawjav.video.VideoPacket;
 
 import java.io.*;
 import java.nio.channels.ClosedChannelException;
@@ -38,7 +36,7 @@ public interface StreamFormatter {
     public StreamHandle openVideoStream( PacketReader source,
                                          StreamHandle sourceStream,
                                          PictureFormat destFormat,
-                                         Sink<? super VideoPacket> sink )
+                                         Sink<? super DrawPacket> sink )
                                          throws IOException;
 
     /**
@@ -59,7 +57,7 @@ public interface StreamFormatter {
     public StreamHandle openAudioStream( PacketReader source,
                                          StreamHandle sourceStream,
                                          AudioFormat destFormat,
-                                         Sink<? super AudioPacket> sink )
+                                         Sink<? super DrawPacket> sink )
                                          throws IOException;
 
     public boolean closeStream( StreamHandle stream ) throws IOException;

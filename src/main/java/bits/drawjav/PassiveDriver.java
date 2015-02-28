@@ -11,9 +11,7 @@ import java.nio.channels.ClosedChannelException;
 import java.util.logging.*;
 
 import bits.drawjav.audio.AudioFormat;
-import bits.drawjav.audio.AudioPacket;
 import bits.drawjav.video.PictureFormat;
-import bits.drawjav.video.VideoPacket;
 import bits.microtime.*;
 
 
@@ -363,7 +361,7 @@ public class PassiveDriver implements StreamDriver {
     public synchronized StreamHandle openVideoStream( PacketReader ignored,
                                                       StreamHandle stream,
                                                       PictureFormat destFormat,
-                                                      Sink<? super VideoPacket> sink )
+                                                      Sink<? super DrawPacket> sink )
                                                       throws IOException 
     {
         if( mClosed ) {
@@ -397,7 +395,7 @@ public class PassiveDriver implements StreamDriver {
     public synchronized StreamHandle openAudioStream( PacketReader ignored,
                                                       StreamHandle stream,
                                                       AudioFormat format,
-                                                      Sink<? super AudioPacket> sink )
+                                                      Sink<? super DrawPacket> sink )
                                                       throws IOException 
     {
         if( mClosed ) {

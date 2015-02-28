@@ -6,6 +6,7 @@
 
 package bits.drawjav.video;
 
+import bits.drawjav.DrawPacket;
 import bits.jav.*;
 import bits.jav.swscale.*;
 
@@ -103,7 +104,7 @@ public class VideoPacketResampler {
     }
 
 
-    public VideoPacket convert( VideoPacket source ) throws JavException {
+    public DrawPacket convert( DrawPacket source ) throws JavException {
         if( source.isGap() ) {
             return source;
         }
@@ -123,7 +124,7 @@ public class VideoPacketResampler {
             return source;
         }
 
-        VideoPacket dest = mAlloc.alloc( mDestFormat );
+        DrawPacket dest = mAlloc.alloc( mDestFormat );
         dest.init( source.stream(), source.startMicros(), source.stopMicros(), mDestFormat, false );
         mConverter.conv( source, dest );
         return dest;

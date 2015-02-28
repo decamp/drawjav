@@ -583,7 +583,7 @@ public class FormatReader2 implements PacketReader {
         private boolean        mIsOpen       = false;
         private VideoAllocator mAlloc        = null;
         private boolean        mHasKeyFrame  = false;
-        private VideoPacket    mCurrentFrame = null;
+        private DrawPacket     mCurrentFrame = null;
 
 
         VideoStream( JavStream stream ) {
@@ -662,7 +662,7 @@ public class FormatReader2 implements PacketReader {
                 return null;
             }
 
-            VideoPacket ret = mCurrentFrame;
+            DrawPacket ret = mCurrentFrame;
             mCurrentFrame = null;
             if( ret == null ) {
                 ret = mAlloc.alloc( mFormat );
@@ -721,7 +721,7 @@ public class FormatReader2 implements PacketReader {
 
         private boolean        mIsOpen       = false;
         private AudioAllocator mAlloc        = null;
-        private AudioPacket    mCurrentFrame = null;
+        private DrawPacket     mCurrentFrame = null;
 
 
         AudioStream( JavStream stream ) {
@@ -783,7 +783,7 @@ public class FormatReader2 implements PacketReader {
         }
 
         @Override
-        public AudioPacket process( JavPacket packet, boolean flushing ) throws IOException {
+        public DrawPacket process( JavPacket packet, boolean flushing ) throws IOException {
             if( mAlloc == null ) {
                 if( !flushing ) {
                     mTimer.packetSkipped( packet.pts(), packet.duration(), mRange );
@@ -792,7 +792,7 @@ public class FormatReader2 implements PacketReader {
                 return null;
             }
 
-            AudioPacket ret = mCurrentFrame;
+            DrawPacket ret = mCurrentFrame;
             mCurrentFrame = null;
 
             if( ret == null ) {

@@ -6,6 +6,7 @@
 
 package bits.drawjav.audio;
 
+import bits.drawjav.DrawPacket;
 import bits.util.ref.Refable;
 
 /**
@@ -15,5 +16,5 @@ import bits.util.ref.Refable;
  * @author Philip DeCamp
  */
 public interface AudioAllocator extends Refable {
-    public AudioPacket alloc( AudioFormat format, int numSamples );
+    public DrawPacket alloc( AudioFormat format, int numSamples );
 }

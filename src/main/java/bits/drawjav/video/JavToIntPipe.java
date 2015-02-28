@@ -16,7 +16,7 @@ import bits.util.ref.*;
 *
 * @author decamp
 */
-public class JavToIntPipe implements Sink<VideoPacket> {
+public class JavToIntPipe implements Sink<DrawPacket> {
 
     private final ObjectPool<IntFrame> mPool = new SoftPool<IntFrame>( 3 );
     private final Sink<? super IntFrame> mSink;
@@ -37,7 +37,7 @@ public class JavToIntPipe implements Sink<VideoPacket> {
 
 
 
-    public void consume( VideoPacket frame ) throws IOException {
+    public void consume( DrawPacket frame ) throws IOException {
         IntFrame ff = mPool.poll();
         if( ff == null ) {
             ff = new IntFrame( mPool );

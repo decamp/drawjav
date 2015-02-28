@@ -82,9 +82,9 @@ public class TestAudioLinePlayer {
                     continue;
                 }
 
-                AudioPacket ap = (AudioPacket)p;
+                DrawPacket ap = (DrawPacket)p;
                 //System.out.println( ap.nbSamples() );
-                pipe.consume( (AudioPacket)p );
+                pipe.consume( (DrawPacket)p );
                 p.deref();
             }
         } catch( EOFException ex ) {

@@ -6,9 +6,9 @@
 
 package bits.drawjav.pipe;
 
+import bits.drawjav.DrawPacket;
 import bits.drawjav.StreamHandle;
 import bits.drawjav.audio.AudioFormat;
-import bits.drawjav.audio.AudioPacket;
 import bits.jav.Jav;
 import bits.jav.util.JavMem;
 import bits.microtime.*;
@@ -24,7 +24,7 @@ import java.util.Arrays;
 /**
  * @author Philip DeCamp
  */
-public class LineOutFilter implements Filter, InPad<AudioPacket>, SyncClockControl {
+public class LineOutFilter implements Filter, InPad<DrawPacket>, SyncClockControl {
 
     public static final int DEFAULT_BUFFER_LENGTH = 1024 * 256 * 2;
 
@@ -41,7 +41,7 @@ public class LineOutFilter implements Filter, InPad<AudioPacket>, SyncClockContr
     private int            mLineBufSize;
 
 
-    private final Clock      mClock;
+    private final Clock mClock;
     private final ClockState mClockState = new ClockState();
 
     private int  mChannels;
@@ -51,7 +51,7 @@ public class LineOutFilter implements Filter, InPad<AudioPacket>, SyncClockContr
     private final byte[]     mBuf          = new byte[8 * 1024];
     private       ByteBuffer mAltPacketBuf = null;
 
-    private AudioPacket mPacket                 = null;
+    private DrawPacket    mPacket                 = null;
     private FloatBuffer mPacketBuf              = null;
     private int         mPacketSamplesRemaining = 0;
 
@@ -217,7 +217,7 @@ public class LineOutFilter implements Filter, InPad<AudioPacket>, SyncClockContr
     }
 
     @Override
-    public synchronized int offer( AudioPacket packet ) {
+    public synchronized int offer( DrawPacket packet ) {
         if( !mOpen ) {
             return CLOSED;
         }
