@@ -221,14 +221,14 @@ public class FormatReader implements PacketReader {
         case AVMEDIA_TYPE_AUDIO:
         {
             AudioStream s = (AudioStream)ss;
-            s.open( mMem.audioAllocator( stream, stream.audioFormat() ) );
+            s.open( mMem.audioAllocator( stream ) );
             updateSeekStream();
             return;
         }
         case AVMEDIA_TYPE_VIDEO:
         {
             VideoStream s = (VideoStream)ss;
-            s.open( mMem.videoAllocator( stream, stream.pictureFormat() ) );
+            s.open( mMem.videoAllocator( stream ) );
             updateSeekStream();
             return;
         }

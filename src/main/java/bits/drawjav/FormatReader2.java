@@ -221,14 +221,14 @@ public class FormatReader2 implements PacketReader {
         case AVMEDIA_TYPE_AUDIO:
         {
             AudioStream s = (AudioStream)ss;
-            s.open( mMem.audioAllocator( stream, stream.audioFormat() ) );
+            s.open( mMem.audioAllocator( stream ) );
             updateSeekStream();
             return;
         }
         case AVMEDIA_TYPE_VIDEO:
         {
             VideoStream s = (VideoStream)ss;
-            s.open( mMem.videoAllocator( stream, stream.pictureFormat() ) );
+            s.open( mMem.videoAllocator( stream ) );
             updateSeekStream();
             return;
         }
@@ -295,6 +295,7 @@ public class FormatReader2 implements PacketReader {
 
         preSeek();
         mFormat.seek( s.index(), pts, Jav.AVSEEK_FLAG_BACKWARD );
+//        mFormat.seek( s.index(), pts, Jav.AVSEEK_FLAG_BACKWARD );
         postSeek( timeBase, pts );
     }
 
@@ -362,7 +363,7 @@ public class FormatReader2 implements PacketReader {
     }
 
     @Override
-    public Packet readNext() throws IOException {
+    public DrawPacket readNext() throws IOException {
         assertOpen();
 
         if( mEof ) {
@@ -391,13 +392,13 @@ public class FormatReader2 implements PacketReader {
             return null;
         }
 
-        Packet ret = mStreams[idx].process( mPacket, false );
+        DrawPacket ret = mStreams[idx].process( mPacket, false );
         mPacketValid = mPacket.size() > 0;
         return ret;
     }
 
 
-    public Packet readPrev() throws IOException {
+    public DrawPacket readPrev() throws IOException {
         return null;
     }
 
@@ -458,9 +459,9 @@ public class FormatReader2 implements PacketReader {
     }
 
 
-    private Packet flush() throws IOException {
+    private DrawPacket flush() throws IOException {
         for( ; mFlushStream >= 0 && mFlushStream < mStreams.length; mFlushStream++ ) {
-            Packet packet = mStreams[mFlushStream].process( mNullPacket, true );
+            DrawPacket packet = mStreams[mFlushStream].process( mNullPacket, true );
             if( packet != null ) {
                 return packet;
             }
@@ -563,7 +564,7 @@ public class FormatReader2 implements PacketReader {
 
         public abstract void close() throws IOException;
 
-        abstract Packet process( JavPacket packet, boolean flushing ) throws IOException;
+        abstract DrawPacket process( JavPacket packet, boolean flushing ) throws IOException;
 
         abstract void seekPts( long pts );
 
@@ -653,7 +654,7 @@ public class FormatReader2 implements PacketReader {
         }
 
         @Override
-        public Packet process( JavPacket packet, boolean flushing ) throws IOException {
+        public DrawPacket process( JavPacket packet, boolean flushing ) throws IOException {
             if( !mIsOpen ) {
                 if( !flushing ) {
                     mTimer.packetSkipped( packet.pts(), packet.duration(), mRange );
@@ -810,7 +811,18 @@ public class FormatReader2 implements PacketReader {
                 return null;
             }
 
-            mTimer.packetDecoded( ret.bestEffortTimestamp(), ret.packetDuration(), mRange );
+            //mTimer.packetDecoded( ret.bestEffortTimestamp(), ret.packetDuration(), mRange );
+            //System.out.println( "  dec: " + ret.nbSamples() + "    " + ret.packetPts() + " -> " + ( ret.packetPts() + ret.packetDuration() ) );
+            //System.out.println( "    dur: " + ret.packetDuration() );
+            //System.out.println( "    pts: " + ret.packetPts() + "  " + ( ret.packetPts() + ret.packetDuration() ) );
+            //System.out.println( " micros: " + mRange[0] + " " + mRange[1] );
+            //System.out.println( "  samps: " + ret.nbSamples() );
+
+            long pts = ret.pts();
+            if( pts == Jav.AV_NOPTS_VALUE ) {
+                pts = ret.packetDts();
+            }
+            mTimer.packetDecoded( pts, ret.packetDuration(), mRange );
             ret.init( this, mRange[0], mRange[1], mFormat, false );
             return ret;
         }
@@ -853,7 +865,7 @@ public class FormatReader2 implements PacketReader {
         public void close() {}
 
         @Override
-        public Packet process( JavPacket packet, boolean flushing ) throws IOException {
+        public DrawPacket process( JavPacket packet, boolean flushing ) throws IOException {
             if( flushing ) {
                 return null;
             }

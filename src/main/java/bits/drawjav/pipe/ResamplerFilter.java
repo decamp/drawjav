@@ -6,8 +6,7 @@
 
 package bits.drawjav.pipe;
 
-import bits.drawjav.DrawPacket;
-import bits.drawjav.StreamHandle;
+import bits.drawjav.*;
 import bits.drawjav.audio.*;
 import bits.jav.JavException;
 import bits.util.ref.Refable;
@@ -21,17 +20,22 @@ import java.io.IOException;
  */
 public class ResamplerFilter implements Filter {
 
-    private final AudioResampler mResampler;
 
-    private final MyIn  mInPad  = new MyIn();
-    private final MyOut mOutPad = new MyOut();
+    private final InHandler  mInPad  = new InHandler();
+    private final OutHandler mOutPad = new OutHandler();
 
-    private DrawPacket mPacket;
-    private Exception  mException;
+    private final MemoryManager mOptMem;
+
+    private boolean mOpen = false;
+
+    private StreamHandle   mDestStream;
+    private AudioResampler mResampler;
+    private DrawPacket     mOutPacket;
+    private Exception      mException;
 
 
-    public ResamplerFilter( AudioAllocator alloc ) {
-        mResampler = new AudioResampler( alloc );
+    public ResamplerFilter( MemoryManager optMem ) {
+        mOptMem = optMem;
     }
 
 
@@ -40,16 +44,36 @@ public class ResamplerFilter implements Filter {
     }
 
 
-    public void open( EventBus bus ) {}
+    public void open( EventBus bus ) {
+        if( mOpen ) {
+            return;
+        }
+        mOpen = true;
+
+        AudioAllocator alloc = null;
+        if( mOptMem != null ) {
+            alloc = mOptMem.audioAllocator( mDestStream );
+        } else {
+            alloc = OneStreamAudioAllocatorKillme.createPacketLimited( 64, -1 );
+        }
+
+        mResampler = new AudioResampler( alloc );
+        mResampler.destFormat( mDestStream.audioFormat() );
+    }
 
 
     public void close() {
+        if( !mOpen ) {
+            return;
+        }
+        mOpen = false;
         mResampler.close();
+        mResampler = null;
     }
 
 
     public boolean isOpen() {
-        return true;
+        return mOpen;
     }
 
     @Override
@@ -74,46 +98,41 @@ public class ResamplerFilter implements Filter {
 
     @Override
     public void clear() {
-        mResampler.clear();
+        if( mResampler != null ) {
+            mResampler.clear();
+        }
     }
 
 
-    private class MyIn extends InPadAdapter<DrawPacket> {
+    private class InHandler extends InPadAdapter<DrawPacket> {
         @Override
         public int status() {
             return mException != null ? EXCEPTION :
-                   mPacket != null ? DRAIN_FILTER : OKAY;
+                   mOutPacket != null ? DRAIN_FILTER : OKAY;
         }
 
         @Override
         public int offer( DrawPacket packet ) {
             mException = null;
-            if( mPacket != null ) {
+            if( mOutPacket != null ) {
                 return DRAIN_FILTER;
             }
 
             // Check for empty packet.
             if( packet.isGap() ) {
-                mPacket = packet;
-                packet.ref();
+//                mOutPacket = packet;
+//                packet.ref();
                 return OKAY;
             }
 
             // Not empty. Run converter.
-            DrawPacket p = null;
             try {
-                p = mResampler.convert( packet );
+                mOutPacket = mResampler.convert( packet );
+                return OKAY;
             } catch( JavException e ) {
                 mException = e;
                 return EXCEPTION;
             }
-
-            if( p == null ) {
-                return UNFINISHED;
-            }
-
-            mPacket = p;
-            return OKAY;
         }
 
         @Override
@@ -125,19 +144,20 @@ public class ResamplerFilter implements Filter {
     }
 
 
-    private class MyOut extends OutPadAdapter {
+    private class OutHandler extends OutPadAdapter {
         @Override
         public int status() {
-            return mPacket == null ? FILL_FILTER : OKAY;
+            return mOutPacket == null ? FILL_FILTER : OKAY;
         }
 
         @Override
         public int poll( Refable[] out ) {
-            if( mPacket == null ) {
+            if( mOutPacket == null ) {
                 return FILL_FILTER;
             }
-            out[0] = mPacket;
-            mPacket = null;
+
+            out[0] = mOutPacket;
+            mOutPacket = null;
             return OKAY;
         }
 
@@ -147,12 +167,10 @@ public class ResamplerFilter implements Filter {
                 return;
             }
 
-            AudioFormat fmt = stream.audioFormat();
-            if( fmt == null ) {
+            if( stream.audioFormat() == null ) {
                 throw new IllegalArgumentException( "Missing picture format." );
             }
-
-            mResampler.destFormat( fmt );
+            mDestStream = stream;
         }
     }
 

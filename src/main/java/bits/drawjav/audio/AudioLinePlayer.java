@@ -334,7 +334,7 @@ STATE_CHANGE:
                             wait();
                         } catch( InterruptedException ignored ) {}
                     } else {
-                        long waitTime = (LINE_BUFFER_SIZE / 4 - mLine.available()) * 1000 / mFrequency;
+                        long waitTime = (LINE_BUFFER_SIZE / 16 - mLine.available()) * 1000 / mFrequency;
                         if( waitTime > 10L ) {
                             try {
                                 wait( waitTime );

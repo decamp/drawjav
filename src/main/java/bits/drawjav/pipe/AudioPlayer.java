@@ -45,19 +45,23 @@ public class AudioPlayer implements Channel {
         }
         mClock = optClock;
 
-        AudioFormat format = new AudioFormat( 1, 48000, Jav.AV_SAMPLE_FMT_FLT );
-        StreamHandle stream = new BasicStreamHandle( Jav.AVMEDIA_TYPE_AUDIO, null, format );
+        AudioFormat  srcFormat = new AudioFormat( 1, 48000, Jav.AV_SAMPLE_FMT_S16P );
+        AudioFormat  dstFormat = new AudioFormat( 1, 48000, Jav.AV_SAMPLE_FMT_FLT );
+        StreamHandle srcStream = new BasicStreamHandle( Jav.AVMEDIA_TYPE_AUDIO, null, srcFormat );
+        StreamHandle dstStream = new BasicStreamHandle( Jav.AVMEDIA_TYPE_AUDIO, null, dstFormat );
 
         mReader    = new ReaderFilter( reader );
-        mClipper   = new AudioPacketClipper( optMem.audioAllocator( stream, format ) );
-        mResampler = new ResamplerFilter( optMem.audioAllocator( stream, format ) );
+        mClipper   = new AudioPacketClipper( optMem ); //optMem.audioAllocator( srcStream ) );
+        mResampler = new ResamplerFilter( optMem );
         mSola      = new SolaFilter( optMem );
         mLineOut   = new LineOutFilter( null );
 
-        mGraph.connect( mReader, mReader.output( 0 ), mClipper, mClipper.input( 0 ), stream );
-        mGraph.connect( mClipper, mClipper.output( 0 ), mResampler, mResampler.input( 0 ), stream );
-        mGraph.connect( mResampler, mResampler.output( 0 ), mSola, mSola.input( 0 ), stream );
-        mGraph.connect( mSola, mSola.output( 0 ), mLineOut, mLineOut.input( 0 ), stream );
+        mGraph.connect( mReader, mReader.output( 0 ), mClipper, mClipper.input( 0 ), srcStream );
+        mGraph.connect( mClipper, mClipper.output( 0 ), mResampler, mResampler.input( 0 ), srcStream );
+//        mGraph.connect( mReader, mReader.output( 0 ), mResampler, mResampler.input( 0 ), srcStream );
+        mGraph.connect( mResampler, mResampler.output( 0 ), mSola, mSola.input( 0 ), dstStream );
+        mGraph.connect( mSola, mSola.output( 0 ), mLineOut, mLineOut.input( 0 ), dstStream );
+//        mGraph.connect( mResampler, mResampler.output( 0 ), mLineOut, mLineOut.input( 0 ), dstStream );
 
         synchronized( mClock ) {
             mClock.addListener( mEvents );

@@ -14,6 +14,10 @@ class PacketTimer {
     private static final long NAN = Jav.AV_NOPTS_VALUE;
     private static final Rational MICROS = new Rational( 1, 1000000 );
 
+    // If the stream start offset is smaller than this,
+    // assume it actually starts at 0.
+    private static final long STREAM_START_THRESHOLD = 500000L;
+
     private final Rational mTimeBase;
     private final Rational mMicrosPerPts;
 
@@ -49,7 +53,13 @@ class PacketTimer {
     
     
     public void init( long startPts, long startMicros ) {
+//        long rawStart = Rational.rescale( startPts, mTimeBase.num() * 1000000, mTimeBase.den() );
+//        if( Math.abs( rawStart ) < STREAM_START_THRESHOLD ) {
+//            startPts = 0;
+//        }
+
         mStartPts      = startPts;
+        mSyncPts       = startPts;
         mOffsetPts     = startPts;
         mPosPts        = startPts;
         mStartMicros   = startMicros;
@@ -137,8 +147,7 @@ class PacketTimer {
             outRangeMicros[1] = bestEffortPtsToMicros( posPts + durPts );
         }
     }
-    
-    
+
     
     
     private void sync( long syncPts, long posPts ) {

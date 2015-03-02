@@ -6,19 +6,20 @@
 
 package bits.drawjav.pipe;
 
-import bits.drawjav.DrawPacket;
-import bits.drawjav.StreamHandle;
+import bits.drawjav.*;
 import bits.drawjav.audio.AudioFormat;
 import bits.jav.Jav;
 import bits.jav.util.JavMem;
 import bits.microtime.*;
+import bits.util.Dates;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 
 import javax.sound.sampled.*;
 import java.io.*;
 import java.nio.*;
-import java.util.Arrays;
+import java.text.DateFormat;
+import java.util.*;
 
 
 /**
@@ -227,7 +228,7 @@ public class LineOutFilter implements Filter, InPad<DrawPacket>, SyncClockContro
         }
 
         // Check format compatability.
-        int chans      = packet.channels();
+        int chans = packet.channels();
         int sampFormat = packet.format();
 
         switch( sampFormat ) {
@@ -336,14 +337,15 @@ STATE_CHANGE:
             if( mClockState.mPlaying ) {
                 // Start the audio line, if necessary.
                 if( !isPlaying ) {
-                    long waitUntil  = mClockState.mMasterBasis / 1000L;
+                    long waitUntil = mClockState.mMasterBasis / 1000L;
                     long waitMillis = waitUntil - mClock.micros() / 1000L;
                     if( waitMillis > 10L ) {
                         //Not sure about this loop, but I'm not about to mess with it.
                         do {
                             try {
                                 wait( waitMillis );
-                            } catch( InterruptedException ignored ) {}
+                            } catch( InterruptedException ignored ) {
+                            }
                             if( mStateChanged ) {
                                 continue STATE_CHANGE;
                             }
@@ -362,13 +364,15 @@ STATE_CHANGE:
                     if( mPacket == null ) {
                         try {
                             wait();
-                        } catch( InterruptedException ignored ) {}
+                        } catch( InterruptedException ignored ) {
+                        }
                     } else {
-                        long waitTime = ( mLineBufSize / 4 - mLine.available() ) * 1000 / mFrequency;
+                        long waitTime = (mLineBufSize / 4 - mLine.available()) * 1000 / mFrequency;
                         if( waitTime > 10L ) {
                             try {
                                 wait( waitTime );
-                            } catch( InterruptedException ignored ) {}
+                            } catch( InterruptedException ignored ) {
+                            }
                         } else {
                             writeToLine();
                         }
@@ -376,13 +380,14 @@ STATE_CHANGE:
                 }
             } else {
                 if( isPlaying ) {
-                    long waitUntil  = mClockState.mMasterBasis / 1000L;
+                    long waitUntil = mClockState.mMasterBasis / 1000L;
                     long waitMillis = waitUntil - mClock.micros() / 1000L;
 
                     while( waitMillis > 10L ) {
                         try {
                             wait( waitMillis );
-                        } catch( InterruptedException ignored ) {}
+                        } catch( InterruptedException ignored ) {
+                        }
 
                         if( mStateChanged ) {
                             continue STATE_CHANGE;
@@ -410,6 +415,8 @@ STATE_CHANGE:
         int ret = 0;
 
         while( mPacket != null ) {
+            //System.out.print( "LineOutFilter: " ); Debug.print( packet );
+
             int sampNum = Math.min( arr.length / 2, Math.min( mLine.available() / 2, mPacketSamplesRemaining ) );
             sampNum -= sampNum % mChannels;
             if( sampNum == 0 ) {

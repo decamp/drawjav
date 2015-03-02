@@ -16,6 +16,6 @@ import bits.drawjav.video.VideoAllocator;
  * @author Philip DeCamp
  */
 public interface MemoryManager {
-    public VideoAllocator videoAllocator( StreamHandle stream, PictureFormat format );
-    public AudioAllocator audioAllocator( StreamHandle stream, AudioFormat format   );
+    public VideoAllocator videoAllocator( StreamHandle stream );
+    public AudioAllocator audioAllocator( StreamHandle stream );
 }

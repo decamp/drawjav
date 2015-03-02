@@ -18,10 +18,10 @@ public class ReaderFilter implements Filter, SyncClockControl {
 
     private static final int MAX_QUEUE_SIZE = 64;
 
-    private final PacketReader   mReader;
-    private final StreamSource[] mSources;
-    private final List<StreamSource>              mActive = new ArrayList<StreamSource>();
-    private final Map<StreamHandle, StreamSource> mMap    = new HashMap<StreamHandle, StreamSource>();
+    private final PacketReader mReader;
+    private final OutHandler[] mSources;
+    private final List<OutHandler>              mActive = new ArrayList<OutHandler>();
+    private final Map<StreamHandle, OutHandler> mMap    = new HashMap<StreamHandle, OutHandler>();
 
     private Exception mException  = null;
     private boolean   mNeedSeek   = false;
@@ -31,9 +31,9 @@ public class ReaderFilter implements Filter, SyncClockControl {
     public ReaderFilter( PacketReader reader ) {
         mReader = reader;
         int len = reader.streamCount();
-        mSources = new StreamSource[len];
+        mSources = new OutHandler[len];
         for( int i = 0; i < len; i++ ) {
-            StreamSource source = new StreamSource( reader.stream( i ) );
+            OutHandler source = new OutHandler( reader.stream( i ) );
             if( reader.isStreamOpen( source.mStream ) ) {
                 mActive.add( source );
                 mMap.put( source.mStream, source );
@@ -113,17 +113,17 @@ public class ReaderFilter implements Filter, SyncClockControl {
 
 
     private void doClear() {
-        for( StreamSource source : mActive ) {
+        for( OutHandler source : mActive ) {
             source.clear();
         }
     }
 
 
-    private final class StreamSource extends OutPadAdapter {
-        StreamHandle mStream;
-        Queue mQueue = new RingList( MAX_QUEUE_SIZE );
+    private final class OutHandler extends OutPadAdapter {
+        private StreamHandle mStream;
+        private Queue<Refable> mQueue = new ArrayDeque<Refable>( MAX_QUEUE_SIZE );
 
-        StreamSource( StreamHandle stream ) {
+        OutHandler( StreamHandle stream ) {
             mStream = stream;
         }
 
@@ -147,7 +147,7 @@ public class ReaderFilter implements Filter, SyncClockControl {
                 }
 
                 if( !mQueue.isEmpty() ) {
-                    out[0] = (Packet)mQueue.remove();
+                    out[0] = mQueue.remove();
                     return OKAY;
                 }
 
@@ -156,7 +156,7 @@ public class ReaderFilter implements Filter, SyncClockControl {
                     return UNFINISHED;
                 }
 
-                StreamSource dest = mMap.get( packet.stream() );
+                OutHandler dest = mMap.get( packet.stream() );
                 if( dest == null ) {
                     packet.deref();
                     return UNFINISHED;
@@ -184,7 +184,7 @@ public class ReaderFilter implements Filter, SyncClockControl {
 
         private void clear() {
             while( !mQueue.isEmpty() ) {
-                ((Refable)mQueue.remove()).deref();
+                (mQueue.remove()).deref();
             }
         }
 

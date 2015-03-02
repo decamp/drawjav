@@ -61,6 +61,7 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
     }
 
 
+
     public AudioFormat sourceFormat() {
         return mSourceFormat != null ? mSourceFormat : mPredictSourceFormat;
     }
@@ -126,13 +127,13 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
 
     public DrawPacket convert( DrawPacket source ) throws JavException {
         if( source.isGap() ) {
+            source.ref();
             return source;
         }
 
         StreamHandle stream = source.stream();
         if( stream != mStream && !stream.equals( mStream ) ) {
             mStream = stream;
-
             AudioFormat format = source.toAudioFormat();
             if( !format.equals( mSourceFormat ) ) {
                 mSourceFormat = format;
@@ -201,6 +202,7 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
             mConverter = null;
         }
     }
+
 
 
     private void updateDestFormat() {

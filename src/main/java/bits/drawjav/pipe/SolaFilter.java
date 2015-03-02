@@ -5,10 +5,14 @@ import bits.drawjav.audio.*;
 import bits.jav.Jav;
 import bits.jav.util.JavMem;
 import bits.microtime.ClockEvent;
+import bits.sola.Sola;
 import bits.util.ref.Refable;
+import cogmac.peek.bep.Sola2;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 
+import java.io.File;
+import java.io.IOException;
 import java.nio.*;
 
 
@@ -23,8 +27,8 @@ public class SolaFilter implements Filter {
     private Sola     mSola = null;
     private EventBus mBus  = null;
 
-    private final Input  mInput  = new Input();
-    private final Output mOutput = new Output();
+    private final InHandler  mInput  = new InHandler();
+    private final OutHandler mOutput = new OutHandler();
 
     private StreamHandle   mStream     = null;
     private AudioFormat    mFormat     = null;
@@ -34,11 +38,14 @@ public class SolaFilter implements Filter {
     private FloatBuffer    mWorkFloats = null;
     private ByteBuffer     mWorkBytes  = null;
 
-    private DrawPacket  mDst       = null;
-    private FloatBuffer mDstBuf    = null;
-    private long        mDstStart  = Long.MIN_VALUE;
-    private long        mDstStop   = Long.MIN_VALUE;
-    private boolean     mNeedDrain = false;
+    private DrawPacket  mDst        = null;
+    private FloatBuffer mDstBuf     = null;
+    private long        mDstStart   = Long.MIN_VALUE;
+    private long        mDstStop    = Long.MIN_VALUE;
+    private boolean     mOutPadFull = false;
+
+    private WavWriter mWriteIn;
+    private WavWriter mWriteOut;
 
 
     public SolaFilter( MemoryManager mem ) {
@@ -77,8 +84,17 @@ public class SolaFilter implements Filter {
         mBus = bus;
         bus.register( new ClockHandler() );
         mSola = new Sola( mFormat.sampleRate() );
-        mAlloc = mMem.audioAllocator( mStream, mFormat );
+        mAlloc = mMem.audioAllocator( mStream );
         mOpen = true;
+
+        try {
+            mWriteIn  = Debug.createDebugWriter( new File( "/tmp/sola_in.wav" ), mFormat.sampleRate() );
+            mWriteOut = Debug.createDebugWriter( new File( "/tmp/sola_out.wav" ), mFormat.sampleRate() );
+        } catch( IOException e ) {
+            e.printStackTrace();
+            System.exit( -1 );
+        }
+
     }
 
     @Override
@@ -115,7 +131,7 @@ public class SolaFilter implements Filter {
             mDst = null;
         }
         mDstBuf = null;
-        mNeedDrain = false;
+        mOutPadFull = false;
         mDstStart = Long.MIN_VALUE;
         mDstStop  = Long.MIN_VALUE;
     }
@@ -124,13 +140,14 @@ public class SolaFilter implements Filter {
     private void doProcess() {
         if( mDst == null ) {
             int len = mSrc.nbSamples();
+
             mDst = mAlloc.alloc( mFormat, len );
             mDstBuf = mDst.javaBufElem( 0 ).asFloatBuffer();
             mDstBuf.position( 0 ).limit( len );
             if( mDstStart == Long.MIN_VALUE ) {
                 mDstStart = mDstStop = mSrc.startMicros();
             }
-            mNeedDrain = false;
+            mOutPadFull = false;
         }
 
         while( mDstBuf.remaining() > 0 && mSrcBuf.remaining() > 0 ) {
@@ -142,6 +159,13 @@ public class SolaFilter implements Filter {
 
         // Check if output is finished.
         if( mDstBuf.remaining() < 2 ) {
+            try {
+                ByteBuffer bb = mDst.javaBufElem( 0 );
+                bb.clear().limit( mDstBuf.position() * 4 );
+                mWriteOut.writeFloats( bb );
+            } catch( IOException ignore ) {}
+
+
             // Compute approximate time bounds of output packet.
             double p = (double)mSrcBuf.position() / mSrcBuf.limit();
             long t0 = mSrc.startMicros();
@@ -149,13 +173,14 @@ public class SolaFilter implements Filter {
             long mDstStop = t0 + (long)( p * ( t1 - t0 ) );
             mDst.init( mStream, mDstStart, mDstStop, mFormat, false );
             mDstStart = mDstStop;
-            mNeedDrain = true;
+            mOutPadFull = true;
         }
 
         // Check if input is finished.
         if( mSrcBuf.remaining() == 0 ) {
             mSrc.deref();
             mSrc = null;
+            mSrcBuf = null;
         }
     }
 
@@ -164,14 +189,13 @@ public class SolaFilter implements Filter {
         @Subscribe
         public void processEvent( ClockEvent ev ) {
             if( ev.mId == ClockEvent.CLOCK_RATE ) {
-                mSola.rate( ev.mRate );
+                mSola.rate( (float)ev.mRate.toDouble() );
             }
         }
     }
 
 
-    private final class Input extends InPadAdapter<DrawPacket> {
-
+    private final class InHandler extends InPadAdapter<DrawPacket> {
         @Override
         public int status() {
             return !mOpen ? CLOSED :
@@ -187,22 +211,27 @@ public class SolaFilter implements Filter {
                 return DRAIN_FILTER;
             }
 
+            if( packet.isGap() ) {
+                return OKAY;
+            }
+
             mSrc = packet;
-            packet.ref();
+            mSrc.ref();
 
             ByteBuffer bb = packet.javaBufElem( 0 );
             if( bb != null ) {
+                bb.position( 0 ).limit( packet.nbSamples() * 4 );
                 mSrcBuf = bb.asFloatBuffer();
             } else {
-                int len = packet.lineSize( 0 );
-                if( mWorkBytes == null || mWorkBytes.capacity() < len ) {
-                    mWorkBytes = ByteBuffer.allocateDirect( len );
+                int cap = packet.nbSamples() * 4;
+                if( mWorkBytes == null || mWorkBytes.capacity() < cap ) {
+                    mWorkBytes = ByteBuffer.allocateDirect( cap );
                     mWorkBytes.order( ByteOrder.nativeOrder() );
                     mWorkFloats = mWorkBytes.asFloatBuffer();
                 }
-                mWorkBytes.position( 0 ).limit( len );
+                mWorkBytes.position( 0 ).limit( cap );
                 JavMem.copy( packet.dataElem( 0 ), mWorkBytes );
-                mWorkFloats.position( 0 ).limit( len / 4 );
+                mWorkFloats.position( 0 ).limit( cap / 4 );
                 mSrcBuf = mWorkFloats;
             }
 
@@ -223,14 +252,13 @@ public class SolaFilter implements Filter {
                 throw new IllegalArgumentException( "Only mono is supported." );
             }
 
+            mStream = stream;
             mFormat = format;
         }
-
     }
 
 
-    private final class Output extends OutPadAdapter {
-
+    private final class OutHandler extends OutPadAdapter {
         @Override
         public int status() {
             return !mOpen ? CLOSED :
@@ -244,10 +272,11 @@ public class SolaFilter implements Filter {
             }
 
             while( true ) {
-                if( mNeedDrain ) {
-                    mNeedDrain = false;
-                    out[0] = mDst;
-                    mDst = null;
+                if( mOutPadFull ) {
+                    mOutPadFull = false;
+                    out[0]  = mDst;
+                    mDst    = null;
+                    mDstBuf = null;
 
                     // Process as much as possible.
                     if( mSrc != null ) {
@@ -264,8 +293,6 @@ public class SolaFilter implements Filter {
                 doProcess();
             }
         }
-
     }
-
 
 }

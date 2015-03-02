@@ -21,9 +21,11 @@ public class CostPool<T extends Refable> implements ObjectPool<T>, Channel {
     private boolean mOpen = true;
 
     private long mCostCap         = -1;  // Max allowed cost of items in pool before items are disposed.
-    private long mPoolCost        = 0;  // Current cost of items in pool.
-    private long mOutstandingCost = 0;  // Current cost of items outside pool.
+    private long mPoolCost        =  0;  // Current cost of items in pool.
+    private long mOutstandingCost =  0;  // Current cost of items outside pool.
     private long mWarningCost     = -1;  // When outstanding cost gets this high, issue warning to user.
+
+    private int mRawAllocCount = 0;
 
     private int mDisposing = 0;
 

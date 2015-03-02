@@ -42,8 +42,8 @@ public class DrawPacket extends JavFrame implements Packet {
                                           throws JavException
     {
         int size = nComputeVideoBufferSize( format.width(), format.height(), format.pixelFormat() );
-        ByteBuffer buf = ByteBuffer.allocateDirect( size );
-        buf.order( ByteOrder.nativeOrder() );
+        size += Jav.FF_INPUT_BUFFER_PADDING_SIZE;
+        ByteBuffer buf = Jav.allocEncodingBuffer( size );
         return createVideo( optPool, format, buf );
     }
     
@@ -84,8 +84,7 @@ public class DrawPacket extends JavFrame implements Packet {
             throw new RuntimeException( new JavException( size ) );
         }
 
-        ByteBuffer buf = ByteBuffer.allocateDirect( size );
-        buf.order( ByteOrder.nativeOrder() );
+        ByteBuffer buf = Jav.allocEncodingBuffer( size );
         return createAudio( optPool, format, samplesPerChannel, align, buf );
     }
 
@@ -119,7 +118,7 @@ public class DrawPacket extends JavFrame implements Packet {
 
 
     @SuppressWarnings( { "unchecked", "rawtypes" } )
-    private DrawPacket( long pointer, ObjectPool<? super DrawPacket> pool )
+    protected DrawPacket( long pointer, ObjectPool<? super DrawPacket> pool )
     {
         super( pointer, (ObjectPool)pool );
     }
@@ -243,6 +242,5 @@ public class DrawPacket extends JavFrame implements Packet {
             setAudioFormat( format );
         }
     }
-
 
 }

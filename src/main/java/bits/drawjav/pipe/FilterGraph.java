@@ -443,8 +443,8 @@ public class FilterGraph {
                 mPacket = null;
             }
             if( packet != null ) {
-                packet.ref();
                 mPacket = packet;
+                mPacket.ref();
             }
             offerOp( this );
             return true;
@@ -531,6 +531,5 @@ public class FilterGraph {
         }
 
     }
-
 
 }
