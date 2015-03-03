@@ -353,7 +353,7 @@ public class PassiveDriver implements StreamDriver {
     }
     
     
-    public PlayController playController() {
+    public PlayClock clock() {
         return null;
     }
 

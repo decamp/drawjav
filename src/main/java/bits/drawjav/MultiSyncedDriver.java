@@ -22,7 +22,7 @@ import bits.microtime.*;
  */
 public class MultiSyncedDriver implements Ticker, StreamDriver {
 
-    private final PlayController mPlayCont;
+    private final PlayClock mClock;
 
     private final Map<PacketReader, Node> mSourceMap        = new HashMap<PacketReader, Node>();
     private final Map<StreamHandle, Node> mStreamMap        = new HashMap<StreamHandle, Node>();
@@ -31,16 +31,16 @@ public class MultiSyncedDriver implements Ticker, StreamDriver {
     private       boolean                 mClosed           = false;
 
 
-    public MultiSyncedDriver( PlayController playCont ) {
-        mPlayCont = playCont;
+    public MultiSyncedDriver( PlayClock clock ) {
+        mClock = clock;
     }
 
 
     public void start() {}
 
 
-    public PlayController playController() {
-        return mPlayCont;
+    public PlayClock clock() {
+        return mClock;
     }
 
 
@@ -102,7 +102,7 @@ public class MultiSyncedDriver implements Ticker, StreamDriver {
         boolean newNode = false;
         if( node == null ) {
             newNode = true;
-            node = new Node( mPlayCont, source );
+            node = new Node( mClock, source );
             node.mDriver.seekWarmupMicros( mSeekWarmupMicros );
             mSourceMap.put( source, node );
         }
@@ -163,16 +163,11 @@ public class MultiSyncedDriver implements Ticker, StreamDriver {
         final PacketReader mSource;
         final SyncedDriver mDriver;
 
-        Node( PlayController playCont, PacketReader source ) {
+        Node( PlayClock clock, PacketReader source ) {
             mSource = source;
-            mDriver = new SyncedDriver( playCont, source );
+            mDriver = new SyncedDriver( clock, source );
         }
     }
 
-
-    @Deprecated
-    public static MultiSyncedDriver newInstance( PlayController playCont ) {
-        return new MultiSyncedDriver( playCont );
-    }
 
 }

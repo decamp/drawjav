@@ -28,7 +28,7 @@ public class PacketSchedulerTest {
         PlayController playCont  = PlayController.createAuto();
         ClockControl control     = playCont.control();
         LongPrinter printer      = new LongPrinter();
-        PacketScheduler exec     = new PacketScheduler( playCont );
+        PacketScheduler exec     = new PacketScheduler( playCont.clock() );
         List<LongSource> drivers = new ArrayList<LongSource>();
         
         for( int i = 0; i < 3; i++ ) {

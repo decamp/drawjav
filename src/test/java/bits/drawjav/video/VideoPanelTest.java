@@ -43,7 +43,7 @@ public class VideoPanelTest {
         FormatReader decoder   = FormatReader.openFile( file, true, 0L, null );
         decoder.openStream( decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ) );
         
-        RealtimeDriver driver = new RealtimeDriver( playCont, decoder, null );
+        RealtimeDriver driver = new RealtimeDriver( playCont.clock(), decoder, null );
         driver.seekWarmupMicros( 3000000L );
         driver.openVideoStream( null, decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ), null, panel );
 //                                new PictureFormat( -1, -1, Jav.AV_PIX_FMT_BGRA, new bits.jav.util.Rational( 1, 1 ) ), panel );

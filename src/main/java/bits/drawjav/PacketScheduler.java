@@ -32,7 +32,6 @@ public class PacketScheduler {
     
     private static final Logger sLog = Logger.getLogger( PacketScheduler.class.getName() );
     
-    private final PlayController mPlayCont;
     private final PlayClock mClock;
     private final EventHandler mEventHandler;
     private final TimedMultiQueue<Command> mQueue;
@@ -43,10 +42,9 @@ public class PacketScheduler {
     private int mDefaultQueueCap = 8;
     
     
-    public PacketScheduler( PlayController playCont ) {
-        mPlayCont = playCont;
-        mClock    = playCont.clock();
-        mQueue    = new TimedMultiQueue<Command>();
+    public PacketScheduler( PlayClock clock ) {
+        mClock = clock;
+        mQueue = new TimedMultiQueue<Command>();
         
         Thread thread = new Thread( PacketScheduler.class.getName() ) {
             public void run() {
@@ -58,13 +56,13 @@ public class PacketScheduler {
         thread.setDaemon( true );
         thread.start();
         
-        mEventHandler = new EventHandler( mQueue, playCont );
+        mEventHandler = new EventHandler( mQueue, clock );
     }
     
     
     
-    public PlayController playCont() {
-        return mPlayCont;
+    public PlayClock clock() {
+        return mClock;
     }
     
     
@@ -361,20 +359,20 @@ public class PacketScheduler {
     private static final class EventHandler implements SyncClockControl {
 
         private final TimedMultiQueue mQueue;
-        private final PlayController mPlayCont;
-        
-        
-        public EventHandler( TimedMultiQueue core, PlayController playCont ) {
+        private final PlayClock       mClock;
+
+
+        public EventHandler( TimedMultiQueue core, PlayClock clock ) {
             mQueue = core;
-            mPlayCont = playCont;
-            playCont.clock().addListener( this );
+            mClock = clock;
+            clock.addListener( this );
         }
-        
-        
+
+
         public void close() {
-            mPlayCont.clock().removeListener( this );
+            mClock.removeListener( this );
         }
-        
+
         @Override
         public void clockStart( long execMicros ) {
             mQueue.wakeup();
@@ -394,72 +392,71 @@ public class PacketScheduler {
         public void clockRate( long execMicros, Frac rate ) {
             mQueue.wakeup();
         }
-        
+
     }
-    
-    
+
+
     private static final class Command extends TimedNode {
-        
-        public final Pipe mPipe;
+
+        public final Pipe      mPipe;
         public final PlayClock mClock;
-        
-        public int mCommandCode;
-        public int mPriority;
+
+        public int    mCommandCode;
+        public int    mPriority;
         public Packet mPacket;
-        public long mDataMicros;
-        
+        public long   mDataMicros;
+
         private Command mPoolNext = null;
-        private int mRefCount = 1;
-        
-        
+        private int     mRefCount = 1;
+
+
         public Command( Pipe parent, PlayClock clock ) {
             //System.out.println( "createAuto: COMMAND" );
             mPipe = parent;
             mClock = clock;
         }
-        
-        
-        
+
+
         public boolean ref() {
             synchronized( mPipe.mLock ) {
                 mRefCount++;
                 return true;
             }
         }
-        
+
 
         public void deref() {
             synchronized( mPipe.mLock ) {
                 if( --mRefCount > 0 ) {
                     return;
                 }
-                
+
                 mRefCount = 1;
-                
+
                 if( mPacket != null ) {
                     mPacket.deref();
                     mPacket = null;
                 }
-                
+
                 mPipe.offer( this );
             }
         }
-        
-        
+
+
         public int refCount() {
             return mRefCount;
         }
-        
-        
+
+
         public int compareTo( TimedNode t ) {
             Command b = (Command)t;
             int c = mPriority - b.mPriority;
             return c != 0 ? c :
-                   mDataMicros < b.mDataMicros ? -1 :
-                   mDataMicros > b.mDataMicros ?  1 : 0;
+                    mDataMicros < b.mDataMicros ? -1 :
+                            mDataMicros > b.mDataMicros ? 1 : 0;
         }
-    
-        
+
+
         public long presentationMicros() {
             if( mDataMicros == Long.MIN_VALUE ) {
                 return mDataMicros;
@@ -468,10 +465,10 @@ public class PacketScheduler {
             if( t == Long.MIN_VALUE || t == Long.MAX_VALUE ) {
                 return t;
             }
-            
+
             return t - mClock.masterMicros() + System.currentTimeMillis() * 1000L;
         }
-        
+
     }
 
 }

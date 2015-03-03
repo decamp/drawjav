@@ -1,11 +1,6 @@
 package bits.drawjav;
 
-import bits.drawjav.DrawPacket;
-import bits.drawjav.audio.WavWriter;
 import bits.util.Dates;
-
-import java.io.File;
-import java.io.IOException;
 import java.text.DateFormat;
 import java.util.*;
 
@@ -37,40 +32,6 @@ public class Debug {
 
     public static String formatRange( long start, long stop ) {
         return formatTime( start ) + " -> " + formatTime( stop );
-    }
-
-
-    private static List<WavWriter> writers = new ArrayList<WavWriter>();
-
-
-    public static WavWriter createDebugWriter( File out, int sampleRate ) throws IOException {
-        final WavWriter ret = new WavWriter( out, 1, sampleRate );
-        writers.add( ret );
-
-        Runtime.getRuntime().addShutdownHook( new Thread() {
-            @Override
-            public void run() {
-                try {
-                    ret.close();
-                } catch( Exception e ) {
-                    e.printStackTrace();
-                }
-            }
-        } );
-
-        return ret;
-    }
-
-
-    public static void closeDebugWriters() {
-        for( WavWriter w: writers ) {
-            try {
-                w.close();
-            } catch( IOException e ) {
-                e.printStackTrace();
-            }
-        }
-        writers.clear();
     }
 
 }

@@ -19,27 +19,27 @@ import bits.microtime.*;
  */
 public class SyncedDriver implements StreamDriver, Ticker {
 
-    private final PlayController mPlayCont;
+    private final PlayClock     mClock;
     private final PassiveDriver mDriver;
-    private final PlayHandler mPlayHandler;
-    
-        
-    public SyncedDriver( PlayController playCont, PacketReader source ) {
-        mPlayCont    = playCont;
-        mDriver      = new PassiveDriver( source );
+    private final PlayHandler   mPlayHandler;
+
+
+    public SyncedDriver( PlayClock clock, PacketReader source ) {
+        mClock = clock;
+        mDriver = new PassiveDriver( source );
         mPlayHandler = new PlayHandler();
-        playCont.clock().addListener( mPlayHandler );
+        mClock.addListener( mPlayHandler );
     }
-    
-    
+
+
     public void start() {}
-    
-    
+
+
     public long seekWarmupMicros() {
         return mDriver.seekWarmupMicros();
     }
-    
-    
+
+
     public void seekWarmupMicros( long micros ) {
         mDriver.seekWarmupMicros( micros );
     }
@@ -60,8 +60,8 @@ public class SyncedDriver implements StreamDriver, Ticker {
     }
     
     
-    public PlayController playController() {
-        return mPlayCont;
+    public PlayClock clock() {
+        return mClock;
     }
     
 
@@ -92,7 +92,7 @@ public class SyncedDriver implements StreamDriver, Ticker {
     
     public void close() throws IOException {
         mDriver.close();
-        mPlayCont.clock().removeListener( mPlayHandler );
+        mClock.removeListener( mPlayHandler );
     }
     
     
@@ -107,7 +107,7 @@ public class SyncedDriver implements StreamDriver, Ticker {
 
     @Override
     public void tick() {
-        long timeMicros = mPlayCont.clock().micros();
+        long timeMicros = mClock.micros();
         while( true ) {
             if( !mDriver.hasNext() ) {
                 return;

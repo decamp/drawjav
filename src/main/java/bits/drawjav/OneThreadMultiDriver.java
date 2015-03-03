@@ -26,7 +26,7 @@ public class OneThreadMultiDriver implements StreamDriver {
     private static Logger sLog = Logger.getLogger( OneThreadMultiDriver.class.getName() );
 
 
-    private final PlayController  mPlayCont;
+    private final PlayClock       mClock;
     private final ThreadLock      mLock;
     private final PacketScheduler mScheduler;
     private final PlayHandler     mPlayHandler;
@@ -45,13 +45,13 @@ public class OneThreadMultiDriver implements StreamDriver {
     private boolean mCloseComplete = false;
 
 
-    public OneThreadMultiDriver( PlayController playCont, PacketScheduler optSyncer ) {
-        mPlayCont = playCont;
+    public OneThreadMultiDriver( PlayClock clock, PacketScheduler optSyncer ) {
+        mClock = clock;
         mLock = new ThreadLock();
-        mScheduler = optSyncer != null ? optSyncer : new PacketScheduler( playCont );
+        mScheduler = optSyncer != null ? optSyncer : new PacketScheduler( clock );
 
         mPlayHandler = new PlayHandler();
-        mPlayCont.clock().addListener( mPlayHandler );
+        mClock.addListener( mPlayHandler );
 
         mThread = new Thread( OneThreadMultiDriver.class.getSimpleName() ) {
             public void run() {
@@ -69,8 +69,8 @@ public class OneThreadMultiDriver implements StreamDriver {
     }
 
 
-    public PlayController playController() {
-        return mPlayCont;
+    public PlayClock clock() {
+        return mClock;
     }
 
 

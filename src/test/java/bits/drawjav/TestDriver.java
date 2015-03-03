@@ -34,8 +34,8 @@ public class TestDriver {
     public static void main( String[] args ) throws Exception {
 //        testRealtime();
 //        testSynced();
-//        testMultiRealtime();
-        testMultiSynced();
+        testMultiRealtime();
+//        testMultiSynced();
     }
     
     
@@ -45,7 +45,7 @@ public class TestDriver {
         
         final PlayController playCont = PlayController.createAuto();
         final FormatReader decoder   = FormatReader.openFile( file, true, 0L, null );
-        final RealtimeDriver driver   = new RealtimeDriver( playCont, decoder, null );
+        final RealtimeDriver driver   = new RealtimeDriver( playCont.clock(), decoder, null );
         final VideoTexture tex        = new VideoTexture();
         
         StreamHandle sh = decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 );
@@ -88,7 +88,7 @@ public class TestDriver {
         
         final PlayController playCont = PlayController.createStepping( 0, 1000000 / 30 );
         final FormatReader decoder   = FormatReader.openFile( file, true, 0L, null );
-        final SyncedDriver driver     = new SyncedDriver( playCont, decoder ); 
+        final SyncedDriver driver     = new SyncedDriver( playCont.clock(), decoder );
         final VideoTexture tex        = new VideoTexture();
         
         StreamHandle sh = decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 );
@@ -139,7 +139,7 @@ public class TestDriver {
         final PlayController playCont  = PlayController.createAuto();
         final FormatReader decoder1   = FormatReader.openFile( file1, true, 0L, null );
         final FormatReader decoder2   = FormatReader.openFile( file2, true, 0L, null );
-        final OneThreadMultiDriver driver = new OneThreadMultiDriver( playCont, null );
+        final OneThreadMultiDriver driver = new OneThreadMultiDriver( playCont.clock(), null );
         final VideoTexture tex1        = new VideoTexture();
         final VideoTexture tex2        = new VideoTexture();
 
@@ -187,7 +187,7 @@ public class TestDriver {
         final PlayController playCont  = PlayController.createStepping( 0L, 1000000L / 30L );
         final FormatReader decoder1   = FormatReader.openFile( file1, true, 0L, null );
         final FormatReader decoder2   = FormatReader.openFile( file2, true, 0L, null );
-        final MultiSyncedDriver driver = new MultiSyncedDriver( playCont );
+        final MultiSyncedDriver driver = new MultiSyncedDriver( playCont.clock() );
         final VideoTexture tex1        = new VideoTexture();
         final VideoTexture tex2        = new VideoTexture();
         

@@ -22,10 +22,10 @@ import bits.util.concurrent.ThreadLock;
  */
 @SuppressWarnings( { "unchecked", "rawtypes" } )
 public class RealtimeDriver implements StreamDriver {
-    
+
     private static Logger sLog = Logger.getLogger( RealtimeDriver.class.getName() );
 
-    private final PlayController  mPlayCont;
+    private final PlayClock       mClock;
     private final PassiveDriver   mDriver;
     private final PacketScheduler mSyncer;
     private final PlayHandler     mPlayHandler;
@@ -33,13 +33,13 @@ public class RealtimeDriver implements StreamDriver {
     private final Thread          mThread;
 
 
-    public RealtimeDriver( PlayController playCont, PacketReader source, PacketScheduler optSyncer ) {
-        mPlayCont = playCont;
+    public RealtimeDriver( PlayClock clock, PacketReader source, PacketScheduler optSyncer ) {
+        mClock  = clock;
         mDriver = new PassiveDriver( source );
-        mSyncer = optSyncer != null ? optSyncer : new PacketScheduler( playCont );
+        mSyncer = optSyncer != null ? optSyncer : new PacketScheduler( clock );
         mPlayHandler = new PlayHandler();
         mLock = new ThreadLock();
-        mPlayCont.clock().addListener( mPlayHandler );
+        mClock.addListener( mPlayHandler );
 
         mThread = new Thread( RealtimeDriver.class.getSimpleName() ) {
             public void run() {
@@ -81,8 +81,8 @@ public class RealtimeDriver implements StreamDriver {
     }
     
     
-    public PlayController playController() {
-        return mPlayCont;
+    public PlayClock clock() {
+        return mClock;
     }
     
     

@@ -5,14 +5,10 @@ import bits.drawjav.audio.*;
 import bits.jav.Jav;
 import bits.jav.util.JavMem;
 import bits.microtime.ClockEvent;
-import bits.sola.Sola;
 import bits.util.ref.Refable;
-import cogmac.peek.bep.Sola2;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 
-import java.io.File;
-import java.io.IOException;
 import java.nio.*;
 
 
@@ -43,9 +39,6 @@ public class SolaFilter implements Filter {
     private long        mDstStart   = Long.MIN_VALUE;
     private long        mDstStop    = Long.MIN_VALUE;
     private boolean     mOutPadFull = false;
-
-    private WavWriter mWriteIn;
-    private WavWriter mWriteOut;
 
 
     public SolaFilter( MemoryManager mem ) {
@@ -86,15 +79,6 @@ public class SolaFilter implements Filter {
         mSola = new Sola( mFormat.sampleRate() );
         mAlloc = mMem.audioAllocator( mStream );
         mOpen = true;
-
-        try {
-            mWriteIn  = Debug.createDebugWriter( new File( "/tmp/sola_in.wav" ), mFormat.sampleRate() );
-            mWriteOut = Debug.createDebugWriter( new File( "/tmp/sola_out.wav" ), mFormat.sampleRate() );
-        } catch( IOException e ) {
-            e.printStackTrace();
-            System.exit( -1 );
-        }
-
     }
 
     @Override
@@ -159,13 +143,6 @@ public class SolaFilter implements Filter {
 
         // Check if output is finished.
         if( mDstBuf.remaining() < 2 ) {
-            try {
-                ByteBuffer bb = mDst.javaBufElem( 0 );
-                bb.clear().limit( mDstBuf.position() * 4 );
-                mWriteOut.writeFloats( bb );
-            } catch( IOException ignore ) {}
-
-
             // Compute approximate time bounds of output packet.
             double p = (double)mSrcBuf.position() / mSrcBuf.limit();
             long t0 = mSrc.startMicros();
@@ -189,7 +166,7 @@ public class SolaFilter implements Filter {
         @Subscribe
         public void processEvent( ClockEvent ev ) {
             if( ev.mId == ClockEvent.CLOCK_RATE ) {
-                mSola.rate( (float)ev.mRate.toDouble() );
+                mSola.rate( ev.mRate );
             }
         }
     }
