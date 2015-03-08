@@ -15,8 +15,6 @@ import bits.util.ref.Refable;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 
-import java.nio.ByteBuffer;
-import java.util.Random;
 import java.util.logging.Logger;
 
 
@@ -48,6 +46,7 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
 
     private DrawPacket   mOutPacket;
     private boolean      mOutIsGap;
+
     // Used to cut up large packets when mOutIsGap == true (which means mOutPacket has no samples)
     private StreamHandle mOutStream;
     private AudioFormat  mOutFormat;
@@ -89,7 +88,7 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
 
         mOpen = true;
         if( mOptMem == null ) {
-            mAlloc = OneStreamAudioAllocator.createPacketLimited( 32, 1024 * 4 );
+            mAlloc = OneFormatAudioAllocator.createPacketLimited( 32, 1024 * 4 );
         } else {
             mAlloc = mOptMem.audioAllocator( mOutStream );
         }
@@ -280,9 +279,9 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
             mOutPacket = null;
 
 //            System.out.print( "AudioPacketClippper: " ); Debug.print( (DrawPacket)out[0] );
-//            if( mOutIsGap ) {
-//                createNextSilencePacket();
-//            }
+            if( mOutIsGap ) {
+                createNextSilencePacket();
+            }
 
             return OKAY;
         }

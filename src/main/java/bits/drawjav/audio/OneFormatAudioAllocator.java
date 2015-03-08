@@ -19,9 +19,9 @@ import bits.util.ref.AbstractRefable;
 /**
  * @author Philip DeCamp
  */
-public class OneStreamAudioAllocator extends AbstractRefable implements AudioAllocator {
+public class OneFormatAudioAllocator extends AbstractRefable implements AudioAllocator {
 
-    private static final Logger LOG = Logger.getLogger( OneStreamAudioAllocator.class.getName() );
+    private static final Logger LOG = Logger.getLogger( OneFormatAudioAllocator.class.getName() );
 
     private static final CostMetric<JavFrame> BYTE_COST = new CostMetric<JavFrame>() {
         @Override
@@ -31,16 +31,17 @@ public class OneStreamAudioAllocator extends AbstractRefable implements AudioAll
     };
 
 
-    public static OneStreamAudioAllocator createPacketLimited( int maxPackets, int defaultSampleNum ) {
+    public static OneFormatAudioAllocator createPacketLimited( int maxPackets, int defaultSampleNum ) {
         CostPool<DrawPacket> pool = new CostPool<DrawPacket>( maxPackets, maxPackets * 100, null );
-        return new OneStreamAudioAllocator( pool, defaultSampleNum );
+        return new OneFormatAudioAllocator( pool, defaultSampleNum );
     }
 
 
-    public static OneStreamAudioAllocator createByteLimited( long maxBytes, int defaultSampleNum ) {
+    public static OneFormatAudioAllocator createByteLimited( long maxBytes, int defaultSampleNum ) {
         CostPool<DrawPacket> pool = new CostPool<DrawPacket>( maxBytes, maxBytes * 100, BYTE_COST );
-        return new OneStreamAudioAllocator( pool, defaultSampleNum );
+        return new OneFormatAudioAllocator( pool, defaultSampleNum );
     }
+
 
 
     private final CostPool<DrawPacket> mPool;
@@ -52,10 +53,11 @@ public class OneStreamAudioAllocator extends AbstractRefable implements AudioAll
     private boolean mHasChangedFormat = false;
 
 
-    OneStreamAudioAllocator( CostPool<DrawPacket> pool, int defaultSampleNum ) {
+    OneFormatAudioAllocator( CostPool<DrawPacket> pool, int defaultSampleNum ) {
         mPool = pool;
         mDefaultSampleNum = defaultSampleNum;
     }
+
 
 
     public synchronized DrawPacket alloc( AudioFormat format ) {
@@ -101,6 +103,7 @@ public class OneStreamAudioAllocator extends AbstractRefable implements AudioAll
         mPool.allocated( ret );
         return ret;
     }
+
 
     @Override
     protected void freeObject() {

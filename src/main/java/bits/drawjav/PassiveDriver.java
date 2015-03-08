@@ -214,6 +214,7 @@ public class PassiveDriver implements StreamDriver {
             if( clear ) {
                 mSink.clear();
             }
+            //System.out.print( "** send  " ); Debug.print( (DrawPacket)packet );
             mSink.consume( packet );
             packet.deref();
             return true;
@@ -253,6 +254,7 @@ public class PassiveDriver implements StreamDriver {
             if( clear ) {
                 mSink.clear();
             }
+            //System.out.print( "** send2  " ); Debug.print( (DrawPacket)packet );
             mSink.consume( packet );
             return true;
         } catch( InterruptedIOException ex ) {

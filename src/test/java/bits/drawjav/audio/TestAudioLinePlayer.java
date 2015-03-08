@@ -57,7 +57,7 @@ public class TestAudioLinePlayer {
         System.out.println( srcFormat + " -> " + dstFormat );
 
         final PlayController play     = PlayController.createAuto();
-        final AudioAllocator alloc    = OneStreamAudioAllocator.createPacketLimited( 32, -1 );
+        final AudioAllocator alloc    = OneFormatAudioAllocator.createPacketLimited( 32, -1 );
         final AudioLinePlayer liner   = new AudioLinePlayer( dstFormat, play, 1024 * 512 );
         final AudioResamplerPipe pipe = new AudioResamplerPipe( liner, dstFormat, alloc  );
 

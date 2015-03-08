@@ -16,95 +16,92 @@ public class CostPool<T extends Refable> implements ObjectPool<T>, Channel {
     private static final Logger sLog = Logger.getLogger( CostPool.class.getName() );
 
     private final CostMetric<? super T> mMetric;
-    private final Stack<T> mPool = new Stack<T>();
+    private final Stack<T> sPool = new Stack<T>();
 
-    private boolean mOpen = true;
+    private boolean sOpen = true;
 
-    private long mCostCap         = -1;  // Max allowed cost of items in pool before items are disposed.
-    private long mPoolCost        =  0;  // Current cost of items in pool.
-    private long mOutstandingCost =  0;  // Current cost of items outside pool.
-    private long mWarningCost     = -1;  // When outstanding cost gets this high, issue warning to user.
+    private long sCostCap       = -1; // Max allowed cost of items in pool before items are disposed.
+    private long sPoolCost      = 0;  // Current cost of items in pool.
+    private long sAllocatedCost = 0;  // Current cost of items outside pool.
 
-    private int mRawAllocCount = 0;
+    private long    sWarningThresh = -1; // When ollocated cost gets this high, issue warning to user.
+    private boolean sHasWarned     = false;
 
-    private int mDisposing = 0;
+
+    private int sDisposing = 0;
 
 
     /**
      * @param costCap        The allowed combined cost of all items before pool begins disposing items. -1 if none.
-     * @param warningThresh  If the cost of outstanding objects items reaches this threshold, the
+     * @param warningThresh  If the cost of allocated objects items reaches this threshold, the
      *                       RefPool will issue a warning to the logger. -1 if no warning.
      * @param optMetric      Metric used to determine cost of each item. If {@code optMetric == null}, then each
      *                       item will be assigned a cost of 1.
      */
     public CostPool( long costCap, long warningThresh, CostMetric<? super T> optMetric ) {
-        mCostCap = costCap;
+        sCostCap = costCap;
         if( optMetric == null ) {
             mMetric = CostMetric.ONE;
         } else {
             mMetric = optMetric;
         }
-        mWarningCost = warningThresh;
+        sWarningThresh = warningThresh;
     }
 
 
     /**
      * User should call this method every time a pooled object is allocated if the user wants to track the
-     * items outstanding from the pool.
+     * item allocations.
      *
      * @param item
      */
     public synchronized void allocated( T item ) {
-        if( !mOpen ) {
+        if( !sOpen ) {
             return;
         }
 
         long cost = mMetric.costOf( item );
-        mOutstandingCost += cost;
-        if( mWarningCost >= 0 && mOutstandingCost >= mWarningCost ) {
-            mWarningCost = -1;
+        sAllocatedCost += cost;
+        if( sAllocatedCost >= sWarningThresh && !sHasWarned && sWarningThresh >= 0 ) {
+            sWarningThresh = -1;
             sLog.warning( "Detected unusually high allocation rate of pooled objects. There might be a memory leak." );
         }
     }
 
     @Override
     public synchronized T poll() {
-        if( !mOpen ) {
+        if( !sOpen ) {
             return null;
         }
 
-        switch( mPool.size() ) {
+        switch( sPool.size() ) {
         case 0:
             return null;
         case 1:
-            mPoolCost = 0;
-            return mPool.pop();
+            sPoolCost = 0;
+            return sPool.pop();
         default:
-            T item = mPool.pop();
-            mPoolCost -= mMetric.costOf( item );
+            T item = sPool.pop();
+            sPoolCost -= mMetric.costOf( item );
             return item;
         }
     }
 
     @Override
     public synchronized boolean offer( T item ) {
-        if( mDisposing > 0 ) {
-            return false;
-        }
-
         long cost = mMetric.costOf( item );
-        mOutstandingCost -= cost;
-        if( mOutstandingCost < 0 ) {
-            mOutstandingCost = 0;
-        }
 
         // Check if there is room in pool.
-        if( mCostCap >= 0 && mPoolCost >= mCostCap ) {
+        if( sDisposing > 0 || 0 <= sCostCap && sCostCap <= sPoolCost ) {
+            sAllocatedCost -= cost;
+            if( sAllocatedCost < sPoolCost ) {
+                sAllocatedCost = sPoolCost;
+            }
             return false;
         }
 
-        mPool.push( item );
-        mPoolCost += cost;
+        sPool.push( item );
+        sPoolCost += cost;
         return true;
     }
 
@@ -115,18 +112,12 @@ public class CostPool<T extends Refable> implements ObjectPool<T>, Channel {
     public void dispose( T item ) {
         try {
             synchronized( this ) {
-                mDisposing++;
-                mOutstandingCost -= mMetric.costOf( item );
-                if( mOutstandingCost < 0 ) {
-                    mOutstandingCost = 0;
-                }
+                sDisposing++;
             }
-
             item.deref();
-
         } finally {
             synchronized( this ) {
-                mDisposing--;
+                sDisposing--;
             }
         }
     }
@@ -145,41 +136,63 @@ public class CostPool<T extends Refable> implements ObjectPool<T>, Channel {
 
     @Override
     public boolean isOpen() {
-        return mOpen;
+        return sOpen;
     }
+
+
+
+    long poolCost() {
+        return sPoolCost;
+    }
+
+
+    long allocatedCost() {
+        return sAllocatedCost;
+    }
+
+
+
+    boolean hasWarned() {
+        return sHasWarned;
+    }
+
+
+    long warningThresh() {
+        return sWarningThresh;
+    }
+
 
 
 
     private void doClear( boolean closing ) {
-        List<T> list;
+        List<T> derefList;
 
         try {
             synchronized( this ) {
                 if( closing ) {
-                    if( !mOpen ) {
+                    if( !sOpen ) {
                         return;
                     }
-                    mOpen = false;
+                    sOpen = false;
                 }
 
-                list = new ArrayList<T>( mPool );
-                mPool.clear();
-                mPoolCost = 0;
-                mDisposing++;
+                derefList = new ArrayList<T>( sPool );
+                sPool.clear();
+                sPoolCost = 0;
+                sDisposing++;
             }
 
-            for( T item : list ) {
+            for( T item : derefList ) {
                 item.deref();
             }
         } finally {
-            // If closing, leave mDisposing at 1.
+            // If closing, leave sDisposing at 1.
             if( !closing ) {
                 synchronized( this ) {
-                    mDisposing--;
+                    sDisposing--;
                 }
             }
         }
     }
-
 
 }

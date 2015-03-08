@@ -23,9 +23,9 @@ import bits.util.ref.AbstractRefable;
  *
  * @author Philip DeCamp
  */
-public class OneStreamVideoAllocator extends AbstractRefable implements VideoAllocator {
+public class OneFormatVideoAllocator extends AbstractRefable implements VideoAllocator {
 
-    private static final Logger LOG = Logger.getLogger( OneStreamVideoAllocator.class.getName() );
+    private static final Logger LOG = Logger.getLogger( OneFormatVideoAllocator.class.getName() );
 
     private static final CostMetric<JavFrame> BYTE_COST = new CostMetric<JavFrame>() {
         @Override
@@ -34,15 +34,18 @@ public class OneStreamVideoAllocator extends AbstractRefable implements VideoAll
         }
     };
 
-    public static OneStreamVideoAllocator createPacketLimited( int maxPackets ) {
+
+    public static OneFormatVideoAllocator createPacketLimited( int maxPackets ) {
         CostPool<DrawPacket> pool = new CostPool<DrawPacket>( maxPackets, maxPackets * 100, null );
-        return new OneStreamVideoAllocator( pool );
+        return new OneFormatVideoAllocator( pool );
     }
 
-    public static OneStreamVideoAllocator createByteLimited( long maxBytes ) {
+
+    public static OneFormatVideoAllocator createByteLimited( long maxBytes ) {
         CostPool<DrawPacket> pool = new CostPool<DrawPacket>( maxBytes, maxBytes * 100, BYTE_COST );
-        return new OneStreamVideoAllocator( pool );
+        return new OneFormatVideoAllocator( pool );
     }
+
 
 
     private final CostPool<DrawPacket> mPool;
@@ -53,7 +56,7 @@ public class OneStreamVideoAllocator extends AbstractRefable implements VideoAll
     private boolean mHasChangedFormat = false;
 
 
-    OneStreamVideoAllocator( CostPool<DrawPacket> pool ) {
+    OneFormatVideoAllocator( CostPool<DrawPacket> pool ) {
         mPool = pool;
     }
 
@@ -90,6 +93,7 @@ public class OneStreamVideoAllocator extends AbstractRefable implements VideoAll
     }
 
 
+
     private boolean checkFormat( PictureFormat a, PictureFormat b ) {
         if( a == b ) {
             return true;
@@ -111,8 +115,7 @@ public class OneStreamVideoAllocator extends AbstractRefable implements VideoAll
 
         if( mHasFormat && !mHasChangedFormat ) {
             mHasChangedFormat = true;
-            LOG.warning(
-                    "OneStreamVideoAllocator is being used for mutliple video formats. Performance may be degraded." );
+            LOG.warning( getClass() + " is being used for multiple formats. Performance may be degraded." );
         }
 
         mPool.clear();

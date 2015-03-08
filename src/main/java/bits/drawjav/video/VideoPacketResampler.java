@@ -34,7 +34,7 @@ public class VideoPacketResampler {
 
     public VideoPacketResampler( VideoAllocator alloc ) {
         if( alloc == null ) {
-            mAlloc = OneStreamVideoAllocator.createPacketLimited( 8 );
+            mAlloc = OneFormatVideoAllocator.createPacketLimited( 8 );
         } else {
             mAlloc = alloc;
             alloc.ref();

@@ -46,7 +46,6 @@ public class RealtimeDriver implements StreamDriver {
                 runLoop();
             }
         };
-
         mThread.setDaemon( true );
         mThread.setPriority( Thread.NORM_PRIORITY - 1 );
     }

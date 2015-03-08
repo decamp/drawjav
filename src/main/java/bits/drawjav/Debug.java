@@ -14,6 +14,15 @@ public class Debug {
     private static final DateFormat FORMAT = Dates.millisecondFormatter( ZONE );
 
     public static void print( DrawPacket packet ) {
+        print( null, packet );
+    }
+
+
+    public static void print( String msg, DrawPacket packet ) {
+        if( msg != null ) {
+            System.out.print( msg + "  " );
+        }
+
         if( packet == null ) {
             System.out.println( "<null>" );
         }
