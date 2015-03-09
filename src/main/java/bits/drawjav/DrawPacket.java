@@ -7,6 +7,7 @@
 package bits.drawjav;
 
 import java.nio.*;
+import java.util.logging.Logger;
 
 import bits.drawjav.audio.AudioFormat;
 import bits.drawjav.video.PictureFormat;
@@ -26,8 +27,11 @@ import bits.util.ref.*;
 public class DrawPacket extends JavFrame implements Packet {
 
     private static final Rational ONE = new Rational( 1, 1 );
+    private static final Logger   LOG = Logger.getLogger( DrawPacket.class.getName() );
 
-    
+    private static boolean sHasWarnedAboutFinalization = false;
+
+
     public static DrawPacket createAuto( ObjectPool<? super DrawPacket> optPool ) {
         long p = nAllocFrame();
         if( p == 0 ) {
@@ -35,8 +39,8 @@ public class DrawPacket extends JavFrame implements Packet {
         }
         return new DrawPacket( p, optPool );
     }
-    
-    
+
+
     public static DrawPacket createVideo( ObjectPool<? super DrawPacket> optPool,
                                           PictureFormat format )
     {
@@ -251,8 +255,12 @@ public class DrawPacket extends JavFrame implements Packet {
     protected void finalize() throws Throwable {
         long p = pointer();
         if( p != 0L ) {
-            System.err.println( "Frame not destroyed!!!" );
-            System.err.flush();
+            synchronized( DrawPacket.class ) {
+                if( !sHasWarnedAboutFinalization ) {
+                    sHasWarnedAboutFinalization = false;
+                    LOG.warning( "Frame finalized without being destroyed." );
+                }
+            }
         }
         super.finalize();
     }
