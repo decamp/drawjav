@@ -29,7 +29,7 @@ public class PassiveDriver implements StreamDriver {
     private static Logger sLog = Logger.getLogger( SyncedDriver.class.getName() );
 
     private final PacketReader mReader;
-    private final ManyToManyFormatter mSink = new ManyToManyFormatter();
+    private final ManyToManyFormatter mSink;
 
     private boolean     mClosed     = false;
     private boolean     mReadable   = true;
@@ -45,8 +45,9 @@ public class PassiveDriver implements StreamDriver {
     private Packet mNextPacket = null;
 
 
-    public PassiveDriver( PacketReader reader ) {
+    public PassiveDriver( MemoryManager optMem, PacketReader reader ) {
         mReader = reader;
+        mSink = new ManyToManyFormatter( optMem );
     }
 
 

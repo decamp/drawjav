@@ -24,9 +24,9 @@ public class SyncedDriver implements StreamDriver, Ticker {
     private final PlayHandler   mPlayHandler;
 
 
-    public SyncedDriver( PlayClock clock, PacketReader source ) {
+    public SyncedDriver( MemoryManager optMem, PlayClock clock, PacketReader source ) {
         mClock = clock;
-        mDriver = new PassiveDriver( source );
+        mDriver = new PassiveDriver( optMem, source );
         mPlayHandler = new PlayHandler();
         mClock.addListener( mPlayHandler );
     }

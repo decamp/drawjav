@@ -23,7 +23,7 @@ public class TestAudioPlayer {
 
     static void testPlay() throws Exception {
         File file = TEST_FILE;
-        MemoryManager mem   = new PoolMemoryManager( 128, -1, 0, 0 );
+        MemoryManager mem   = new PoolPerFormatMemoryManager( 128, -1, 0, 0 );
         FullClock clock     = new FullClock( Clock.SYSTEM_CLOCK );
         FormatReader reader = FormatReader.openFile( file );
         StreamHandle stream = reader.stream( Jav.AVMEDIA_TYPE_AUDIO, 0 );
@@ -55,7 +55,7 @@ public class TestAudioPlayer {
         File file = TEST_FILE;
         MemoryManager mem   = new PoolMemoryManager( 128, -1, 0, 0 );
         FullClock clock     = new FullClock( Clock.SYSTEM_CLOCK );
-        FormatReader reader = FormatReader.openFile( file );
+        FormatReader reader = FormatReader.openFile( file, true, 0, mem );
         StreamHandle stream = reader.stream( Jav.AVMEDIA_TYPE_AUDIO, 0 );
         reader.openStream( stream );
 

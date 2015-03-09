@@ -49,11 +49,7 @@ public class MultiFormatVideoAllocator extends AbstractRefable implements VideoA
         }
 
         if( format != null ) {
-            try {
-                packet = DrawPacket.createVideo( mPool.pool( format ), format );
-            } catch( JavException ex ) {
-                throw new RuntimeException( ex );
-            }
+            packet = DrawPacket.createVideo( mPool.pool( format ), format );
         } else {
             packet = DrawPacket.createAuto( mAutoPool );
         }

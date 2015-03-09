@@ -28,7 +28,7 @@ public class TestAudioClipperFilter {
     @Test
     public void testNonEmpty() throws IOException {
         File file = TEST_FILE;
-        MemoryManager mem    = new PoolMemoryManager( 128, -1, 0, 0 );
+        MemoryManager mem    = new PoolPerFormatMemoryManager( 128, -1, 0, 0 );
         FormatReader  reader = FormatReader.openFile( file );
         StreamHandle  stream = reader.stream( Jav.AVMEDIA_TYPE_AUDIO, 0 );
         reader.openStream( stream );

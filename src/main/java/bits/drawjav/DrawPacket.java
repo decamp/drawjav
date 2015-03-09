@@ -39,7 +39,6 @@ public class DrawPacket extends JavFrame implements Packet {
     
     public static DrawPacket createVideo( ObjectPool<? super DrawPacket> optPool,
                                           PictureFormat format )
-                                          throws JavException
     {
         int size = nComputeVideoBufferSize( format.width(), format.height(), format.pixelFormat() );
         size += Jav.FF_INPUT_BUFFER_PADDING_SIZE;
@@ -51,14 +50,18 @@ public class DrawPacket extends JavFrame implements Packet {
     public static DrawPacket createVideo( ObjectPool<? super DrawPacket> optPool,
                                           PictureFormat format,
                                           ByteBuffer buf )
-                                          throws JavException
     {
         long pointer = nAllocFrame();
         if( pointer == 0 ) {
             throw new OutOfMemoryError();
         }
         DrawPacket ret = new DrawPacket( pointer, optPool );
-        ret.fillVideoFrame( format.width(), format.height(), format.pixelFormat(), buf );
+        try {
+            ret.fillVideoFrame( format.width(), format.height(), format.pixelFormat(), buf );
+        } catch( JavException e ) {
+            throw new RuntimeException( e );
+        }
+
         Rational rat = format.sampleAspect();
         if( rat != null ) {
             ret.sampleAspectRatio( rat );
@@ -81,7 +84,9 @@ public class DrawPacket extends JavFrame implements Packet {
                                                   null );
 
         if( size < 0 ) {
-            throw new RuntimeException( new JavException( size ) );
+            DrawPacket ret = createAuto( optPool );
+            ret.setAudioFormat( format );
+            return ret;
         }
 
         ByteBuffer buf = Jav.allocEncodingBuffer( size );
@@ -118,8 +123,7 @@ public class DrawPacket extends JavFrame implements Packet {
 
 
     @SuppressWarnings( { "unchecked", "rawtypes" } )
-    protected DrawPacket( long pointer, ObjectPool<? super DrawPacket> pool )
-    {
+    protected DrawPacket( long pointer, ObjectPool<? super DrawPacket> pool ) {
         super( pointer, (ObjectPool)pool );
     }
 
@@ -200,7 +204,6 @@ public class DrawPacket extends JavFrame implements Packet {
     }
 
 
-
     /**
      * Initializes packet object. 
      *
@@ -241,6 +244,17 @@ public class DrawPacket extends JavFrame implements Packet {
         if( format != null ) {
             setAudioFormat( format );
         }
+    }
+
+
+    @Override
+    protected void finalize() throws Throwable {
+        long p = pointer();
+        if( p != 0L ) {
+            System.err.println( "Frame not destroyed!!!" );
+            System.err.flush();
+        }
+        super.finalize();
     }
 
 }

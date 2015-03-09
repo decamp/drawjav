@@ -95,7 +95,7 @@ public class FormatReader implements PacketReader {
                           MemoryManager optMem )
     {
         if( optMem == null ) {
-            optMem = new PoolMemoryManager( 64, 1024 * 1024 * 4, 32, 1024 * 1024 * 16 );
+            optMem = new PoolPerFormatMemoryManager( 64, 1024 * 1024 * 4, 32, 1024 * 1024 * 16 );
         }
         mMem         = optMem;
         mFormat      = format;

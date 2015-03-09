@@ -22,6 +22,7 @@ import bits.microtime.*;
  */
 public class MultiSyncedDriver implements Ticker, StreamDriver {
 
+    private final MemoryManager mMem;
     private final PlayClock mClock;
 
     private final Map<PacketReader, Node> mSourceMap        = new HashMap<PacketReader, Node>();
@@ -31,7 +32,8 @@ public class MultiSyncedDriver implements Ticker, StreamDriver {
     private       boolean                 mClosed           = false;
 
 
-    public MultiSyncedDriver( PlayClock clock ) {
+    public MultiSyncedDriver( MemoryManager mem, PlayClock clock ) {
+        mMem   = mem;
         mClock = clock;
     }
 
@@ -102,7 +104,7 @@ public class MultiSyncedDriver implements Ticker, StreamDriver {
         boolean newNode = false;
         if( node == null ) {
             newNode = true;
-            node = new Node( mClock, source );
+            node = new Node( mMem, mClock, source );
             node.mDriver.seekWarmupMicros( mSeekWarmupMicros );
             mSourceMap.put( source, node );
         }
@@ -163,9 +165,9 @@ public class MultiSyncedDriver implements Ticker, StreamDriver {
         final PacketReader mSource;
         final SyncedDriver mDriver;
 
-        Node( PlayClock clock, PacketReader source ) {
+        Node( MemoryManager mem, PlayClock clock, PacketReader source ) {
             mSource = source;
-            mDriver = new SyncedDriver( clock, source );
+            mDriver = new SyncedDriver( mem, clock, source );
         }
     }
 

@@ -26,6 +26,7 @@ public class OneThreadMultiDriver implements StreamDriver {
     private static Logger sLog = Logger.getLogger( OneThreadMultiDriver.class.getName() );
 
 
+    private final MemoryManager  mMem;
     private final PlayClock       mClock;
     private final ThreadLock      mLock;
     private final PacketScheduler mScheduler;
@@ -45,7 +46,8 @@ public class OneThreadMultiDriver implements StreamDriver {
     private boolean mCloseComplete = false;
 
 
-    public OneThreadMultiDriver( PlayClock clock, PacketScheduler optSyncer ) {
+    public OneThreadMultiDriver( MemoryManager mem, PlayClock clock, PacketScheduler optSyncer ) {
+        mMem = mem;
         mClock = clock;
         mLock = new ThreadLock();
         mScheduler = optSyncer != null ? optSyncer : new PacketScheduler( clock );
@@ -134,7 +136,7 @@ public class OneThreadMultiDriver implements StreamDriver {
             boolean newNode = false;
             if( node == null ) {
                 newNode = true;
-                PassiveDriver driver = new PassiveDriver( source );
+                PassiveDriver driver = new PassiveDriver( mMem, source );
                 driver.seekWarmupMicros( mSeekWarmupMicros );
                 node = new Node( source, driver );
             }

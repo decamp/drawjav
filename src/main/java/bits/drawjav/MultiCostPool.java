@@ -27,9 +27,10 @@ public class MultiCostPool<T extends Refable> implements Channel {
     private long    sWarningCost = -1;  // When outstanding cost gets this high, issue warning to user.
     private boolean sHasWarned   = false;
 
-
     private long sPoolCostTotal  = 0;  // Current cost of items in pool.
     private long sAllocatedTotal = 0;  // Current cost of items outside pool.
+
+    private long sAllocatedMax = 0; // For debugging. Delete this.
 
     private int     sDisposing = 0;
     private boolean sOpen      = true;
@@ -169,6 +170,20 @@ public class MultiCostPool<T extends Refable> implements Channel {
 
             long cost = mMetric.costOf( item );
             sAllocatedTotal += cost;
+
+            if( sAllocatedTotal > sAllocatedMax ) {
+                sAllocatedMax = sAllocatedTotal;
+                String sizeDesc;
+
+                if( mMetric == CostMetric.ONE ) {
+                    sizeDesc = sAllocatedMax + " items";
+                } else {
+                    sizeDesc = (sAllocatedMax / 1024.0 / 1024.0) + " mb";
+                }
+
+                System.out.println( "!!! MultiCostPool size : " + sizeDesc + ", " + item.getClass().getSimpleName() );
+            }
+
             if( sAllocatedTotal >= sWarningCost && !sHasWarned && sWarningCost >= 0 ) {
                 sHasWarned = true;
                 sLog.warning( "Detected unusually high allocation rate of pooled objects. There might be a memory leak." );

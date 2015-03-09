@@ -74,11 +74,7 @@ public class OneFormatVideoAllocator extends AbstractRefable implements VideoAll
         }
 
         if( format != null ) {
-            try {
-                packet = DrawPacket.createVideo( mPool, format );
-            } catch( JavException ex ) {
-                throw new RuntimeException( ex );
-            }
+            packet = DrawPacket.createVideo( mPool, format );
         } else {
             packet = DrawPacket.createAuto( mPool );
         }

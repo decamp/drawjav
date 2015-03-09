@@ -106,6 +106,7 @@ public class VideoPacketResampler {
 
     public DrawPacket convert( DrawPacket source ) throws JavException {
         if( source.isGap() ) {
+            source.ref();
             return source;
         }
 

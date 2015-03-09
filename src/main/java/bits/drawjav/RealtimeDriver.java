@@ -33,9 +33,9 @@ public class RealtimeDriver implements StreamDriver {
     private final Thread          mThread;
 
 
-    public RealtimeDriver( PlayClock clock, PacketReader source, PacketScheduler optSyncer ) {
+    public RealtimeDriver( PlayClock clock, PacketReader source, MemoryManager optMem, PacketScheduler optSyncer ) {
         mClock  = clock;
-        mDriver = new PassiveDriver( source );
+        mDriver = new PassiveDriver( optMem, source );
         mSyncer = optSyncer != null ? optSyncer : new PacketScheduler( clock );
         mPlayHandler = new PlayHandler();
         mLock = new ThreadLock();

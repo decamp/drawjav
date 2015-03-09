@@ -45,11 +45,11 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
     }
 
 
-    public ManyToManyFormatter( MemoryManager mem ) {
-        if( mem == null ) {
-            mMem = new PoolMemoryManager( 32, -1, 16, -1 );
+    public ManyToManyFormatter( MemoryManager optMem ) {
+        if( optMem == null ) {
+            mMem = new PoolPerFormatMemoryManager( 32, -1, 16, -1 );
         } else {
-            mMem = mem;
+            mMem = optMem;
         }
     }
 
