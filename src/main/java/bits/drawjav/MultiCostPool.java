@@ -180,8 +180,7 @@ public class MultiCostPool<T extends Refable> implements Channel {
                 } else {
                     sizeDesc = (sAllocatedMax / 1024.0 / 1024.0) + " mb";
                 }
-
-                System.out.println( "!!! MultiCostPool size : " + sizeDesc + ", " + item.getClass().getSimpleName() );
+                //System.out.println( "!!! MultiCostPool size : " + sizeDesc + ", " + item.getClass().getSimpleName() );
             }
 
             if( sAllocatedTotal >= sWarningCost && !sHasWarned && sWarningCost >= 0 ) {
