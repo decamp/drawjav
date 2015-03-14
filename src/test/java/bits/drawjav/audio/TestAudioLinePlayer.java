@@ -52,8 +52,8 @@ public class TestAudioLinePlayer {
         Stream stream = demux.stream( Jav.AVMEDIA_TYPE_AUDIO, 0 );
         demux.openStream( stream );
 
-        AudioFormat srcFormat = stream.audioFormat();
-        AudioFormat dstFormat = new AudioFormat( srcFormat.mChannels, 44100, Jav.AV_SAMPLE_FMT_FLT );
+        StreamFormat srcFormat = stream.format();
+        StreamFormat dstFormat = StreamFormat.createAudio( srcFormat.mChannels, 44100, Jav.AV_SAMPLE_FMT_FLT );
         System.out.println( srcFormat + " -> " + dstFormat );
 
         final PlayController play     = PlayController.createAuto();

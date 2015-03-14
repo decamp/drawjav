@@ -394,10 +394,10 @@ public class PassiveDriver implements StreamDriver {
 
     @Override
     public synchronized Stream openAudioStream( PacketReader ignored,
-                                                      Stream stream,
-                                                      AudioFormat format,
-                                                      Sink<? super DrawPacket> sink )
-                                                      throws IOException 
+                                                Stream stream,
+                                                StreamFormat format,
+                                                Sink<? super DrawPacket> sink )
+                                                throws IOException
     {
         if( mClosed ) {
             throw new ClosedChannelException();

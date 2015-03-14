@@ -109,7 +109,7 @@ public class OneThreadMultiDriver implements StreamDriver {
 
     public Stream openAudioStream( PacketReader source,
                                          Stream sourceStream,
-                                         AudioFormat destFormat,
+                                         StreamFormat destFormat,
                                          Sink<? super DrawPacket> sink )
                                          throws IOException 
     {
@@ -121,7 +121,7 @@ public class OneThreadMultiDriver implements StreamDriver {
                                      PacketReader source,
                                      Stream stream,
                                      StreamFormat pictureFormat,
-                                     AudioFormat audioFormat,
+                                     StreamFormat audioFormat,
                                      Sink sink )
                                      throws IOException
     {

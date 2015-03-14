@@ -74,9 +74,9 @@ public class FormatReader implements PacketReader {
     private final JavFormatContext mFormat;
     private final MemoryManager    mMem;
 
-    private final Stream[] mStreams;
-    private final Stream[] mSeekStreams;
-    private final Stream   mEarliestStream;
+    private final ReaderStream[] mStreams;
+    private final ReaderStream[] mSeekStreams;
+    private final ReaderStream   mEarliestStream;
 
     private final JavPacket mNullPacket;
     private       JavPacket mPacket;
@@ -100,14 +100,14 @@ public class FormatReader implements PacketReader {
         mFormat = format;
         mPacket = JavPacket.alloc();
         mNullPacket = JavPacket.alloc();
-        mStreams = new Stream[format.streamCount()];
+        mStreams = new ReaderStream[format.streamCount()];
 
         // Determine earliest timestamp in file.
-        Stream first = null;
+        ReaderStream first = null;
 
         for( int i = 0; i < mStreams.length; i++ ) {
             JavStream js = format.stream( i );
-            Stream stream;
+            ReaderStream stream;
 
             switch( js.codecContext().codecType() ) {
             case AVMEDIA_TYPE_VIDEO:
@@ -160,7 +160,7 @@ public class FormatReader implements PacketReader {
         }
 
         mIsOpen = false;
-        for( Stream s : mStreams ) {
+        for( ReaderStream s : mStreams ) {
             try {
                 if( s.isOpen() ) {
                     s.close();
@@ -186,10 +186,10 @@ public class FormatReader implements PacketReader {
 
 
     public bits.drawjav.Stream stream( int mediaType, int index ) {
-        for( Stream mStream : mStreams ) {
-            if( mStream.type() == mediaType ) {
+        for( ReaderStream s : mStreams ) {
+            if( s.mFormat.mType == mediaType ) {
                 if( index-- == 0 ) {
-                    return mStream;
+                    return s;
                 }
             }
         }
@@ -204,27 +204,25 @@ public class FormatReader implements PacketReader {
 
 
     public boolean isStreamOpen( bits.drawjav.Stream stream ) {
-        return mStreams[((Stream)stream).index()].isOpen();
+        return mStreams[((ReaderStream)stream).index()].isOpen();
     }
 
     @Override
     public void openStream( bits.drawjav.Stream stream ) throws IOException {
         assertOpen();
-        Stream ss = mStreams[((Stream)stream).index()];
+        ReaderStream ss = mStreams[((ReaderStream)stream).index()];
         if( ss.isOpen() ) {
             return;
         }
 
-        switch( ss.type() ) {
-        case AVMEDIA_TYPE_AUDIO:
-        {
+        switch( ss.mFormat.mType ) {
+        case AVMEDIA_TYPE_AUDIO: {
             AudioStream s = (AudioStream)ss;
             s.open( mMem.audioAllocator( stream ) );
             updateSeekStream();
             return;
         }
-        case AVMEDIA_TYPE_VIDEO:
-        {
+        case AVMEDIA_TYPE_VIDEO: {
             VideoStream s = (VideoStream)ss;
             s.open( mMem.videoAllocator( stream ) );
             updateSeekStream();
@@ -237,8 +235,8 @@ public class FormatReader implements PacketReader {
 
     public void openVideoStream( bits.drawjav.Stream stream, VideoAllocator alloc ) throws IOException {
         assertOpen();
-        Stream ss = mStreams[((Stream)stream).index()];
-        if( ss.type() != Jav.AVMEDIA_TYPE_VIDEO ) {
+        ReaderStream ss = mStreams[((ReaderStream)stream).index()];
+        if( ss.mFormat.mType != Jav.AVMEDIA_TYPE_VIDEO ) {
             throw new IllegalArgumentException( "Not a video stream." );
         }
         ((VideoStream)ss).open( alloc );
@@ -248,8 +246,8 @@ public class FormatReader implements PacketReader {
 
     public void openAudioStream( bits.drawjav.Stream stream, AudioAllocator alloc ) throws IOException {
         assertOpen();
-        Stream ss = mStreams[((Stream)stream).index()];
-        if( ss.type() != Jav.AVMEDIA_TYPE_AUDIO ) {
+        ReaderStream ss = mStreams[((ReaderStream)stream).index()];
+        if( ss.mFormat.mType != Jav.AVMEDIA_TYPE_AUDIO ) {
             throw new IllegalArgumentException( "Not an audio stream." );
         }
         ((AudioStream)ss).open( alloc );
@@ -258,7 +256,7 @@ public class FormatReader implements PacketReader {
 
     @Override
     public void closeStream( bits.drawjav.Stream stream ) throws IOException {
-        Stream ss = mStreams[((Stream)stream).index()];
+        ReaderStream ss = mStreams[((ReaderStream)stream).index()];
         if( !ss.isOpen() ) {
             return;
         }
@@ -287,7 +285,7 @@ public class FormatReader implements PacketReader {
             return;
         }
 
-        Stream s        = (Stream)stream;
+        ReaderStream s        = (ReaderStream)stream;
         Rational timeBase = s.timeBase();
         long     pts      = s.microsToPts( micros );
 
@@ -312,7 +310,7 @@ public class FormatReader implements PacketReader {
             return;
         }
 
-        Stream firstStream = null;
+        ReaderStream firstStream = null;
         long firstPos      = Long.MAX_VALUE;
         preSeek();
 
@@ -320,7 +318,7 @@ public class FormatReader implements PacketReader {
         // Seek through the streams from least to most likely to maximize possibility
         // of not needing to read last packet twice.
         for( int i = mSeekStreams.length - 1; i >= 0; i-- ) {
-            Stream s = mSeekStreams[i];
+            ReaderStream s = mSeekStreams[i];
             if( !s.isOpen() ) {
                 continue;
             }
@@ -396,11 +394,11 @@ public class FormatReader implements PacketReader {
 
 
     public void overrideTimestamps( long mediaStartMicros ) {
-        Stream first     = mEarliestStream;
+        ReaderStream first     = mEarliestStream;
         Rational firstTb = first.timeBase();
         long firstPts    = first.javStream().startTime();
 
-        for( Stream s: mStreams ) {
+        for( ReaderStream s: mStreams ) {
             long pts = s == first ? firstPts : Rational.rescaleQ( firstPts, s.timeBase(), firstTb );
             s.initTimer( pts, mediaStartMicros );
         }
@@ -408,7 +406,7 @@ public class FormatReader implements PacketReader {
 
 
     public void useEmbeddedTimestamps( long offsetMicros ) {
-        for( Stream s : mStreams ) {
+        for( ReaderStream s : mStreams ) {
             s.initTimer( 0, offsetMicros );
         }
     }
@@ -432,7 +430,7 @@ public class FormatReader implements PacketReader {
     private void postSeek( Rational timeBase, long pts ) {
         long micros = Rational.rescaleQ( pts, timeBase, MICROS );
 
-        for( Stream ss : mStreams ) {
+        for( ReaderStream ss : mStreams ) {
             if( timeBase.equals( ss.timeBase() ) ) {
                 ss.seekPts( pts );
             } else {
@@ -442,7 +440,7 @@ public class FormatReader implements PacketReader {
     }
 
 
-    private Stream updateSeekStream() {
+    private ReaderStream updateSeekStream() {
         if( mSeekStreams.length == 0 ) {
             return null;
         }
@@ -465,46 +463,35 @@ public class FormatReader implements PacketReader {
 
 
 
-    private static abstract class Stream implements bits.drawjav.Stream {
+    private static abstract class ReaderStream implements Stream {
 
-        final JavStream mStream;
-        final Guid      mGuid;
-        final int       mIndex;
-        final int       mType;
-        final Rational  mTimeBase;
+        final JavStream    mStream;
+        final StreamFormat mFormat;
+        final Guid         mGuid;
+        final int          mIndex;
+        final Rational     mTimeBase;
 
         final long        mRawStartMicros;
         final PacketTimer mTimer;
 
         long mSeekResults = Long.MIN_VALUE;
 
-
-        Stream( JavStream stream ) {
+        ReaderStream( JavStream stream ) {
             mStream = stream;
             mGuid   = Guid.create();
             mIndex  = stream.index();
-            mType   = stream.codecContext().codecType();
+            mFormat = StreamFormat.fromCodecContext( stream.codecContext() );
 
             mTimeBase       = stream.timeBase();
             mRawStartMicros = Rational.rescaleQ( stream.startTime(), mTimeBase, MICROS );
             mTimer          = new PacketTimer( mTimeBase );
         }
 
-        @Override
-        public int type() {
-            return mType;
-        }
 
         @Override
         public StreamFormat format() {
-            return null;
+            return mFormat;
         }
-
-        @Override
-        public AudioFormat audioFormat() {
-            return null;
-        }
-
 
         public JavStream javStream() {
             return mStream;
@@ -559,7 +546,7 @@ public class FormatReader implements PacketReader {
     }
 
 
-    private static class VideoStream extends Stream {
+    private static class VideoStream extends ReaderStream {
 
         private final JavCodecContext mCodecContext;
         private final StreamFormat    mFormat;
@@ -674,7 +661,7 @@ public class FormatReader implements PacketReader {
             }
 
             mHasKeyFrame = true;
-            ret.init( this, mRange[0], mRange[1], mFormat, false );
+            ret.init( this, mRange[0], mRange[1], false );
 
             return ret;
         }
@@ -698,10 +685,9 @@ public class FormatReader implements PacketReader {
     }
 
 
-    private static class AudioStream extends Stream {
+    private static class AudioStream extends ReaderStream {
 
         private final JavCodecContext mCodecContext;
-        private final AudioFormat     mFormat;
 
         private final long[] mRange    = new long[2];
         private final int[]  mGotFrame = new int[1];
@@ -714,7 +700,6 @@ public class FormatReader implements PacketReader {
         AudioStream( JavStream stream ) {
             super( stream );
             mCodecContext = stream.codecContext();
-            mFormat = AudioFormat.fromCodecContext( mCodecContext );
         }
 
 
@@ -736,11 +721,6 @@ public class FormatReader implements PacketReader {
             alloc.ref();
             mStream.discard( Jav.AVDISCARD_DEFAULT );
             mIsOpen = true;
-        }
-
-        @Override
-        public AudioFormat audioFormat() {
-            return mFormat;
         }
 
         @Override
@@ -798,7 +778,7 @@ public class FormatReader implements PacketReader {
             }
 
             mTimer.packetDecoded( ret.bestEffortTimestamp(), ret.packetDuration(), mRange );
-            ret.init( this, mRange[0], mRange[1], mFormat, false );
+            ret.init( this, mRange[0], mRange[1], false );
             return ret;
         }
 
@@ -821,7 +801,7 @@ public class FormatReader implements PacketReader {
     }
 
 
-    private static class NullStream extends Stream {
+    private static class NullStream extends ReaderStream {
 
         private final long[] mRange = new long[2];
 
@@ -866,9 +846,9 @@ public class FormatReader implements PacketReader {
     }
 
 
-    private static final Comparator<Stream> SEEK_PREFERENCE = new Comparator<Stream>() {
+    private static final Comparator<ReaderStream> SEEK_PREFERENCE = new Comparator<ReaderStream>() {
         @Override
-        public int compare( Stream a, Stream b ) {
+        public int compare( ReaderStream a, ReaderStream b ) {
             if( a.isOpen() != b.isOpen() ) {
                 return a.isOpen() ? -1 : 1;
             }
@@ -880,7 +860,7 @@ public class FormatReader implements PacketReader {
                 return a.mSeekResults < b.mSeekResults ? -1 : 1;
             }
 
-            int diff = typePref( a.type() ) - typePref( b.type() );
+            int diff = typePref( a.mFormat.mType ) - typePref( b.mFormat.mType );
             if( diff != 0 ) {
                 return diff;
             }

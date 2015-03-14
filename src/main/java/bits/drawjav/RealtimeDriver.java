@@ -95,7 +95,7 @@ public class RealtimeDriver implements StreamDriver {
     
     public Stream openAudioStream( PacketReader source,
                                          Stream stream,
-                                         AudioFormat format,
+                                         StreamFormat format,
                                          Sink<? super DrawPacket> sink )
                                          throws IOException 
     {
@@ -107,7 +107,7 @@ public class RealtimeDriver implements StreamDriver {
                                     PacketReader source,
                                     Stream stream,
                                     StreamFormat pictureFormat,
-                                    AudioFormat audioFormat,
+                                    StreamFormat audioFormat,
                                     Sink sink )
                                     throws IOException
     {

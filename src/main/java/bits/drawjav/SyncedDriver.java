@@ -75,7 +75,7 @@ public class SyncedDriver implements StreamDriver, Ticker {
     
     public Stream openAudioStream( PacketReader source,
                                          Stream stream,
-                                         AudioFormat format,
+                                         StreamFormat format,
                                          Sink<? super DrawPacket> sink )
                                          throws IOException 
     {

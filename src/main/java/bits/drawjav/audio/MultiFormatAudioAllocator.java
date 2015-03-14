@@ -46,7 +46,7 @@ public class MultiFormatAudioAllocator extends AbstractRefable implements AudioA
 
 
     @Override
-    public synchronized DrawPacket alloc( AudioFormat format, int numSamples ) {
+    public synchronized DrawPacket alloc( StreamFormat format, int numSamples ) {
         DrawPacket packet = mPool.poll( format );
         if( packet != null ) {
             if( format == null || numSamples < 0 ) {

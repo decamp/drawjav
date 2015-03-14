@@ -56,9 +56,9 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
                                    Stream stream,
                                    StreamFormat destFormat,
                                    Sink<? super DrawPacket> sink )
-            throws IOException
+                                   throws IOException
     {
-        final int type = stream.type();
+        final int type = stream.format().mType;
         if( type != Jav.AVMEDIA_TYPE_VIDEO ) {
             sLog.warning( "Attempt to open non-video stream as video stream." );
             return null;
@@ -87,12 +87,12 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
     
     
     public Stream openAudioStream( PacketReader ignored,
-                                         Stream source,
-                                         AudioFormat destFormat,
-                                         Sink<? super DrawPacket> sink )
-                                         throws IOException
+                                   Stream source,
+                                   StreamFormat destFormat,
+                                   Sink<? super DrawPacket> sink )
+                                   throws IOException
     {
-        final int type = source.type();
+        final int type = source.format().mType;
         if( type != Jav.AVMEDIA_TYPE_AUDIO ) {
             sLog.warning( "Attempt to open non-audio stream as audio stream." );
             return null;
@@ -288,7 +288,7 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
     }
     
 
-    private static final class DestStream extends BasicStreamHandle {
+    private static final class DestStream extends BasicStream {
 
         final Reference<Stream> mSource;
         final Reference<Stream> mDest;
@@ -296,9 +296,7 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
         DestStream( Stream source,
                     Stream dest )
         {
-            super( dest.type(),
-                   dest.format(),
-                   dest.audioFormat() );
+            super( dest.format() );
             mSource = new WeakReference<Stream>( source );
             mDest = new WeakReference<Stream>( dest );
         }

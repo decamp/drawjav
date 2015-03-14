@@ -31,10 +31,10 @@ public interface StreamFormatter {
      * @throws IOException for most other failures.
      */
     public Stream openVideoStream( PacketReader source,
-                                         Stream sourceStream,
-                                         StreamFormat destFormat,
-                                         Sink<? super DrawPacket> sink )
-                                         throws IOException;
+                                   Stream sourceStream,
+                                   StreamFormat destFormat,
+                                   Sink<? super DrawPacket> sink )
+                                   throws IOException;
 
     /**
      * Opens an audio stream, formats all packets on that stream to
@@ -52,10 +52,10 @@ public interface StreamFormatter {
      * @throws IOException for most other failures.
      */
     public Stream openAudioStream( PacketReader source,
-                                         Stream sourceStream,
-                                         AudioFormat destFormat,
-                                         Sink<? super DrawPacket> sink )
-                                         throws IOException;
+                                   Stream sourceStream,
+                                   StreamFormat destFormat,
+                                   Sink<? super DrawPacket> sink )
+                                   throws IOException;
 
     public boolean closeStream( Stream stream ) throws IOException;
 

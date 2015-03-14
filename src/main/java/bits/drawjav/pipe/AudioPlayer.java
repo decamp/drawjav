@@ -1,7 +1,6 @@
 package bits.drawjav.pipe;
 
 import bits.drawjav.*;
-import bits.drawjav.AudioFormat;
 import bits.jav.Jav;
 import bits.microtime.*;
 
@@ -45,10 +44,10 @@ public class AudioPlayer implements Channel {
         }
         mClock = optClock;
 
-        AudioFormat  srcFormat = new AudioFormat( 1, 48000, Jav.AV_SAMPLE_FMT_S16P );
-        AudioFormat  dstFormat = new AudioFormat( 1, 48000, Jav.AV_SAMPLE_FMT_FLT );
-        Stream srcStream = new BasicStreamHandle( Jav.AVMEDIA_TYPE_AUDIO, null, srcFormat );
-        Stream dstStream = new BasicStreamHandle( Jav.AVMEDIA_TYPE_AUDIO, null, dstFormat );
+        StreamFormat  srcFormat = StreamFormat.createAudio( 1, 48000, Jav.AV_SAMPLE_FMT_S16P );
+        StreamFormat  dstFormat = StreamFormat.createAudio( 1, 48000, Jav.AV_SAMPLE_FMT_FLT );
+        Stream srcStream = new BasicStream( srcFormat );
+        Stream dstStream = new BasicStream( dstFormat );
 
         mReader    = new ReaderFilter( reader );
         mClipper   = new AudioPacketClipper( optMem ); //optMem.audioAllocator( srcStream ) );

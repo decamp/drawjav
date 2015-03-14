@@ -27,7 +27,7 @@ public class SolaFilter implements Filter {
     private final OutHandler mOutput = new OutHandler();
 
     private Stream         mStream     = null;
-    private AudioFormat    mFormat     = null;
+    private StreamFormat   mFormat     = null;
     private AudioAllocator mAlloc      = null;
     private DrawPacket     mSrc        = null;
     private FloatBuffer    mSrcBuf     = null;
@@ -148,7 +148,7 @@ public class SolaFilter implements Filter {
             long t0 = mSrc.startMicros();
             long t1 = mSrc.stopMicros();
             long mDstStop = t0 + (long)( p * ( t1 - t0 ) );
-            mDst.init( mStream, mDstStart, mDstStop, mFormat, false );
+            mDst.init( mStream, mDstStart, mDstStop, false );
             mDstStart = mDstStop;
             mOutPadFull = true;
         }
@@ -218,7 +218,7 @@ public class SolaFilter implements Filter {
 
         @Override
         public void config( Stream stream ) {
-            AudioFormat format = stream.audioFormat();
+            StreamFormat format = stream.format();
             if( format == null ) {
                 throw new IllegalArgumentException( "Missing audio format" );
             }

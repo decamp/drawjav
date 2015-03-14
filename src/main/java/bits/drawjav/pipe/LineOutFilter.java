@@ -7,7 +7,6 @@
 package bits.drawjav.pipe;
 
 import bits.drawjav.*;
-import bits.drawjav.AudioFormat;
 import bits.jav.Jav;
 import bits.jav.util.JavMem;
 import bits.microtime.*;
@@ -169,7 +168,7 @@ public class LineOutFilter implements Filter, InPad<DrawPacket>, SyncClockContro
             return;
         }
 
-        AudioFormat format = stream.audioFormat();
+        StreamFormat format = stream.format();
         if( format == null ) {
             throw new IllegalArgumentException( "Missing AudioFormat." );
         }

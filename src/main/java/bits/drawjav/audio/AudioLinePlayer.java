@@ -7,7 +7,6 @@
 package bits.drawjav.audio;
 
 import bits.drawjav.*;
-import bits.drawjav.AudioFormat;
 import bits.jav.Jav;
 import bits.microtime.*;
 
@@ -47,19 +46,19 @@ public class AudioLinePlayer implements Sink<DrawPacket>, SyncClockControl {
     private boolean mStateChanged = true;
 
 
-    public AudioLinePlayer( AudioFormat format ) throws IOException {
+    public AudioLinePlayer( StreamFormat format ) throws IOException {
         this( format, null, DEFAULT_BUFFER_LENGTH );
     }
 
 
-    public AudioLinePlayer( AudioFormat format, PlayController optPlayCont ) throws IOException {
+    public AudioLinePlayer( StreamFormat format, PlayController optPlayCont ) throws IOException {
         this( format, optPlayCont, DEFAULT_BUFFER_LENGTH );
     }
 
 
-    public AudioLinePlayer( AudioFormat format, PlayController optPlayCont, int bufferBytes ) throws IOException {
+    public AudioLinePlayer( StreamFormat format, PlayController optPlayCont, int bufferBytes ) throws IOException {
         mChannels      = format.mChannels;
-        mFormat        = new javax.sound.sampled.AudioFormat( format.mSampleRate, 16, mChannels, true, true );
+        mFormat        = new AudioFormat( format.mSampleRate, 16, mChannels, true, true );
         mFrequency     = format.mSampleRate;
         mBytesPerFrame = mChannels * 2;
 

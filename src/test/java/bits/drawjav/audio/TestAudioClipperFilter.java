@@ -69,9 +69,10 @@ public class TestAudioClipperFilter {
 
     @Test
     public void testSmallEmpty() throws IOException {
-        AudioFormat format = new AudioFormat( 1, 44100, Jav.AV_SAMPLE_FMT_NONE );
+        StreamFormat format = StreamFormat.createAudio( 1, 44100, Jav.AV_SAMPLE_FMT_NONE );
         DrawPacket p = DrawPacket.createAuto( null );
-        p.init( null, 0, 20000L, format, false );
+        p.init( null, 0, 20000L, false );
+        format.getAudioProperties( p );
 
         AudioPacketClipper clipper = new AudioPacketClipper( null );
         clipper.clockSeek( 0, (p.startMicros() + p.stopMicros()) / 2 );
@@ -105,9 +106,10 @@ public class TestAudioClipperFilter {
 
     @Test
     public void testBigEmptyForward() throws IOException {
-        AudioFormat format = new AudioFormat( 1, 44100, Jav.AV_SAMPLE_FMT_NONE );
+        StreamFormat format = StreamFormat.createAudio( 1, 44100, Jav.AV_SAMPLE_FMT_NONE );
         DrawPacket p = DrawPacket.createAuto( null );
-        p.init( null, 0, 320000L, format, false );
+        p.init( null, 0, 320000L, false );
+        format.getAudioProperties( p );
 
         AudioPacketClipper clipper = new AudioPacketClipper( null );
         clipper.clockSeek( 0, 10000L );
@@ -152,9 +154,10 @@ public class TestAudioClipperFilter {
 
     @Test
     public void testBigEmptyBackward() throws IOException {
-        AudioFormat format = new AudioFormat( 1, 44100, Jav.AV_SAMPLE_FMT_NONE );
+        StreamFormat format = StreamFormat.createAudio( 1, 44100, Jav.AV_SAMPLE_FMT_NONE );
         DrawPacket p = DrawPacket.createAuto( null );
-        p.init( null, 0, 320000L, format, false );
+        p.init( null, 0, 320000L, false );
+        format.getAudioProperties( p );
 
         AudioPacketClipper clipper = new AudioPacketClipper( null );
         clipper.clockSeek( 0, 310000L );

@@ -73,7 +73,7 @@ public class DrawPacket extends JavFrame implements Packet {
 
 
     public static DrawPacket createAudio( ObjectPool<? super DrawPacket> optPool,
-                                          AudioFormat format,
+                                          StreamFormat format,
                                           int samplesPerChannel,
                                           int align )
     {
@@ -87,7 +87,7 @@ public class DrawPacket extends JavFrame implements Packet {
 
         if( size < 0 ) {
             DrawPacket ret = createAuto( optPool );
-            ret.setAudioFormat( format );
+            format.getAudioProperties( ret );
             return ret;
         }
 
@@ -97,7 +97,7 @@ public class DrawPacket extends JavFrame implements Packet {
 
 
     public static DrawPacket createAudio( ObjectPool<? super DrawPacket> optPool,
-                                          AudioFormat format,
+                                          StreamFormat format,
                                           int samplesPerChannel,
                                           int align,
                                           ByteBuffer buf )
@@ -142,7 +142,7 @@ public class DrawPacket extends JavFrame implements Packet {
 
 
     public int type() {
-        return mStream == null ? Jav.AVMEDIA_TYPE_UNKNOWN : mStream.type();
+        return mStream == null ? Jav.AVMEDIA_TYPE_UNKNOWN : mStream.format().mType;
     }
 
     @Override
@@ -176,7 +176,7 @@ public class DrawPacket extends JavFrame implements Packet {
     }
 
 
-    public void setPictureFormat( StreamFormat format ) {
+    @Deprecated public void setPictureFormat( StreamFormat format ) {
         format( format.mPixelFormat );
         width( format.mWidth );
         height( format.mHeight );
@@ -189,42 +189,9 @@ public class DrawPacket extends JavFrame implements Packet {
     }
 
 
-    public AudioFormat toAudioFormat() {
-        return new AudioFormat( channels(), sampleRate(), format(), channelLayout() );
+    @Deprecated public StreamFormat toAudioFormat() {
+        return StreamFormat.createAudio( this );
     }
-
-
-    public void setAudioFormat( AudioFormat format ) {
-        sampleRate( format.mSampleRate );
-        channels( format.mChannels );
-        format( format.mSampleFormat );
-        channelLayout( format.mChannelLayout );
-    }
-
-
-    /**
-     * Initializes packet object. 
-     *
-     * @param optStream
-     * @param optFormat
-     * @param startMicros
-     * @param stopMicros
-     */
-    public void init( Stream optStream,
-                      long startMicros,
-                      long stopMicros,
-                      StreamFormat optFormat,
-                      boolean isGap )
-    {
-        mStream = optStream;
-        mStartMicros = startMicros;
-        mStopMicros = stopMicros;
-        mIsGap = isGap;
-        if( optFormat != null ) {
-            setPictureFormat( optFormat );
-        }
-    }
-
 
     /**
      * Initializes packet object.
@@ -232,15 +199,16 @@ public class DrawPacket extends JavFrame implements Packet {
     public void init( Stream stream,
                       long startMicros,
                       long stopMicros,
-                      AudioFormat format,
                       boolean isGap )
     {
         mStream = stream;
         mStartMicros = startMicros;
         mStopMicros = stopMicros;
         mIsGap = isGap;
+
+        StreamFormat format = stream.format();
         if( format != null ) {
-            setAudioFormat( format );
+            format.getProperties( this );
         }
     }
 

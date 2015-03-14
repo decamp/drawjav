@@ -14,18 +14,8 @@ package bits.drawjav;
 public interface Stream {
 
     /**
-     * Types are defined in Jav.AV_MEDIA_TYPE_?
-     * @return media type of stream.
-     */
-    public int type();
-
-    /**
      * @return format if {@code type() == Jav.AV_MEDIA_TYPE_VIDEO}. Otherwise, null.
      */
     public StreamFormat format();
 
-    /**
-     * @return format if {@code type() == Jav.AV_MEDIA_TYPE_AUDIO}. Otherwise, null.
-     */
-    public AudioFormat audioFormat();
 }

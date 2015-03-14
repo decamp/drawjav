@@ -130,7 +130,7 @@ public class OneToManyFormatter implements Sink<Packet> {
                                          Sink<? super DrawPacket> sink )
                                          throws IOException 
     {
-        if( mStream.type() != Jav.AVMEDIA_TYPE_VIDEO ) {
+        if( mStream.format().mType != Jav.AVMEDIA_TYPE_VIDEO ) {
             return null;
         }
         
@@ -142,17 +142,17 @@ public class OneToManyFormatter implements Sink<Packet> {
     }
     
     
-    public Stream openAudioStream( AudioFormat destFormat,
-                                         Sink<? super DrawPacket> sink )
-                                         throws IOException
+    public Stream openAudioStream( StreamFormat destFormat,
+                                   Sink<? super DrawPacket> sink )
+                                   throws IOException
     {
-        if( mStream.type() != Jav.AVMEDIA_TYPE_AUDIO ) {
+        if( mStream.format().mType != Jav.AVMEDIA_TYPE_AUDIO ) {
             return null;
         }
-        
-        AudioFormat ret = AudioFormat.merge( mStream.audioFormat(), destFormat );
+
+        StreamFormat ret = StreamFormat.merge( mStream.format(), destFormat );
         return openStream( Jav.AVMEDIA_TYPE_AUDIO,
-                           mStream.audioFormat(),
+                           mStream.format(),
                            destFormat,
                            sink );
     }
@@ -209,10 +209,10 @@ public class OneToManyFormatter implements Sink<Packet> {
     
     
     private synchronized Stream openStream( int type,
-                                                  Object sourceFormat,
-                                                  Object destFormat,
-                                                  Sink dest ) 
-                                                  throws IOException
+                                            StreamFormat sourceFormat,
+                                            StreamFormat destFormat,
+                                            Sink dest )
+                                            throws IOException
     {
         FormatNode formatNode;
         
@@ -226,11 +226,11 @@ public class OneToManyFormatter implements Sink<Packet> {
                 SinkCaster caster = new SinkCaster();
                 
                 if( type == Jav.AVMEDIA_TYPE_VIDEO ) {
-                    Stream handle = new BasicStreamHandle( type, (StreamFormat)destFormat, null );
+                    Stream handle = new BasicStream( destFormat );
                     VideoAllocator alloc    = mMem.videoAllocator( handle );
-                    VideoResamplerPipe conv = new VideoResamplerPipe( caster, (StreamFormat)sourceFormat, alloc );
+                    VideoResamplerPipe conv = new VideoResamplerPipe( caster, sourceFormat, alloc );
                     alloc.deref();
-                    conv.setPictureConversion( (StreamFormat)destFormat, Jav.SWS_FAST_BILINEAR );
+                    conv.setPictureConversion( destFormat, Jav.SWS_FAST_BILINEAR );
                     // As an extra precaution, use the destination format determined
                     // by the video resampler. It should be the same.
                     // If for some reason it's not, we may end up doing redundant conversions,
@@ -240,9 +240,9 @@ public class OneToManyFormatter implements Sink<Packet> {
                     addNode( destFormat, formatNode );
                     
                 } else {
-                    Stream handle     = new BasicStreamHandle( type, null, (AudioFormat)destFormat );
-                    AudioAllocator alloc    = mMem.audioAllocator( handle );
-                    AudioResamplerPipe conv = new AudioResamplerPipe( caster, (AudioFormat)destFormat, alloc );
+                    Stream handle = new BasicStream( destFormat );
+                    AudioAllocator alloc = mMem.audioAllocator( handle );
+                    AudioResamplerPipe conv = new AudioResamplerPipe( caster, destFormat, alloc );
                     alloc.deref();
 
                     // As an extra precaution, use the destination format determined
@@ -256,12 +256,7 @@ public class OneToManyFormatter implements Sink<Packet> {
             }
             
             formatNode.mCaster.addSink( dest );
-
-            if( type == Jav.AVMEDIA_TYPE_VIDEO ) {
-                return new SinkNode( type, (StreamFormat)destFormat, null, dest );
-            } else {
-                return new SinkNode( type, null, (AudioFormat)destFormat, dest );
-            }
+            return new SinkNode( destFormat, dest );
         }
     }
     
@@ -291,18 +286,14 @@ public class OneToManyFormatter implements Sink<Packet> {
     }        
     
     
-    private static class SinkNode extends BasicStreamHandle {
+    private static class SinkNode extends BasicStream {
 
         final Object mKey;
         final Reference<Sink<?>> mSink;
         
-        SinkNode( int type,
-                  StreamFormat pictureFormat,
-                  AudioFormat audioFormat,
-                  Sink<?> sink ) 
-        {
-            super( type, pictureFormat, audioFormat );
-            mKey  = type == Jav.AVMEDIA_TYPE_AUDIO ? audioFormat : pictureFormat;
+        SinkNode( StreamFormat format, Sink<?> sink ) {
+            super( format );
+            mKey  = format;
             mSink = new WeakReference<Sink<?>>( sink );
         }
     }

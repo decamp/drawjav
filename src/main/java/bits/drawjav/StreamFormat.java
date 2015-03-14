@@ -30,66 +30,66 @@ public class StreamFormat {
 
     public static StreamFormat createAudio( int channels, int sampleRate, int sampleFormat ) {
         return new StreamFormat( AVMEDIA_TYPE_AUDIO,
-                                  channels,
-                                  sampleRate,
-                                  sampleFormat,
-                                  AV_CH_LAYOUT_NATIVE,
-                                  NO_WIDTH,
-                                  NO_HEIGHT,
-                                  AV_PIX_FMT_NONE,
-                                  NO_SAMPLE_ASPECT );
+                                 channels,
+                                 sampleRate,
+                                 sampleFormat,
+                                 AV_CH_LAYOUT_NATIVE,
+                                 NO_WIDTH,
+                                 NO_HEIGHT,
+                                 AV_PIX_FMT_NONE,
+                                 NO_SAMPLE_ASPECT );
     }
 
 
     public static StreamFormat createAudio( int channels, int sampleRate, int sampleFormat, long chanLayout ) {
         return new StreamFormat( AVMEDIA_TYPE_AUDIO,
-                                  channels,
-                                  sampleRate,
-                                  sampleFormat,
-                                  chanLayout,
-                                  NO_WIDTH,
-                                  NO_HEIGHT,
-                                  AV_PIX_FMT_NONE,
-                                  NO_SAMPLE_ASPECT );
+                                 channels,
+                                 sampleRate,
+                                 sampleFormat,
+                                 chanLayout,
+                                 NO_WIDTH,
+                                 NO_HEIGHT,
+                                 AV_PIX_FMT_NONE,
+                                 NO_SAMPLE_ASPECT );
     }
 
 
     public static StreamFormat createAudio( JavFrame packet ) {
         return new StreamFormat( AVMEDIA_TYPE_AUDIO,
-                                  packet.channels(),
-                                  packet.sampleRate(),
-                                  packet.format(),
-                                  packet.channelLayout(),
-                                  NO_WIDTH,
-                                  NO_HEIGHT,
-                                  AV_PIX_FMT_NONE,
-                                  NO_SAMPLE_ASPECT );
+                                 packet.channels(),
+                                 packet.sampleRate(),
+                                 packet.format(),
+                                 packet.channelLayout(),
+                                 NO_WIDTH,
+                                 NO_HEIGHT,
+                                 AV_PIX_FMT_NONE,
+                                 NO_SAMPLE_ASPECT );
     }
 
 
     public static StreamFormat createVideo( int w, int h, int format, Rational aspect ) {
         return new StreamFormat( AVMEDIA_TYPE_VIDEO,
-                                  NO_CHANNELS,
-                                  NO_SAMPLE_RATE,
-                                  AV_SAMPLE_FMT_NONE,
-                                  AV_CH_LAYOUT_NATIVE,
-                                  w,
-                                  h,
-                                  format,
-                                  aspect == null ? NO_SAMPLE_ASPECT : aspect );
+                                 NO_CHANNELS,
+                                 NO_SAMPLE_RATE,
+                                 AV_SAMPLE_FMT_NONE,
+                                 AV_CH_LAYOUT_NATIVE,
+                                 w,
+                                 h,
+                                 format,
+                                 aspect == null ? NO_SAMPLE_ASPECT : aspect );
     }
 
 
     public static StreamFormat createVideo( JavFrame packet ) {
-        return new StreamFormat( AVMEDIA_TYPE_AUDIO,
-                                  NO_CHANNELS,
-                                  NO_SAMPLE_RATE,
-                                  AV_SAMPLE_FMT_NONE,
-                                  AV_CH_LAYOUT_NATIVE,
-                                  packet.width(),
-                                  packet.height(),
-                                  packet.format(),
-                                  packet.sampleAspectRatio() );
+        return new StreamFormat( AVMEDIA_TYPE_VIDEO,
+                                 NO_CHANNELS,
+                                 NO_SAMPLE_RATE,
+                                 AV_SAMPLE_FMT_NONE,
+                                 AV_CH_LAYOUT_NATIVE,
+                                 packet.width(),
+                                 packet.height(),
+                                 packet.format(),
+                                 packet.sampleAspectRatio() );
     }
 
     /**
@@ -291,9 +291,9 @@ public class StreamFormat {
         int type = cc.codecType();
         switch( type ) {
         case AVMEDIA_TYPE_AUDIO:
-            return createAudio( cc.sampleFormat(), cc.channels(), cc.sampleRate(), cc.channelLayout() );
+            return createAudio( cc.channels(), cc.sampleRate(), cc.sampleFormat(), cc.channelLayout() );
         case AVMEDIA_TYPE_VIDEO:
-            return createVideo( cc.pixelFormat(), cc.width(), cc.height(), cc.sampleAspectRatio() );
+            return createVideo( cc.width(), cc.height(), cc.pixelFormat(), cc.sampleAspectRatio() );
         }
 
         return new StreamFormat( type );
@@ -500,7 +500,7 @@ public class StreamFormat {
         StreamFormat f = (StreamFormat)o;
         return mHash == f.mHash &&
                mType == f.mType &&
-               mSampleFormat == f.mType &&
+               mSampleFormat == f.mSampleFormat &&
                mChannels == f.mChannels &&
                mSampleRate == f.mSampleRate &&
                mChannelLayout == f.mChannelLayout &&

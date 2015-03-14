@@ -48,11 +48,11 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
     private boolean    mOutIsGap;
 
     // Used to cut up large packets when mOutIsGap == true (which means mOutPacket has no samples)
-    private Stream      mOutStream;
-    private AudioFormat mOutFormat;
-    private long        mOutStart;
-    private long        mOutPos;
-    private long        mOutStop;
+    private Stream       mOutStream;
+    private StreamFormat mOutFormat;
+    private long         mOutStart;
+    private long         mOutPos;
+    private long         mOutStop;
 
 
     public AudioPacketClipper( MemoryManager optMem ) {
@@ -177,7 +177,7 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
 
         final int samps = (int)Frac.multLong( t1 - t0, mOutFormat.mSampleRate, 1000000 );
         mOutPacket = mAlloc.alloc( mOutFormat, samps );
-        mOutPacket.init( mOutStream, t0, t1, mOutFormat, false );
+        mOutPacket.init( mOutStream, t0, t1, false );
         mOutPacket.nbSamples( samps );
 
         final boolean planar = JavSampleFormat.isPlanar( mOutFormat.mSampleFormat );
@@ -194,7 +194,7 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
 
     private class InHandler extends InPadAdapter<DrawPacket> {
 
-        private AudioFormat mFormat = null;
+        private StreamFormat mFormat = null;
 
         @Override
         public int offer( DrawPacket packet ) {
@@ -211,7 +211,7 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
             if( !packet.isGap() ) {
                 mOutIsGap = false;
                 if( mFormat == null || !mFormat.matches( packet ) ) {
-                    mFormat = AudioFormat.fromPacket( packet );
+                    mFormat = StreamFormat.createAudio( packet );
                 }
 
                 if( mForward ) {
@@ -265,7 +265,7 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
         @Override
         public void config( Stream stream ) {
             mOutStream = stream;
-            mOutFormat = stream.audioFormat();
+            mOutFormat = stream.format();
         }
 
         @Override
@@ -293,7 +293,7 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
 
 
     public static DrawPacket clipForward( DrawPacket packet,
-                                          AudioFormat format,
+                                          StreamFormat format,
                                           long clipMicros,
                                           AudioAllocator alloc )
     {
@@ -337,13 +337,16 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
             }
         }
         ret.nbSamples( writeSamples );
-        ret.init( packet.stream(), clipMicros, t1, format, packet.isGap() );
+
+        // TODO: FIX
+        ret.init( packet.stream(), clipMicros, t1, packet.isGap() );
+        format.getAudioProperties( ret );
         return ret;
     }
 
 
     public static DrawPacket clipBackward( DrawPacket packet,
-                                           AudioFormat format,
+                                           StreamFormat format,
                                            long clipMicros,
                                            AudioAllocator alloc )
     {
@@ -380,7 +383,9 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
         }
 
         ret.nbSamples( writeSamples );
-        ret.init( packet.stream(), packet.startMicros(), clipMicros, format, packet.isGap() );
+        // TODO: FIX
+        ret.init( packet.stream(), packet.startMicros(), clipMicros, packet.isGap() );
+        format.getAudioProperties( ret );
         return ret;
     }
 

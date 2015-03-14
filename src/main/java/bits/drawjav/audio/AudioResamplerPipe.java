@@ -22,7 +22,7 @@ public class AudioResamplerPipe implements Sink<DrawPacket> {
 
 
     public AudioResamplerPipe( Sink<? super DrawPacket> sink,
-                               AudioFormat destFormat,
+                               StreamFormat destFormat,
                                AudioAllocator alloc )
     {
         mSink = sink;
@@ -31,7 +31,7 @@ public class AudioResamplerPipe implements Sink<DrawPacket> {
     }
 
 
-    public AudioFormat destFormat() {
+    public StreamFormat destFormat() {
         return mResampler.destFormat();
     }
     

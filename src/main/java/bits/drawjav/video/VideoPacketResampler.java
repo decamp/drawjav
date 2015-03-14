@@ -6,8 +6,7 @@
 
 package bits.drawjav.video;
 
-import bits.drawjav.DrawPacket;
-import bits.drawjav.StreamFormat;
+import bits.drawjav.*;
 import bits.jav.*;
 import bits.jav.swscale.*;
 
@@ -24,8 +23,9 @@ public class VideoPacketResampler {
     private StreamFormat mPredictedSourceFormat = null;
     private StreamFormat mSourceFormat          = null;
     private StreamFormat mRequestedFormat       = null;
-    private StreamFormat mDestFormat            = null;
-    private int          mConversionFlags       = Jav.SWS_FAST_BILINEAR;
+    private Stream       mDestStream           = null;
+    private StreamFormat mDestFormat           = null;
+    private int          mConversionFlags      = Jav.SWS_FAST_BILINEAR;
 
     private boolean    mNeedsInit = false;
     private SwsContext mConverter = null;
@@ -112,7 +112,7 @@ public class VideoPacketResampler {
         }
 
         if( mSourceFormat == null || !mSourceFormat.matches( source ) ) {
-            mSourceFormat = source.toPictureFormat();
+            mSourceFormat = StreamFormat.createVideo( source );
             mNeedsInit = true;
             updateDestFormat();
         }
@@ -127,7 +127,7 @@ public class VideoPacketResampler {
         }
 
         DrawPacket dest = mAlloc.alloc( mDestFormat );
-        dest.init( source.stream(), source.startMicros(), source.stopMicros(), mDestFormat, false );
+        dest.init( mDestStream, source.startMicros(), source.stopMicros(), false );
         mConverter.conv( source, dest );
         return dest;
     }
@@ -155,6 +155,7 @@ public class VideoPacketResampler {
             return;
         }
         mDestFormat = dest;
+        mDestStream = new BasicStream( mDestFormat );
         formatChanged();
     }
 

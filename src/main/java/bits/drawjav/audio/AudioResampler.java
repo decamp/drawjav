@@ -28,10 +28,10 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
 
     private final AudioAllocator mAlloc;
 
-    private AudioFormat mSourceFormat        = null;
-    private AudioFormat mPredictSourceFormat = null;
-    private AudioFormat mRequestedFormat     = null;
-    private AudioFormat mDestFormat          = null;
+    private StreamFormat mSourceFormat        = null;
+    private StreamFormat mPredictSourceFormat = null;
+    private StreamFormat mRequestedFormat     = null;
+    private StreamFormat mDestFormat          = null;
 
     private int mConversionFlags = 0;
 
@@ -61,12 +61,12 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
     }
 
 
-    public AudioFormat sourceFormat() {
+    public StreamFormat sourceFormat() {
         return mSourceFormat != null ? mSourceFormat : mPredictSourceFormat;
     }
 
 
-    public void sourceFormat( AudioFormat format ) {
+    public void sourceFormat( StreamFormat format ) {
         if( format == mPredictSourceFormat || format != null && format.equals( mPredictSourceFormat ) ) {
             mPredictSourceFormat = format;
             mSourceFormat = null;
@@ -84,21 +84,21 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
     /**
      * @return destination format requested by user. May be partially defined.
      */
-    public AudioFormat requestedFormat() {
+    public StreamFormat requestedFormat() {
         return mRequestedFormat;
     }
 
     /**
      * @return computed destination format. May be different from {@code #requestedFormat()}.
      */
-    public AudioFormat destFormat() {
+    public StreamFormat destFormat() {
         return mDestFormat;
     }
 
     /**
      * @param format Requested output format
      */
-    public void destFormat( AudioFormat format ) {
+    public void destFormat( StreamFormat format ) {
         // Assign format == mRequestedFormat either way.
         // Better to use identical objects than merely equivalent objects.
         if( format == mRequestedFormat || format != null && format.equals( mRequestedFormat ) ) {
@@ -133,7 +133,7 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
         Stream stream = source.stream();
         if( stream != mStream && !stream.equals( mStream ) ) {
             mStream = stream;
-            AudioFormat format = source.toAudioFormat();
+            StreamFormat format = StreamFormat.createAudio( source );
             if( !format.equals( mSourceFormat ) ) {
                 mSourceFormat = format;
                 mNeedsInit = true;
@@ -205,8 +205,8 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
 
 
     private void updateDestFormat() {
-        AudioFormat source = mSourceFormat != null ? mSourceFormat : mPredictSourceFormat;
-        AudioFormat dest = AudioFormat.merge( source, mRequestedFormat );
+        StreamFormat source = mSourceFormat != null ? mSourceFormat : mPredictSourceFormat;
+        StreamFormat dest = StreamFormat.merge( source, mRequestedFormat );
         if( dest.equals( mDestFormat ) ) {
             return;
         }
@@ -229,9 +229,9 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
 
     private void init() throws JavException {
         mNeedsInit = false;
-        AudioFormat src = mSourceFormat;
-        AudioFormat dst = mDestFormat;
-        if( !AudioFormat.isFullyDefined( src ) || !AudioFormat.isFullyDefined( dst ) ) {
+        StreamFormat src = mSourceFormat;
+        StreamFormat dst = mDestFormat;
+        if( src == null || dst == null || !src.isFullyDefined() || !dst.isFullyDefined() ) {
             return;
         }
 
@@ -278,7 +278,9 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
         }
 
         mTimer.computeTimestamps( err, mWork );
-        dst.init( mStream, mWork[0], mWork[1], mDestFormat, false );
+        // TODO: THis initialization is wrong.
+        dst.init( mStream, mWork[0], mWork[1], false );
+        mDestFormat.getAudioProperties( dst );
         mStreamMicros = mWork[1];
 
         return dst;

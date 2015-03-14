@@ -39,7 +39,7 @@ public class ResamplerFilter implements Filter {
     }
 
 
-    public AudioFormat destFormat() {
+    public StreamFormat destFormat() {
         return mResampler.destFormat();
     }
 
@@ -58,7 +58,7 @@ public class ResamplerFilter implements Filter {
         }
 
         mResampler = new AudioResampler( alloc );
-        mResampler.destFormat( mDestStream.audioFormat() );
+        mResampler.destFormat( mDestStream.format() );
     }
 
 
@@ -167,7 +167,7 @@ public class ResamplerFilter implements Filter {
                 return;
             }
 
-            if( stream.audioFormat() == null ) {
+            if( stream.format() == null ) {
                 throw new IllegalArgumentException( "Missing picture format." );
             }
             mDestStream = stream;

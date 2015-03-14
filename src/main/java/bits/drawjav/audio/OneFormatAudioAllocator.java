@@ -43,8 +43,8 @@ public class OneFormatAudioAllocator extends AbstractRefable implements AudioAll
 
     private final CostPool<DrawPacket> mPool;
 
-    private AudioFormat mPoolFormat;
-    private int         mDefaultSampleNum;
+    private StreamFormat mPoolFormat;
+    private int          mDefaultSampleNum;
 
     private boolean mHasFormat        = false;
     private boolean mHasChangedFormat = false;
@@ -56,12 +56,12 @@ public class OneFormatAudioAllocator extends AbstractRefable implements AudioAll
     }
 
 
-    public synchronized DrawPacket alloc( AudioFormat format ) {
+    public synchronized DrawPacket alloc( StreamFormat format ) {
         return alloc( format, mDefaultSampleNum );
     }
 
     @Override
-    public synchronized DrawPacket alloc( AudioFormat format, int numSamples ) {
+    public synchronized DrawPacket alloc( StreamFormat format, int numSamples ) {
         if( !checkFormat( format, mPoolFormat ) ) {
             format = setPoolFormat( format );
         }
@@ -107,13 +107,13 @@ public class OneFormatAudioAllocator extends AbstractRefable implements AudioAll
     }
 
 
-    private boolean checkFormat( AudioFormat a, AudioFormat b ) {
+    private boolean checkFormat( StreamFormat a, StreamFormat b ) {
         return a == b || a != null && a.equals( b );
     }
 
 
-    private AudioFormat setPoolFormat( AudioFormat format ) {
-        if( !AudioFormat.isFullyDefined( format ) ) {
+    private StreamFormat setPoolFormat( StreamFormat format ) {
+        if( format == null || !format.isFullyDefined() ) {
             return mPoolFormat;
         }
 

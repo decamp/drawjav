@@ -28,15 +28,15 @@ public class NoPoolAudioAllocator extends AbstractRefable implements AudioAlloca
     }
 
 
-    public DrawPacket alloc( AudioFormat format ) {
+    public DrawPacket alloc( StreamFormat format ) {
         return alloc( format, mDefaultSampleNum );
     }
 
     @Override
-    public DrawPacket alloc( AudioFormat format, int numSamples ) {
+    public DrawPacket alloc( StreamFormat format, int numSamples ) {
         if( numSamples < 0 ) {
             DrawPacket ret = DrawPacket.createAuto( null );
-            ret.setAudioFormat( format );
+            format.getAudioProperties( ret );
             return ret;
         }
         return DrawPacket.createAudio( null, format, numSamples, 0 );

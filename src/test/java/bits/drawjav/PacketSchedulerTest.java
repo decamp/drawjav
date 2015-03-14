@@ -10,7 +10,6 @@ import java.io.*;
 import java.nio.channels.ClosedChannelException;
 import java.util.*;
 
-import bits.jav.Jav;
 import bits.microtime.*;
 import bits.util.concurrent.ThreadLock;
 import bits.util.ref.*;
@@ -98,9 +97,7 @@ public class PacketSchedulerTest {
         {
             mPlayCont = playCont;
             mMicros = playCont.clock().micros();
-            mStream = new BasicStreamHandle( Jav.AVMEDIA_TYPE_UNKNOWN,
-                                             null,
-                                             null );
+            mStream = new BasicStream( new StreamFormat() );
 
             mPool = new HardPool<LongPacket>( 16 );
             mLock = new ThreadLock();
