@@ -61,10 +61,10 @@ public class VideoPlayTest {
             FormatReader decoder = FormatReader.openFile( file, true, 0L, null );
             decoder.openStream( decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ) );
 
-            PictureFormat fmt = new PictureFormat( -1, -1, Jav.AV_PIX_FMT_BGR24 );
+            StreamFormat fmt = StreamFormat.createVideo( -1, -1, Jav.AV_PIX_FMT_BGR24, null );
             RealtimeDriver driver = new RealtimeDriver( playCont.clock(), decoder, null, null );
             driver.seekWarmupMicros( 3000000L );
-            driver.openVideoStream( null ,decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ), fmt, panel );
+            driver.openVideoStream( null, decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ), fmt, panel );
 //                                    new PictureFormat( -1, -1, Jav.AV_PIX_FMT_BGRA, new bits.jav.util.Rational( 1, 1 ) ), panel );
 
             playCont.control().clockRate( new Frac( 1, 1 ) );

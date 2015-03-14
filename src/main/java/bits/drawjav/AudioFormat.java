@@ -4,7 +4,7 @@
  * http://opensource.org/licenses/BSD-2-Clause
  */
 
-package bits.drawjav.audio;
+package bits.drawjav;
 
 import bits.jav.codec.JavCodecContext;
 import bits.jav.codec.JavFrame;
@@ -25,30 +25,34 @@ import static bits.jav.Jav.*;
 public class AudioFormat {
 
     public static AudioFormat fromCodecContext( JavCodecContext cc ) {
-        AudioFormat ret = new AudioFormat();
-        ret.set( cc );
+        AudioFormat ret = new AudioFormat( cc.channels(),
+                                           cc.sampleRate(),
+                                           cc.sampleFormat(),
+                                           cc.channelLayout() );
         return ret;
     }
 
 
     public static AudioFormat fromPacket( JavFrame frame ) {
-        AudioFormat ret = new AudioFormat();
-        ret.set( frame );
+        AudioFormat ret = new AudioFormat( frame.channels(),
+                                           frame.sampleRate(),
+                                           frame.format(),
+                                           frame.channelLayout() );
         return ret;
     }
 
 
-    public int  mChannels;
-    public int  mSampleRate;
-    public int  mSampleFormat;
-    public long mLayout;
+    public final int  mChannels;
+    public final int  mSampleRate;
+    public final int  mSampleFormat;
+    public final long mChannelLayout;
 
 
     public AudioFormat() {
-        mChannels     = -1;
-        mSampleRate   = -1;
+        mChannels = -1;
+        mSampleRate = -1;
         mSampleFormat = AV_SAMPLE_FMT_NONE;
-        mLayout       = AV_CH_LAYOUT_NATIVE;
+        mChannelLayout = AV_CH_LAYOUT_NATIVE;
     }
 
     /**
@@ -56,7 +60,8 @@ public class AudioFormat {
      * @param sampleRate    Sample rate, or -1 if undefined.
      * @param sampleFormat  Sample format, or AV_SAMPLE_FMT_NONE if undefined.
      */
-    public AudioFormat( int channels, int sampleRate, int sampleFormat ) {
+    public AudioFormat( int channels, int sampleRate, int sampleFormat )
+    {
         this( channels,
               sampleRate,
               sampleFormat,
@@ -69,58 +74,12 @@ public class AudioFormat {
      * @param sampleFormat  Sample format, or AV_SAMPLE_FMT_NONE if undefined.
      * @param layout        Channel layout, or AV_CH_LAYOUT_NATIVE if undefined.
      */
-    public AudioFormat( int channels, int sampleRate, int sampleFormat, long layout ) {
+    public AudioFormat( int channels, int sampleRate, int sampleFormat, long layout )
+    {
         mChannels = channels >= 0 ? channels : -1;
         mSampleRate = sampleRate >= 0 ? sampleRate : -1;
         mSampleFormat = sampleFormat;
-        mLayout = layout;
-    }
-
-
-    /**
-     * @return number of channels, or -1 if undefined.
-     */
-    public int channels() {
-        return mChannels;
-    }
-
-    /**
-     * @return sample rate in Hertz, or -1 if undefined.
-     */
-    public int sampleRate() {
-        return mSampleRate;
-    }
-
-    /**
-     * @return sample format as found in Jav.AV_SAMPLE_FMT_NONE to Jav.AV_SAMPLE_FMT_NB.
-     */
-    public int sampleFormat() {
-        return mSampleFormat;
-    }
-
-    /**
-     * @return channel layout, as described by Jav.AV_CH_LAYOUT_*.
-     *         Default is Jav.AV_CH_LAYOUT_NATIVE
-     */
-    public long channelLayout() {
-        return mLayout;
-    }
-
-
-
-    public void set( JavCodecContext cc ) {
-        mChannels = cc.channels();
-        mSampleRate = cc.sampleRate();
-        mSampleFormat = cc.sampleFormat();
-        mLayout = cc.channelLayout();
-    }
-
-
-    public void set( JavFrame frame ) {
-        mChannels = frame.channels();
-        mSampleRate = frame.sampleRate();
-        mSampleFormat = frame.format();
-        mLayout = frame.channelLayout();
+        mChannelLayout = layout;
     }
 
 
@@ -128,7 +87,7 @@ public class AudioFormat {
         return mChannels == frame.channels() &&
                mSampleRate == frame.sampleRate() &&
                mSampleFormat == frame.format() &&
-               mLayout == frame.channelLayout();
+               mChannelLayout == frame.channelLayout();
     }
 
 
@@ -143,18 +102,18 @@ public class AudioFormat {
         return mChannels == f.mChannels &&
                mSampleRate == f.mSampleRate &&
                mSampleFormat == f.mSampleFormat &&
-               mLayout == f.mLayout;
+               mChannelLayout == f.mChannelLayout;
     }
 
     @Override
     public int hashCode() {
-        return mChannels ^ mSampleRate ^ mSampleFormat ^ (int)(mLayout);
+        return mChannels ^ mSampleRate ^ mSampleFormat ^ (int)(mChannelLayout);
     }
 
     @Override
     public String toString() {
         return "AudioFormat [ " +
-               "chans: " + mChannels + "/" + JavChannelLayout.getString( mChannels, mLayout ) + ", " +
+               "chans: " + mChannels + "/" + JavChannelLayout.getString( mChannels, mChannelLayout ) + ", " +
                "rate: " + mSampleRate + ", " +
                "fmt: " + JavSampleFormat.getName( mSampleFormat ) + " (" + mSampleFormat + ")]";
     }
@@ -163,8 +122,8 @@ public class AudioFormat {
     /**
      * An AudioFormat is fully defined if it contains enough information to
      * describe actual audio data and can be used to allocate buffers. This requires
-     * that {@link #channels()}, {@link #sampleRate()}, and {@link #sampleFormat()}
-     * are defined. Note thate {@link #channelLayout() need not be defined as a
+     * that {@link #mChannels}, {@link #mSampleRate}, and {@link #mSampleFormat}
+     * are defined. Note thate {@link #mChannelLayout need not be defined as a
      * default channel layout can easily be inferred from the channel number.
      *
      * @return true iff this AudioFormat is fully defined.
@@ -190,33 +149,33 @@ public class AudioFormat {
         }
 
         // Check channel nums.
-        if( src.channels() > 0 &&
-            dst.channels() > 0 &&
-            src.channels() != dst.channels() )
+        if( src.mChannels > 0 &&
+            dst.mChannels > 0 &&
+            src.mChannels != dst.mChannels )
         {
             return false;
         }
 
         // Check sample format.
-        if( src.sampleFormat() != AV_SAMPLE_FMT_NONE &&
-            dst.sampleFormat() != AV_SAMPLE_FMT_NONE &&
-            src.sampleFormat() != dst.sampleFormat() )
+        if( src.mSampleFormat != AV_SAMPLE_FMT_NONE &&
+            dst.mSampleFormat != AV_SAMPLE_FMT_NONE &&
+            src.mSampleFormat != dst.mSampleFormat )
         {
             return false;
         }
 
         // Check sample rate.
-        if( src.sampleRate() > 0 &&
-            dst.sampleRate() > 0 &&
-            src.sampleRate() != dst.sampleRate() )
+        if( src.mSampleRate > 0 &&
+            dst.mSampleRate > 0 &&
+            src.mSampleRate != dst.mSampleRate )
         {
             return false;
         }
 
         // Check channel layout
-        if( src.channelLayout() != AV_CH_LAYOUT_NATIVE &&
-            dst.channelLayout() != AV_CH_LAYOUT_NATIVE &&
-            src.channelLayout() != dst.channelLayout() )
+        if( src.mChannelLayout != AV_CH_LAYOUT_NATIVE &&
+            dst.mChannelLayout != AV_CH_LAYOUT_NATIVE &&
+            src.mChannelLayout != dst.mChannelLayout )
         {
             return false;
         }
@@ -241,24 +200,23 @@ public class AudioFormat {
             return source;
         }
 
-
-        int srcChans = source.channels();
-        int chans = requested.channels();
-        long layout = requested.channelLayout();
+        int srcChans = source.mChannels;
+        int chans = requested.mChannels;
+        long layout = requested.mChannelLayout;
         if( chans < 0 ) {
             chans = srcChans;
             if( layout == AV_CH_LAYOUT_NATIVE ) {
-                layout = source.channelLayout();
+                layout = source.mChannelLayout;
             }
         }
 
-        int rate = requested.sampleRate();
+        int rate = requested.mSampleRate;
         if( rate < 0 ) {
-            rate = source.sampleRate();
+            rate = source.mSampleRate;
         }
-        int fmt = requested.sampleFormat();
+        int fmt = requested.mSampleFormat;
         if( fmt == AV_SAMPLE_FMT_NONE ) {
-            fmt = source.sampleFormat();
+            fmt = source.mSampleFormat;
         }
 
         return new AudioFormat( chans, rate, fmt, layout );

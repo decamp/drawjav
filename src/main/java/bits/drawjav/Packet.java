@@ -13,7 +13,7 @@ import bits.util.ref.Refable;
  * @author decamp
  */
 public interface Packet extends Refable, TimeRanged {
-    public StreamHandle stream();
+    public Stream stream();
     
     public long startMicros();
     public long stopMicros();

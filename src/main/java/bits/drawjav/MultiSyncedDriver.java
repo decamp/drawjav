@@ -10,8 +10,6 @@ import java.io.*;
 import java.nio.channels.ClosedChannelException;
 import java.util.*;
 
-import bits.drawjav.audio.*;
-import bits.drawjav.video.*;
 import bits.microtime.*;
 
 
@@ -23,17 +21,17 @@ import bits.microtime.*;
 public class MultiSyncedDriver implements Ticker, StreamDriver {
 
     private final MemoryManager mMem;
-    private final PlayClock mClock;
+    private final PlayClock     mClock;
 
     private final Map<PacketReader, Node> mSourceMap        = new HashMap<PacketReader, Node>();
-    private final Map<StreamHandle, Node> mStreamMap        = new HashMap<StreamHandle, Node>();
+    private final Map<Stream, Node>       mStreamMap        = new HashMap<Stream, Node>();
     private       List<Node>              mSources          = new ArrayList<Node>();
     private       long                    mSeekWarmupMicros = 2000000L;
     private       boolean                 mClosed           = false;
 
 
     public MultiSyncedDriver( MemoryManager mem, PlayClock clock ) {
-        mMem   = mem;
+        mMem = mem;
         mClock = clock;
     }
 
@@ -67,9 +65,9 @@ public class MultiSyncedDriver implements Ticker, StreamDriver {
     }
 
 
-    public synchronized StreamHandle openVideoStream( PacketReader source,
-                                                      StreamHandle stream,
-                                                      PictureFormat destFormat,
+    public synchronized Stream openVideoStream( PacketReader source,
+                                                      Stream stream,
+                                                      StreamFormat destFormat,
                                                       Sink<? super DrawPacket> sink )
                                                       throws IOException 
     {
@@ -77,8 +75,8 @@ public class MultiSyncedDriver implements Ticker, StreamDriver {
     }
     
     
-    public synchronized StreamHandle openAudioStream( PacketReader source,
-                                                      StreamHandle stream,
+    public synchronized Stream openAudioStream( PacketReader source,
+                                                      Stream stream,
                                                       AudioFormat format,
                                                       Sink<? super DrawPacket> sink )
                                                       throws IOException
@@ -88,10 +86,10 @@ public class MultiSyncedDriver implements Ticker, StreamDriver {
 
 
     @SuppressWarnings( { "unchecked", "rawtypes" } )
-    private StreamHandle openStream( boolean isVideo,
+    private Stream openStream( boolean isVideo,
                                      PacketReader source,
-                                     StreamHandle stream,
-                                     PictureFormat pictureFormat,
+                                     Stream stream,
+                                     StreamFormat pictureFormat,
                                      AudioFormat audioFormat,
                                      Sink sink )
                                      throws IOException
@@ -109,7 +107,7 @@ public class MultiSyncedDriver implements Ticker, StreamDriver {
             mSourceMap.put( source, node );
         }
 
-        StreamHandle ret;
+        Stream ret;
         boolean abort = true;
 
         try {
@@ -138,7 +136,7 @@ public class MultiSyncedDriver implements Ticker, StreamDriver {
     }
 
 
-    public synchronized boolean closeStream( StreamHandle stream ) throws IOException {
+    public synchronized boolean closeStream( Stream stream ) throws IOException {
         Node node = mStreamMap.remove( stream );
         if( node == null ) {
             return false;

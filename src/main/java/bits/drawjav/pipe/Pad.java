@@ -1,6 +1,6 @@
 package bits.drawjav.pipe;
 
-import bits.drawjav.StreamHandle;
+import bits.drawjav.Stream;
 
 import java.io.IOException;
 
@@ -44,7 +44,7 @@ public interface Pad {
      * @param stream The stream handle for the incoming data,
      *               or {@code null} if the pad will not be opened.
      */
-    void config( StreamHandle stream ) throws IOException;
+    void config( Stream stream ) throws IOException;
 
     /**
      * @return true iff this is a threaded pad.

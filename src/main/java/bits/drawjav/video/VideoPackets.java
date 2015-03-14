@@ -31,7 +31,7 @@ public class VideoPackets {
 
 
     public static void toArgb( DrawPacket frame, int yStart, int yStop, IntFrame out ) {
-        //final PictureFormat format = frame.pictureFormat();
+        //final PictureFormat format = frame.format();
         final int w = frame.width();
         final int h = ( yStart < yStop ) ? yStop - yStart : yStart - yStop;
 

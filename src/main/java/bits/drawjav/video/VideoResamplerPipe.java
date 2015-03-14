@@ -23,7 +23,7 @@ public class VideoResamplerPipe implements Sink<DrawPacket> {
     private final VideoPacketResampler     mConverter;
 
     public VideoResamplerPipe( Sink<? super DrawPacket> sink,
-                               PictureFormat sourceFormat,
+                               StreamFormat sourceFormat,
                                VideoAllocator alloc )
     {
         mSink = sink;
@@ -32,13 +32,13 @@ public class VideoResamplerPipe implements Sink<DrawPacket> {
     }
 
 
-    public void setPictureConversion( PictureFormat format, int swsFlags ) {
+    public void setPictureConversion( StreamFormat format, int swsFlags ) {
         mConverter.destFormat( format );
         mConverter.conversionFlags( swsFlags );
     }
 
     
-    public PictureFormat destFormat() {
+    public StreamFormat destFormat() {
         return mConverter.destFormat();
     }
     

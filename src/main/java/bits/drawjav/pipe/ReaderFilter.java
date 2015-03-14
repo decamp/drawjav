@@ -1,6 +1,5 @@
 package bits.drawjav.pipe;
 
-import bits.collect.RingList;
 import bits.drawjav.*;
 import bits.microtime.*;
 import bits.util.ref.Refable;
@@ -20,8 +19,8 @@ public class ReaderFilter implements Filter, SyncClockControl {
 
     private final PacketReader mReader;
     private final OutHandler[] mSources;
-    private final List<OutHandler>              mActive = new ArrayList<OutHandler>();
-    private final Map<StreamHandle, OutHandler> mMap    = new HashMap<StreamHandle, OutHandler>();
+    private final List<OutHandler>        mActive = new ArrayList<OutHandler>();
+    private final Map<Stream, OutHandler> mMap    = new HashMap<Stream, OutHandler>();
 
     private Exception mException  = null;
     private boolean   mNeedSeek   = false;
@@ -120,10 +119,10 @@ public class ReaderFilter implements Filter, SyncClockControl {
 
 
     private final class OutHandler extends OutPadAdapter {
-        private StreamHandle mStream;
+        private Stream mStream;
         private Queue<Refable> mQueue = new ArrayDeque<Refable>( MAX_QUEUE_SIZE );
 
-        OutHandler( StreamHandle stream ) {
+        OutHandler( Stream stream ) {
             mStream = stream;
         }
 

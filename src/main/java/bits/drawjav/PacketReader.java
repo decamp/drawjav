@@ -15,11 +15,11 @@ import java.util.*;
  */
 public interface PacketReader extends Channel {
     public int streamCount();
-    public StreamHandle stream( int index );
-    public List<StreamHandle> streams();
-    public void openStream( StreamHandle stream ) throws IOException;
-    public void closeStream( StreamHandle stream ) throws IOException;
-    public boolean isStreamOpen( StreamHandle stream );
+    public Stream stream( int index );
+    public List<Stream> streams();
+    public void openStream( Stream stream ) throws IOException;
+    public void closeStream( Stream stream ) throws IOException;
+    public boolean isStreamOpen( Stream stream );
 
     public void seek( long micros ) throws IOException;
 

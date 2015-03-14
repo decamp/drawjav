@@ -9,7 +9,7 @@ import java.util.*;
 class StreamRegistry<T> {
 
     private final Map<PacketReader, Node> mSourceMap = new HashMap<PacketReader, Node>();
-    private final Map<StreamHandle, Node> mStreamMap = new HashMap<StreamHandle, Node>();
+    private final Map<Stream, Node>       mStreamMap = new HashMap<Stream, Node>();
 
 
     public T getSourceData( PacketReader s ) {
@@ -18,7 +18,7 @@ class StreamRegistry<T> {
     }
 
 
-    public T getSourceData( StreamHandle s ) {
+    public T getSourceData( Stream s ) {
         Node n = mStreamMap.get( s );
         return n == null ? null : n.mItem;
     }
@@ -32,7 +32,7 @@ class StreamRegistry<T> {
         }
 
         if( putStreams ) {
-            for( StreamHandle stream: source.streams() ) {
+            for( Stream stream: source.streams() ) {
                 if( !node.mStreams.contains( stream ) ) {
                     node.mStreams.add( stream );
                     mStreamMap.put( stream, node );
@@ -42,7 +42,7 @@ class StreamRegistry<T> {
     }
 
 
-    public boolean addStream( PacketReader source, StreamHandle stream ) {
+    public boolean addStream( PacketReader source, Stream stream ) {
         Node node = mSourceMap.get( source );
         if( node == null ) {
             return false;
@@ -55,9 +55,9 @@ class StreamRegistry<T> {
     }
 
 
-    public List<StreamHandle> getStreamsForSourceRef( PacketReader source ) {
+    public List<Stream> getStreamsForSourceRef( PacketReader source ) {
         Node node = mSourceMap.get( source );
-        return node == null ? Collections.<StreamHandle>emptyList() : node.mStreams;
+        return node == null ? Collections.<Stream>emptyList() : node.mStreams;
     }
 
 
@@ -66,7 +66,7 @@ class StreamRegistry<T> {
 
     private class Node {
         final PacketReader mSource;
-        final List<StreamHandle> mStreams = new ArrayList<StreamHandle>();
+        final List<Stream> mStreams = new ArrayList<Stream>();
         T mItem;
 
         Node( PacketReader source, T item ) {

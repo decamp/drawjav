@@ -8,23 +8,21 @@ package bits.drawjav;
 
 import java.io.IOException;
 
-import bits.drawjav.audio.AudioFormat;
-import bits.drawjav.video.PictureFormat;
 import bits.util.Guid;
 
 /**
  * @author decamp
  */
-public class BasicStreamHandle implements StreamHandle {
+public class BasicStreamHandle implements Stream {
 
-    private final Guid          mGuid;
-    private final int           mType;
-    private final PictureFormat mPictureFormat;
-    private final AudioFormat   mAudioFormat;
+    private final Guid         mGuid;
+    private final int          mType;
+    private final StreamFormat mPictureFormat;
+    private final AudioFormat  mAudioFormat;
 
 
     public BasicStreamHandle( int type,
-                              PictureFormat pictureFormat,
+                              StreamFormat pictureFormat,
                               AudioFormat audioFormat )
     {
         this( null, type, pictureFormat, audioFormat );
@@ -33,7 +31,7 @@ public class BasicStreamHandle implements StreamHandle {
 
     public BasicStreamHandle( Guid optGuid,
                               int type,
-                              PictureFormat pictureFormat,
+                              StreamFormat pictureFormat,
                               AudioFormat audioFormat )
     {
         mGuid          = optGuid != null ? optGuid : Guid.create();
@@ -51,7 +49,7 @@ public class BasicStreamHandle implements StreamHandle {
         return mType;
     }
     
-    public PictureFormat pictureFormat() {
+    public StreamFormat format() {
         return mPictureFormat;
     }
     
@@ -64,17 +62,5 @@ public class BasicStreamHandle implements StreamHandle {
     }
     
     public void close() throws IOException {}
-    
-    
-    public boolean equals( Object o ) {
-        if( !( o instanceof StreamHandle ) ) {
-            return false;
-        }
-        return mGuid.equals( ((StreamHandle)o).guid() );
-    }
-    
-    public int hashCode() {
-        return mGuid.hashCode();
-    }
 
 }

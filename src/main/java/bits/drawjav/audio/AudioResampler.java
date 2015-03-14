@@ -42,9 +42,9 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
     private Rational   mRateRatio = null;
 
     // Get updated each source packet.
-    private StreamHandle mStream       = null;
-    private long         mStreamMicros = Jav.AV_NOPTS_VALUE;
-    private AudioTimer   mTimer        = new AudioTimer();
+    private Stream     mStream       = null;
+    private long       mStreamMicros = Jav.AV_NOPTS_VALUE;
+    private AudioTimer mTimer        = new AudioTimer();
 
     private final long[] mWork = new long[2];
 
@@ -59,7 +59,6 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
             optAlloc.ref();
         }
     }
-
 
 
     public AudioFormat sourceFormat() {
@@ -131,7 +130,7 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
             return source;
         }
 
-        StreamHandle stream = source.stream();
+        Stream stream = source.stream();
         if( stream != mStream && !stream.equals( mStream ) ) {
             mStream = stream;
             AudioFormat format = source.toAudioFormat();
@@ -163,7 +162,7 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
             if( mConverter == null ) {
                 return null;
             }
-            int dstLen = (int)mConverter.getDelay( mDestFormat.sampleRate() );
+            int dstLen = (int)mConverter.getDelay( mDestFormat.mSampleRate );
             if( dstLen == 0 ) {
                 return null;
             }
@@ -240,22 +239,22 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
             return;
         }
 
-        long srcLayout = src.channelLayout();
+        long srcLayout = src.mChannelLayout;
         if( srcLayout == Jav.AV_CH_LAYOUT_NATIVE ) {
-            srcLayout = JavChannelLayout.getDefault( src.channels() );
+            srcLayout = JavChannelLayout.getDefault( src.mChannels );
         }
-        long dstLayout = dst.channelLayout();
+        long dstLayout = dst.mChannelLayout;
         if( dstLayout == Jav.AV_CH_LAYOUT_NATIVE ) {
-            dstLayout = JavChannelLayout.getDefault( dst.channels() );
+            dstLayout = JavChannelLayout.getDefault( dst.mChannels );
         }
 
-        mRateRatio = Rational.reduce( dst.sampleRate(), src.sampleRate() );
+        mRateRatio = Rational.reduce( dst.mSampleRate, src.mSampleRate );
         mConverter = SwrContext.allocAndInit( srcLayout,
-                                              src.sampleFormat(),
-                                              src.sampleRate(),
+                                              src.mSampleFormat,
+                                              src.mSampleRate,
                                               dstLayout,
-                                              dst.sampleFormat(),
-                                              dst.sampleRate() );
+                                              dst.mSampleFormat,
+                                              dst.mSampleRate );
     }
 
 
@@ -274,7 +273,7 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
         if( src != null ) {
             long micros = src.startMicros();
             if( micros != mStreamMicros ) {
-                mTimer.init( micros, mDestFormat.sampleRate() );
+                mTimer.init( micros, mDestFormat.mSampleRate );
             }
         }
 

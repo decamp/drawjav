@@ -16,5 +16,5 @@ public interface PacketAllocator<T extends Refable> {
      * @return Writable packet.
      */
 
-    public T alloc( StreamHandle stream, int size );
+    public T alloc( Stream stream, int size );
 }

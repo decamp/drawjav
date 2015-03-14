@@ -7,8 +7,6 @@
 package bits.drawjav.audio;
 
 import bits.drawjav.*;
-import bits.jav.codec.JavFrame;
-import bits.jav.util.JavSampleFormat;
 import bits.util.ref.AbstractRefable;
 
 import java.util.logging.Logger;

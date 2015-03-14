@@ -8,8 +8,6 @@ package bits.drawjav;
 
 import java.io.*;
 
-import bits.drawjav.audio.AudioFormat;
-import bits.drawjav.video.PictureFormat;
 import bits.microtime.*;
 
 /**
@@ -65,9 +63,9 @@ public class SyncedDriver implements StreamDriver, Ticker {
     }
     
 
-    public StreamHandle openVideoStream( PacketReader source,
-                                         StreamHandle stream,
-                                         PictureFormat destFormat,
+    public Stream openVideoStream( PacketReader source,
+                                         Stream stream,
+                                         StreamFormat destFormat,
                                          Sink<? super DrawPacket> sink )
                                          throws IOException 
     {
@@ -75,8 +73,8 @@ public class SyncedDriver implements StreamDriver, Ticker {
     }
     
     
-    public StreamHandle openAudioStream( PacketReader source,
-                                         StreamHandle stream,
+    public Stream openAudioStream( PacketReader source,
+                                         Stream stream,
                                          AudioFormat format,
                                          Sink<? super DrawPacket> sink )
                                          throws IOException 
@@ -85,7 +83,7 @@ public class SyncedDriver implements StreamDriver, Ticker {
     }
     
     
-    public boolean closeStream( StreamHandle stream ) throws IOException {
+    public boolean closeStream( Stream stream ) throws IOException {
         return mDriver.closeStream( stream );
     }
     

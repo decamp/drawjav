@@ -10,8 +10,6 @@ import java.io.*;
 import java.nio.channels.ClosedChannelException;
 import java.util.logging.*;
 
-import bits.drawjav.audio.AudioFormat;
-import bits.drawjav.video.PictureFormat;
 import bits.microtime.*;
 
 
@@ -78,7 +76,7 @@ public class PassiveDriver implements StreamDriver {
      * @param stream
      * @return true iff this PassiveDriver has somewhere to send specific stream of data.
      */
-    public boolean hasSinkFor( StreamHandle stream ) {
+    public boolean hasSinkFor( Stream stream ) {
         return mSink.hasSinkFor( stream );
     }
     
@@ -361,9 +359,9 @@ public class PassiveDriver implements StreamDriver {
     }
 
     @Override
-    public synchronized StreamHandle openVideoStream( PacketReader ignored,
-                                                      StreamHandle stream,
-                                                      PictureFormat destFormat,
+    public synchronized Stream openVideoStream( PacketReader ignored,
+                                                      Stream stream,
+                                                      StreamFormat destFormat,
                                                       Sink<? super DrawPacket> sink )
                                                       throws IOException 
     {
@@ -375,7 +373,7 @@ public class PassiveDriver implements StreamDriver {
         }
         
         boolean active   = mSink.hasSinkFor( stream );
-        StreamHandle ret = mSink.openVideoStream( ignored, stream, destFormat, sink );
+        Stream ret = mSink.openVideoStream( ignored, stream, destFormat, sink );
         if( ret == null ) {
             return null;
         }
@@ -395,8 +393,8 @@ public class PassiveDriver implements StreamDriver {
     
 
     @Override
-    public synchronized StreamHandle openAudioStream( PacketReader ignored,
-                                                      StreamHandle stream,
+    public synchronized Stream openAudioStream( PacketReader ignored,
+                                                      Stream stream,
                                                       AudioFormat format,
                                                       Sink<? super DrawPacket> sink )
                                                       throws IOException 
@@ -409,7 +407,7 @@ public class PassiveDriver implements StreamDriver {
         }
         
         boolean active   = mSink.hasSinkFor( stream );
-        StreamHandle ret = mSink.openAudioStream( ignored, stream, format, sink );
+        Stream ret = mSink.openAudioStream( ignored, stream, format, sink );
         if( ret == null ) {
             return null;
         }
@@ -428,14 +426,14 @@ public class PassiveDriver implements StreamDriver {
     }
 
     
-    public boolean closeStream( StreamHandle stream ) throws IOException {
+    public boolean closeStream( Stream stream ) throws IOException {
         if( !mSink.closeStream( stream ) ) {
             return false;
         }
         
         // Check if need to close source.
         synchronized( this ) {
-            StreamHandle sourceStream = mSink.destToSource( stream );
+            Stream sourceStream = mSink.destToSource( stream );
             if( sourceStream != null && !mSink.hasSinkFor( sourceStream ) ) {
                 if( !mSink.hasSinkFor( sourceStream ) ) {
                     try {

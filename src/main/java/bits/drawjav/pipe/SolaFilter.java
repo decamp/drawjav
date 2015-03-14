@@ -26,7 +26,7 @@ public class SolaFilter implements Filter {
     private final InHandler  mInput  = new InHandler();
     private final OutHandler mOutput = new OutHandler();
 
-    private StreamHandle   mStream     = null;
+    private Stream         mStream     = null;
     private AudioFormat    mFormat     = null;
     private AudioAllocator mAlloc      = null;
     private DrawPacket     mSrc        = null;
@@ -76,7 +76,7 @@ public class SolaFilter implements Filter {
         }
         mBus = bus;
         bus.register( new ClockHandler() );
-        mSola = new Sola( mFormat.sampleRate() );
+        mSola = new Sola( mFormat.mSampleRate );
         mAlloc = mMem.audioAllocator( mStream );
         mOpen = true;
     }
@@ -217,15 +217,15 @@ public class SolaFilter implements Filter {
         }
 
         @Override
-        public void config( StreamHandle stream ) {
+        public void config( Stream stream ) {
             AudioFormat format = stream.audioFormat();
             if( format == null ) {
                 throw new IllegalArgumentException( "Missing audio format" );
             }
-            if( format.sampleFormat() != Jav.AV_SAMPLE_FMT_FLT ) {
+            if( format.mSampleFormat != Jav.AV_SAMPLE_FMT_FLT ) {
                 throw new IllegalArgumentException( "Unsupported sample format." );
             }
-            if( format.channels() != 1 ) {
+            if( format.mChannels != 1 ) {
                 throw new IllegalArgumentException( "Only mono is supported." );
             }
 

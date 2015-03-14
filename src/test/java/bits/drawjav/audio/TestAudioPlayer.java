@@ -18,7 +18,7 @@ public class TestAudioPlayer {
     private static final File TEST_FILE = new File( "../../ext/video.mp4" );
 
     public static void main( String[] args ) throws Exception {
-        testPlay2();
+        testPlay();
     }
 
     static void testPlay() throws Exception {
@@ -26,7 +26,7 @@ public class TestAudioPlayer {
         MemoryManager mem   = new PoolPerFormatMemoryManager( 128, -1, 0, 0 );
         FullClock clock     = new FullClock( Clock.SYSTEM_CLOCK );
         FormatReader reader = FormatReader.openFile( file );
-        StreamHandle stream = reader.stream( Jav.AVMEDIA_TYPE_AUDIO, 0 );
+        Stream stream = reader.stream( Jav.AVMEDIA_TYPE_AUDIO, 0 );
         reader.openStream( stream );
 
         AudioPlayer player = new AudioPlayer( mem, clock, reader );
@@ -56,7 +56,7 @@ public class TestAudioPlayer {
         MemoryManager mem   = new PoolMemoryManager( 128, -1, 0, 0 );
         FullClock clock     = new FullClock( Clock.SYSTEM_CLOCK );
         FormatReader reader = FormatReader.openFile( file, true, 0, mem );
-        StreamHandle stream = reader.stream( Jav.AVMEDIA_TYPE_AUDIO, 0 );
+        Stream stream = reader.stream( Jav.AVMEDIA_TYPE_AUDIO, 0 );
         reader.openStream( stream );
 
         AudioPlayer player = new AudioPlayer( mem, clock, reader );

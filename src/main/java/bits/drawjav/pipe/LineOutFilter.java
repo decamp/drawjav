@@ -7,18 +7,16 @@
 package bits.drawjav.pipe;
 
 import bits.drawjav.*;
-import bits.drawjav.audio.AudioFormat;
+import bits.drawjav.AudioFormat;
 import bits.jav.Jav;
 import bits.jav.util.JavMem;
 import bits.microtime.*;
-import bits.util.Dates;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 
 import javax.sound.sampled.*;
 import java.io.*;
 import java.nio.*;
-import java.text.DateFormat;
 import java.util.*;
 
 
@@ -166,7 +164,7 @@ public class LineOutFilter implements Filter, InPad<DrawPacket>, SyncClockContro
     //// SinkPad Methods /////
 
     @Override
-    public void config( StreamHandle stream ) throws IOException {
+    public void config( Stream stream ) throws IOException {
         if( stream == null ) {
             return;
         }
@@ -176,10 +174,10 @@ public class LineOutFilter implements Filter, InPad<DrawPacket>, SyncClockContro
             throw new IllegalArgumentException( "Missing AudioFormat." );
         }
 
-        mChannels = format.channels();
-        mFrequency = format.sampleRate();
+        mChannels = format.mChannels;
+        mFrequency = format.mSampleRate;
         mBytesPerFrame = mChannels * 2;
-        javax.sound.sampled.AudioFormat lineFormat = new javax.sound.sampled.AudioFormat( format.sampleRate(),
+        javax.sound.sampled.AudioFormat lineFormat = new javax.sound.sampled.AudioFormat( format.mSampleRate,
                                                                                           16,
                                                                                           mChannels,
                                                                                           true,

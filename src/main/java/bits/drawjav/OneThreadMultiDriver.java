@@ -11,8 +11,6 @@ import java.nio.channels.ClosedChannelException;
 import java.util.*;
 import java.util.logging.*;
 
-import bits.drawjav.audio.AudioFormat;
-import bits.drawjav.video.PictureFormat;
 import bits.microtime.*;
 import bits.util.concurrent.ThreadLock;
 
@@ -26,14 +24,14 @@ public class OneThreadMultiDriver implements StreamDriver {
     private static Logger sLog = Logger.getLogger( OneThreadMultiDriver.class.getName() );
 
 
-    private final MemoryManager  mMem;
+    private final MemoryManager   mMem;
     private final PlayClock       mClock;
     private final ThreadLock      mLock;
     private final PacketScheduler mScheduler;
     private final PlayHandler     mPlayHandler;
 
     private final Map<PacketReader, Node> mSourceMap = new HashMap<PacketReader, Node>();
-    private final Map<StreamHandle, Node> mStreamMap = new HashMap<StreamHandle, Node>();
+    private final Map<Stream, Node>       mStreamMap = new HashMap<Stream, Node>();
     private final PrioHeap<Node>          mDrivers   = new PrioHeap<Node>();
 
     private Thread mThread;
@@ -99,9 +97,9 @@ public class OneThreadMultiDriver implements StreamDriver {
     }
 
 
-    public StreamHandle openVideoStream( PacketReader source,
-                                         StreamHandle sourceStream,
-                                         PictureFormat destFormat,
+    public Stream openVideoStream( PacketReader source,
+                                         Stream sourceStream,
+                                         StreamFormat destFormat,
                                          Sink<? super DrawPacket> sink )
                                          throws IOException 
     {
@@ -109,8 +107,8 @@ public class OneThreadMultiDriver implements StreamDriver {
     }
                               
 
-    public StreamHandle openAudioStream( PacketReader source,
-                                         StreamHandle sourceStream,
+    public Stream openAudioStream( PacketReader source,
+                                         Stream sourceStream,
                                          AudioFormat destFormat,
                                          Sink<? super DrawPacket> sink )
                                          throws IOException 
@@ -119,10 +117,10 @@ public class OneThreadMultiDriver implements StreamDriver {
     }
 
 
-    private StreamHandle openStream( boolean isVideo,
+    private Stream openStream( boolean isVideo,
                                      PacketReader source,
-                                     StreamHandle stream,
-                                     PictureFormat pictureFormat,
+                                     Stream stream,
+                                     StreamFormat pictureFormat,
                                      AudioFormat audioFormat,
                                      Sink sink )
                                      throws IOException
@@ -142,7 +140,7 @@ public class OneThreadMultiDriver implements StreamDriver {
             }
 
             Sink syncSink = mScheduler.openPipe( sink, mLock, mVideoQueueCap );
-            StreamHandle ret;
+            Stream ret;
             boolean abort = true;
 
             try {
@@ -178,7 +176,7 @@ public class OneThreadMultiDriver implements StreamDriver {
     }
 
     
-    public boolean closeStream( StreamHandle stream ) throws IOException {
+    public boolean closeStream( Stream stream ) throws IOException {
         synchronized( mLock ) {
             Node node = mStreamMap.remove( stream );
             if( node == null ) {

@@ -144,7 +144,7 @@ public class TestStreamDiscard {
     }
 
 
-    static Packet next( FormatReader dec, StreamHandle stream ) throws IOException {
+    static Packet next( FormatReader dec, Stream stream ) throws IOException {
         while( true ) {
             Packet p = dec.readNext();
             if( p != null ) {

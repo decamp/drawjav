@@ -12,8 +12,6 @@ import java.nio.channels.ClosedChannelException;
 import java.util.*;
 import java.util.logging.*;
 
-import bits.drawjav.audio.AudioFormat;
-import bits.drawjav.video.PictureFormat;
 import bits.jav.Jav;
 
 
@@ -32,7 +30,7 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
 
     private static final Logger sLog = Logger.getLogger( ManyToManyFormatter.class.getName() );
 
-    private final Map<StreamHandle, OneToManyFormatter> mStreamMap = new HashMap<StreamHandle, OneToManyFormatter>();
+    private final Map<Stream, OneToManyFormatter> mStreamMap = new HashMap<Stream, OneToManyFormatter>();
     private MemoryManager mMem;
 
     private final SinkCaster mCaster = new SinkCaster();
@@ -54,12 +52,11 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
     }
 
 
-
-    public StreamHandle openVideoStream( PacketReader ignored,
-                                         StreamHandle stream,
-                                         PictureFormat destFormat,
-                                         Sink<? super DrawPacket> sink )
-                                         throws IOException
+    public Stream openVideoStream( PacketReader ignored,
+                                   Stream stream,
+                                   StreamFormat destFormat,
+                                   Sink<? super DrawPacket> sink )
+            throws IOException
     {
         final int type = stream.type();
         if( type != Jav.AVMEDIA_TYPE_VIDEO ) {
@@ -79,7 +76,7 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
                 addPipe = true;
             }
             
-            StreamHandle dest = pipe.openVideoStream( destFormat, sink );
+            Stream dest = pipe.openVideoStream( destFormat, sink );
             if( addPipe  ) {
                 addDest( stream, pipe );
             }
@@ -89,8 +86,8 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
     }
     
     
-    public StreamHandle openAudioStream( PacketReader ignored,
-                                         StreamHandle source,
+    public Stream openAudioStream( PacketReader ignored,
+                                         Stream source,
                                          AudioFormat destFormat,
                                          Sink<? super DrawPacket> sink )
                                          throws IOException
@@ -113,7 +110,7 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
                 addPipe = true;
             }
 
-            StreamHandle dest = pipe.openAudioStream( destFormat, sink );
+            Stream dest = pipe.openAudioStream( destFormat, sink );
 
             if( addPipe  ) {
                 addDest( source, pipe );
@@ -124,14 +121,14 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
     }
     
     
-    public boolean closeStream( StreamHandle stream ) {
+    public boolean closeStream( Stream stream ) {
         if( !( stream instanceof DestStream ) ) {
             return false;
         }
         
         DestStream s = (DestStream)stream;
-        StreamHandle srcHandle = s.mSource.get();
-        StreamHandle dstHandle = s.mDest.get();
+        Stream srcHandle = s.mSource.get();
+        Stream dstHandle = s.mDest.get();
         
         if( srcHandle == null || dstHandle == null ) {
             return false;
@@ -205,7 +202,7 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
     }
     
     
-    public synchronized Sink directSink( StreamHandle stream ) {
+    public synchronized Sink directSink( Stream stream ) {
         //TODO: This should return a wrapper around the stream that intercepts "close()" calls.
         if( !( stream instanceof DestStream ) ) {
             return null;
@@ -221,12 +218,12 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
     }
 
 
-    public synchronized boolean hasSinkFor( StreamHandle source ) {
+    public synchronized boolean hasSinkFor( Stream source ) {
         return mStreamMap.containsKey( source );
     }
     
     
-    public synchronized boolean hasSinkOtherThan( StreamHandle stream ) {
+    public synchronized boolean hasSinkOtherThan( Stream stream ) {
         int size = mStreamMap.size();
         if( size < 1 ) {
             return false;
@@ -238,8 +235,8 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
         }
             
         DestStream s = (DestStream)stream;
-        StreamHandle srcHandle = s.mSource.get();
-        StreamHandle dstHandle = s.mDest.get();
+        Stream srcHandle = s.mSource.get();
+        Stream dstHandle = s.mDest.get();
         if( srcHandle == null || dstHandle == null ) {
             return true;
         }
@@ -253,7 +250,7 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
     }
     
     
-    public StreamHandle destToSource( StreamHandle stream ) {
+    public Stream destToSource( Stream stream ) {
         if( !( stream instanceof DestStream ) ) {
             return null;
         }
@@ -277,13 +274,13 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
 
 
     
-    private synchronized void addDest( StreamHandle key, OneToManyFormatter pipe ) {
+    private synchronized void addDest( Stream key, OneToManyFormatter pipe ) {
         mStreamMap.put( key, pipe );
         mCaster.addSink( pipe );
     }
 
     
-    private synchronized void removeDest( StreamHandle key ) {
+    private synchronized void removeDest( Stream key ) {
         OneToManyFormatter pipe = mStreamMap.remove( key );
         if( pipe != null ) {
             mCaster.removeSink( pipe );
@@ -292,19 +289,19 @@ public class ManyToManyFormatter implements StreamFormatter, Sink<Packet> {
     
 
     private static final class DestStream extends BasicStreamHandle {
-        
-        final Reference<StreamHandle> mSource;
-        final Reference<StreamHandle> mDest;
-        
-        DestStream( StreamHandle source,
-                    StreamHandle dest )
+
+        final Reference<Stream> mSource;
+        final Reference<Stream> mDest;
+
+        DestStream( Stream source,
+                    Stream dest )
         {
-            super( dest.type(), 
-                   dest.pictureFormat(), 
+            super( dest.type(),
+                   dest.format(),
                    dest.audioFormat() );
-            mSource = new WeakReference<StreamHandle>( source );
-            mDest   = new WeakReference<StreamHandle>( dest );
+            mSource = new WeakReference<Stream>( source );
+            mDest = new WeakReference<Stream>( dest );
         }
     }
-    
+
 }

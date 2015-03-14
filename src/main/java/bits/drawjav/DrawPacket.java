@@ -9,8 +9,6 @@ package bits.drawjav;
 import java.nio.*;
 import java.util.logging.Logger;
 
-import bits.drawjav.audio.AudioFormat;
-import bits.drawjav.video.PictureFormat;
 import bits.jav.Jav;
 import bits.jav.JavException;
 import bits.jav.codec.*;
@@ -42,9 +40,9 @@ public class DrawPacket extends JavFrame implements Packet {
 
 
     public static DrawPacket createVideo( ObjectPool<? super DrawPacket> optPool,
-                                          PictureFormat format )
+                                          StreamFormat format )
     {
-        int size = nComputeVideoBufferSize( format.width(), format.height(), format.pixelFormat() );
+        int size = nComputeVideoBufferSize( format.mWidth, format.mHeight, format.mPixelFormat );
         size += Jav.FF_INPUT_BUFFER_PADDING_SIZE;
         ByteBuffer buf = Jav.allocEncodingBuffer( size );
         return createVideo( optPool, format, buf );
@@ -52,7 +50,7 @@ public class DrawPacket extends JavFrame implements Packet {
     
     
     public static DrawPacket createVideo( ObjectPool<? super DrawPacket> optPool,
-                                          PictureFormat format,
+                                          StreamFormat format,
                                           ByteBuffer buf )
     {
         long pointer = nAllocFrame();
@@ -61,12 +59,12 @@ public class DrawPacket extends JavFrame implements Packet {
         }
         DrawPacket ret = new DrawPacket( pointer, optPool );
         try {
-            ret.fillVideoFrame( format.width(), format.height(), format.pixelFormat(), buf );
+            ret.fillVideoFrame( format.mWidth, format.mHeight, format.mPixelFormat, buf );
         } catch( JavException e ) {
             throw new RuntimeException( e );
         }
 
-        Rational rat = format.sampleAspect();
+        Rational rat = format.mSampleAspect;
         if( rat != null ) {
             ret.sampleAspectRatio( rat );
         }
@@ -81,9 +79,9 @@ public class DrawPacket extends JavFrame implements Packet {
     {
         assert samplesPerChannel >= 0;
 
-        int size = JavSampleFormat.getBufferSize( format.channels(),
+        int size = JavSampleFormat.getBufferSize( format.mChannels,
                                                   samplesPerChannel,
-                                                  format.sampleFormat(),
+                                                  format.mSampleFormat,
                                                   align,
                                                   null );
 
@@ -110,35 +108,35 @@ public class DrawPacket extends JavFrame implements Packet {
         }
 
         DrawPacket ret = new DrawPacket( pointer, optPool );
-        ret.fillAudioFrame( format.channels(),
+        ret.fillAudioFrame( format.mChannels,
                             samplesPerChannel,
-                            format.sampleFormat(),
+                            format.mSampleFormat,
                             buf,
                             align );
         return ret;
     }
 
 
-
-    private StreamHandle  mStream;
-    private long          mStartMicros;
-    private long          mStopMicros;
-    private boolean       mIsGap;
+    private Stream  mStream;
+    private long    mStartMicros;
+    private long    mStopMicros;
+    private boolean mIsGap;
 
 
     @SuppressWarnings( { "unchecked", "rawtypes" } )
-    protected DrawPacket( long pointer, ObjectPool<? super DrawPacket> pool ) {
+    protected DrawPacket( long pointer, ObjectPool<? super DrawPacket> pool )
+    {
         super( pointer, (ObjectPool)pool );
     }
 
 
     @Override
-    public StreamHandle stream() {
+    public Stream stream() {
         return mStream;
     }
 
 
-    public void stream( StreamHandle stream ) {
+    public void stream( Stream stream ) {
         mStream = stream;
     }
 
@@ -164,7 +162,7 @@ public class DrawPacket extends JavFrame implements Packet {
 
 
     public void stopMicros( long stopMicros ) {
-        mStopMicros  = stopMicros;
+        mStopMicros = stopMicros;
     }
 
 
@@ -178,20 +176,16 @@ public class DrawPacket extends JavFrame implements Packet {
     }
 
 
-    public void setPictureFormat( PictureFormat format ) {
-        format( format.pixelFormat() );
-        width( format.width() );
-        height( format.height() );
-        sampleAspectRatio( format.sampleAspect() );
+    public void setPictureFormat( StreamFormat format ) {
+        format( format.mPixelFormat );
+        width( format.mWidth );
+        height( format.mHeight );
+        sampleAspectRatio( format.mSampleAspect );
     }
 
 
-    public PictureFormat toPictureFormat() {
-        Rational aspect = sampleAspectRatio();
-        if( aspect.num() == 0 ) {
-            aspect = null;
-        }
-        return new PictureFormat( width(), height(), format(), aspect );
+    @Deprecated public StreamFormat toPictureFormat() {
+        return StreamFormat.createVideo( this );
     }
 
 
@@ -201,10 +195,10 @@ public class DrawPacket extends JavFrame implements Packet {
 
 
     public void setAudioFormat( AudioFormat format ) {
-        sampleRate( format.sampleRate() );
-        channels( format.channels() );
-        format( format.sampleFormat() );
-        channelLayout( format.channelLayout() );
+        sampleRate( format.mSampleRate );
+        channels( format.mChannels );
+        format( format.mSampleFormat );
+        channelLayout( format.mChannelLayout );
     }
 
 
@@ -216,10 +210,10 @@ public class DrawPacket extends JavFrame implements Packet {
      * @param startMicros
      * @param stopMicros
      */
-    public void init( StreamHandle optStream,
+    public void init( Stream optStream,
                       long startMicros,
                       long stopMicros,
-                      PictureFormat optFormat,
+                      StreamFormat optFormat,
                       boolean isGap )
     {
         mStream = optStream;
@@ -235,16 +229,16 @@ public class DrawPacket extends JavFrame implements Packet {
     /**
      * Initializes packet object.
      */
-    public void init( StreamHandle stream,
+    public void init( Stream stream,
                       long startMicros,
                       long stopMicros,
                       AudioFormat format,
                       boolean isGap )
     {
-        mStream      = stream;
+        mStream = stream;
         mStartMicros = startMicros;
-        mStopMicros  = stopMicros;
-        mIsGap       = isGap;
+        mStopMicros = stopMicros;
+        mIsGap = isGap;
         if( format != null ) {
             setAudioFormat( format );
         }

@@ -6,9 +6,6 @@
 
 package bits.drawjav;
 
-import bits.drawjav.audio.AudioFormat;
-import bits.drawjav.video.PictureFormat;
-
 import java.io.*;
 import java.nio.channels.ClosedChannelException;
 
@@ -33,9 +30,9 @@ public interface StreamFormatter {
      * @throws IllegalArgumentException if source/sourceStream are invalid.
      * @throws IOException for most other failures.
      */
-    public StreamHandle openVideoStream( PacketReader source,
-                                         StreamHandle sourceStream,
-                                         PictureFormat destFormat,
+    public Stream openVideoStream( PacketReader source,
+                                         Stream sourceStream,
+                                         StreamFormat destFormat,
                                          Sink<? super DrawPacket> sink )
                                          throws IOException;
 
@@ -54,12 +51,12 @@ public interface StreamFormatter {
      * @throws IllegalArgumentException if source/sourceStream are invalid.
      * @throws IOException for most other failures.
      */
-    public StreamHandle openAudioStream( PacketReader source,
-                                         StreamHandle sourceStream,
+    public Stream openAudioStream( PacketReader source,
+                                         Stream sourceStream,
                                          AudioFormat destFormat,
                                          Sink<? super DrawPacket> sink )
                                          throws IOException;
 
-    public boolean closeStream( StreamHandle stream ) throws IOException;
+    public boolean closeStream( Stream stream ) throws IOException;
 
 }

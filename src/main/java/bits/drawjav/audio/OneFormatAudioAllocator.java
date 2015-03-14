@@ -8,9 +8,7 @@ package bits.drawjav.audio;
 
 import java.util.logging.Logger;
 
-import bits.drawjav.CostMetric;
-import bits.drawjav.CostPool;
-import bits.drawjav.DrawPacket;
+import bits.drawjav.*;
 import bits.jav.codec.JavFrame;
 import bits.jav.util.JavSampleFormat;
 import bits.util.ref.AbstractRefable;
@@ -43,7 +41,6 @@ public class OneFormatAudioAllocator extends AbstractRefable implements AudioAll
     }
 
 
-
     private final CostPool<DrawPacket> mPool;
 
     private AudioFormat mPoolFormat;
@@ -57,7 +54,6 @@ public class OneFormatAudioAllocator extends AbstractRefable implements AudioAll
         mPool = pool;
         mDefaultSampleNum = defaultSampleNum;
     }
-
 
 
     public synchronized DrawPacket alloc( AudioFormat format ) {
@@ -81,9 +77,9 @@ public class OneFormatAudioAllocator extends AbstractRefable implements AudioAll
             // Check if packet can hold requested number of samples.
             // This calculation isn't that correct for planar packets, but if the packet was
             // allocated here, there will always only be one buffer.
-            int minSize = JavSampleFormat.getBufferSize( format.channels(),
+            int minSize = JavSampleFormat.getBufferSize( format.mChannels,
                                                          numSamples,
-                                                         format.sampleFormat(),
+                                                         format.mSampleFormat,
                                                          0,
                                                          null );
             if( ret.useableBufElemSize( 0 ) >= minSize ) {

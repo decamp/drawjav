@@ -8,8 +8,7 @@ package bits.drawjav.video;
 
 import bits.drawjav.DrawPacket;
 import bits.drawjav.Sink;
-import bits.drawjav.video.PictureFormat;
-import bits.drawjav.video.VideoPacketResampler;
+import bits.drawjav.StreamFormat;
 import bits.jav.Jav;
 import bits.jav.util.Rational;
 import bits.draw3d.Rect;
@@ -148,7 +147,7 @@ public class VideoPanel extends JPanel implements Sink<DrawPacket> {
         int dw = mDstBox.width();
         int dh = mDstBox.height();
 
-        PictureFormat fmt = new PictureFormat( dw, dh, Jav.AV_PIX_FMT_BGRA, new Rational( 1, 1 ) );
+        StreamFormat fmt = StreamFormat.createVideo( dw, dh, Jav.AV_PIX_FMT_BGRA, new Rational( 1, 1 ) );
         mResampler.destFormat( fmt );
         return true;
     }

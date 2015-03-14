@@ -68,12 +68,11 @@ public class FormatReader implements PacketReader {
     }
 
 
-
     private static final Rational MICROS = new Rational( 1, 1000000 );
 
 
     private final JavFormatContext mFormat;
-    private final MemoryManager mMem;
+    private final MemoryManager    mMem;
 
     private final Stream[] mStreams;
     private final Stream[] mSeekStreams;
@@ -97,11 +96,11 @@ public class FormatReader implements PacketReader {
         if( optMem == null ) {
             optMem = new PoolPerFormatMemoryManager( 64, 1024 * 1024 * 4, 32, 1024 * 1024 * 16 );
         }
-        mMem         = optMem;
-        mFormat      = format;
-        mPacket      = JavPacket.alloc();
-        mNullPacket  = JavPacket.alloc();
-        mStreams     = new Stream[format.streamCount()];
+        mMem = optMem;
+        mFormat = format;
+        mPacket = JavPacket.alloc();
+        mNullPacket = JavPacket.alloc();
+        mStreams = new Stream[format.streamCount()];
 
         // Determine earliest timestamp in file.
         Stream first = null;
@@ -144,7 +143,6 @@ public class FormatReader implements PacketReader {
     }
 
 
-
     public JavFormatContext formatContext() {
         return mFormat;
     }
@@ -182,12 +180,12 @@ public class FormatReader implements PacketReader {
     }
 
     @Override
-    public StreamHandle stream( int index ) {
+    public bits.drawjav.Stream stream( int index ) {
         return mStreams[index];
     }
 
 
-    public StreamHandle stream( int mediaType, int index ) {
+    public bits.drawjav.Stream stream( int mediaType, int index ) {
         for( Stream mStream : mStreams ) {
             if( mStream.type() == mediaType ) {
                 if( index-- == 0 ) {
@@ -200,17 +198,17 @@ public class FormatReader implements PacketReader {
 
     @Override
     @SuppressWarnings( { "rawtypes", "unchecked" } )
-    public List<StreamHandle> streams() {
+    public List<bits.drawjav.Stream> streams() {
         return (List)Arrays.asList( mStreams );
     }
 
 
-    public boolean isStreamOpen( StreamHandle stream ) {
+    public boolean isStreamOpen( bits.drawjav.Stream stream ) {
         return mStreams[((Stream)stream).index()].isOpen();
     }
 
     @Override
-    public void openStream( StreamHandle stream ) throws IOException {
+    public void openStream( bits.drawjav.Stream stream ) throws IOException {
         assertOpen();
         Stream ss = mStreams[((Stream)stream).index()];
         if( ss.isOpen() ) {
@@ -237,7 +235,7 @@ public class FormatReader implements PacketReader {
     }
 
 
-    public void openVideoStream( StreamHandle stream, VideoAllocator alloc ) throws IOException {
+    public void openVideoStream( bits.drawjav.Stream stream, VideoAllocator alloc ) throws IOException {
         assertOpen();
         Stream ss = mStreams[((Stream)stream).index()];
         if( ss.type() != Jav.AVMEDIA_TYPE_VIDEO ) {
@@ -248,7 +246,7 @@ public class FormatReader implements PacketReader {
     }
 
 
-    public void openAudioStream( StreamHandle stream, AudioAllocator alloc ) throws IOException {
+    public void openAudioStream( bits.drawjav.Stream stream, AudioAllocator alloc ) throws IOException {
         assertOpen();
         Stream ss = mStreams[((Stream)stream).index()];
         if( ss.type() != Jav.AVMEDIA_TYPE_AUDIO ) {
@@ -259,7 +257,7 @@ public class FormatReader implements PacketReader {
     }
 
     @Override
-    public void closeStream( StreamHandle stream ) throws IOException {
+    public void closeStream( bits.drawjav.Stream stream ) throws IOException {
         Stream ss = mStreams[((Stream)stream).index()];
         if( !ss.isOpen() ) {
             return;
@@ -282,14 +280,14 @@ public class FormatReader implements PacketReader {
     }
 
 
-    public void seek( StreamHandle stream, long micros ) throws IOException {
+    public void seek( bits.drawjav.Stream stream, long micros ) throws IOException {
         assertOpen();
 
         if( stream == null ) {
             return;
         }
 
-        Stream   s        = (Stream)stream;
+        Stream s        = (Stream)stream;
         Rational timeBase = s.timeBase();
         long     pts      = s.microsToPts( micros );
 
@@ -467,7 +465,7 @@ public class FormatReader implements PacketReader {
 
 
 
-    private static abstract class Stream implements StreamHandle {
+    private static abstract class Stream implements bits.drawjav.Stream {
 
         final JavStream mStream;
         final Guid      mGuid;
@@ -492,19 +490,13 @@ public class FormatReader implements PacketReader {
             mTimer          = new PacketTimer( mTimeBase );
         }
 
-
-        @Override
-        public Guid guid() {
-            return mGuid;
-        }
-
         @Override
         public int type() {
             return mType;
         }
 
         @Override
-        public PictureFormat pictureFormat() {
+        public StreamFormat format() {
             return null;
         }
 
@@ -570,7 +562,7 @@ public class FormatReader implements PacketReader {
     private static class VideoStream extends Stream {
 
         private final JavCodecContext mCodecContext;
-        private final PictureFormat   mFormat;
+        private final StreamFormat    mFormat;
 
         private final long[] mRange    = new long[2];
         private final int[]  mGotFrame = new int[1];
@@ -584,7 +576,7 @@ public class FormatReader implements PacketReader {
         VideoStream( JavStream stream ) {
             super( stream );
             mCodecContext = stream.codecContext();
-            mFormat = PictureFormat.fromCodecContext( mCodecContext );
+            mFormat = StreamFormat.fromCodecContext( mCodecContext );
         }
 
 
@@ -611,7 +603,7 @@ public class FormatReader implements PacketReader {
 
 
         @Override
-        public PictureFormat pictureFormat() {
+        public StreamFormat format() {
             return mFormat;
         }
 
@@ -901,15 +893,4 @@ public class FormatReader implements PacketReader {
         }
     };
 
-
-    @Deprecated
-    public StreamHandle stream( Guid guid ) {
-        for( Stream s : mStreams ) {
-            if( s.guid().equals( guid ) ) {
-                return s;
-            }
-        }
-
-        return null;
-    }
 }

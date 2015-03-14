@@ -30,7 +30,7 @@ public class TestAudioLinePlayer {
     static void testDecode() throws Exception {
         File file = TEST_FILE;
         FormatReader demux = FormatReader.openFile( file, false, 0L, null );
-        StreamHandle stream = demux.stream( Jav.AVMEDIA_TYPE_AUDIO, 0 );
+        Stream stream = demux.stream( Jav.AVMEDIA_TYPE_AUDIO, 0 );
 
         demux.openStream( stream );
 
@@ -49,11 +49,11 @@ public class TestAudioLinePlayer {
     static void testPlay() throws Exception {
         File file = TEST_FILE;
         FormatReader demux = FormatReader.openFile( file );
-        StreamHandle stream = demux.stream( Jav.AVMEDIA_TYPE_AUDIO, 0 );
+        Stream stream = demux.stream( Jav.AVMEDIA_TYPE_AUDIO, 0 );
         demux.openStream( stream );
 
         AudioFormat srcFormat = stream.audioFormat();
-        AudioFormat dstFormat = new AudioFormat( srcFormat.channels(), 44100, Jav.AV_SAMPLE_FMT_FLT );
+        AudioFormat dstFormat = new AudioFormat( srcFormat.mChannels, 44100, Jav.AV_SAMPLE_FMT_FLT );
         System.out.println( srcFormat + " -> " + dstFormat );
 
         final PlayController play     = PlayController.createAuto();

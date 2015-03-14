@@ -9,7 +9,6 @@ package bits.drawjav.video;
 import java.util.logging.Logger;
 
 import bits.drawjav.*;
-import bits.jav.JavException;
 import bits.jav.codec.JavFrame;
 import bits.util.ref.AbstractRefable;
 
@@ -47,10 +46,9 @@ public class OneFormatVideoAllocator extends AbstractRefable implements VideoAll
     }
 
 
-
     private final CostPool<DrawPacket> mPool;
 
-    private PictureFormat mPoolFormat;
+    private StreamFormat mPoolFormat;
 
     private boolean mHasFormat        = false;
     private boolean mHasChangedFormat = false;
@@ -62,7 +60,7 @@ public class OneFormatVideoAllocator extends AbstractRefable implements VideoAll
 
 
     @Override
-    public synchronized DrawPacket alloc( PictureFormat format ) {
+    public synchronized DrawPacket alloc( StreamFormat format ) {
         if( !checkFormat( format, mPoolFormat ) ) {
             format = setPoolFormat( format );
         }
@@ -89,21 +87,20 @@ public class OneFormatVideoAllocator extends AbstractRefable implements VideoAll
     }
 
 
-
-    private boolean checkFormat( PictureFormat a, PictureFormat b ) {
+    private boolean checkFormat( StreamFormat a, StreamFormat b ) {
         if( a == b ) {
             return true;
         }
         return a != null &&
                b != null &&
-               a.width() == b.width() &&
-               a.height() == b.height() &&
-               a.pixelFormat() == b.pixelFormat();
+               a.mWidth == b.mWidth &&
+               a.mHeight == b.mHeight &&
+               a.mPixelFormat == b.mPixelFormat;
     }
 
 
-    private PictureFormat setPoolFormat( PictureFormat format ) {
-        if( !PictureFormat.isFullyDefined( format ) ) {
+    private StreamFormat setPoolFormat( StreamFormat format ) {
+        if( format == null || !format.isFullyDefined() ) {
             return mPoolFormat;
         }
 

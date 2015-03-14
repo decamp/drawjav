@@ -6,6 +6,7 @@
 
 package bits.drawjav.audio;
 
+import bits.drawjav.AudioFormat;
 import bits.drawjav.DrawPacket;
 import bits.util.ref.Refable;
 

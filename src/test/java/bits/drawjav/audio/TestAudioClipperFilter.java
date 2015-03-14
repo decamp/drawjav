@@ -30,7 +30,7 @@ public class TestAudioClipperFilter {
         File file = TEST_FILE;
         MemoryManager mem    = new PoolPerFormatMemoryManager( 128, -1, 0, 0 );
         FormatReader  reader = FormatReader.openFile( file );
-        StreamHandle  stream = reader.stream( Jav.AVMEDIA_TYPE_AUDIO, 0 );
+        Stream stream = reader.stream( Jav.AVMEDIA_TYPE_AUDIO, 0 );
         reader.openStream( stream );
 
         AudioPacketClipper clipper = new AudioPacketClipper( null );
@@ -85,7 +85,7 @@ public class TestAudioClipperFilter {
         assertEquals( Pad.OKAY, err );
         clipped = arr[0];
 
-        long samps = Frac.multLong( clipped.stopMicros() - clipped.startMicros(), format.sampleRate(), 1000000 );
+        long samps = Frac.multLong( clipped.stopMicros() - clipped.startMicros(), format.mSampleRate, 1000000 );
         assertEquals( samps, clipped.nbSamples() );
         assertEquals( ( p.startMicros() + p.stopMicros() ) / 2, clipped.startMicros() );
         assertEquals( p.stopMicros(), clipped.stopMicros() );
@@ -97,7 +97,7 @@ public class TestAudioClipperFilter {
         assertEquals( Pad.OKAY, err );
         clipped = arr[0];
 
-        samps = Frac.multLong( clipped.stopMicros() - clipped.startMicros(), format.sampleRate(), 1000000 );
+        samps = Frac.multLong( clipped.stopMicros() - clipped.startMicros(), format.mSampleRate, 1000000 );
         assertEquals( samps, clipped.nbSamples() );
         assertEquals( p.startMicros(), clipped.startMicros() );
         assertEquals( ( p.startMicros() + p.stopMicros() ) / 2, clipped.stopMicros() );

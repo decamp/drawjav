@@ -7,6 +7,7 @@
 package bits.drawjav.video;
 
 import bits.drawjav.DrawPacket;
+import bits.drawjav.StreamFormat;
 import bits.jav.*;
 import bits.jav.swscale.*;
 
@@ -20,11 +21,11 @@ public class VideoPacketResampler {
 
     private final VideoAllocator mAlloc;
 
-    private PictureFormat mPredictedSourceFormat = null;
-    private PictureFormat mSourceFormat          = null;
-    private PictureFormat mRequestedFormat       = null;
-    private PictureFormat mDestFormat            = null;
-    private int           mConversionFlags       = Jav.SWS_FAST_BILINEAR;
+    private StreamFormat mPredictedSourceFormat = null;
+    private StreamFormat mSourceFormat          = null;
+    private StreamFormat mRequestedFormat       = null;
+    private StreamFormat mDestFormat            = null;
+    private int          mConversionFlags       = Jav.SWS_FAST_BILINEAR;
 
     private boolean    mNeedsInit = false;
     private SwsContext mConverter = null;
@@ -42,12 +43,12 @@ public class VideoPacketResampler {
     }
 
 
-    public PictureFormat sourceFormat() {
+    public StreamFormat sourceFormat() {
         return mSourceFormat != null ? mSourceFormat : mPredictedSourceFormat;
     }
 
 
-    public void sourceFormat( PictureFormat format ) {
+    public void sourceFormat( StreamFormat format ) {
         if( format == mPredictedSourceFormat || format != null && format.equals( mPredictedSourceFormat ) ) {
             mPredictedSourceFormat = format;
             mSourceFormat = null;
@@ -66,19 +67,19 @@ public class VideoPacketResampler {
     /**
      * @return destination format requested by user. May be partially defined.
      */
-    public PictureFormat requestedFormat() {
+    public StreamFormat requestedFormat() {
         return mRequestedFormat;
     }
 
     /**
      * @return computed destination format. May be different from {@code #requestedFormat()}.
      */
-    public PictureFormat destFormat() {
+    public StreamFormat destFormat() {
         return mDestFormat;
     }
 
 
-    public void destFormat( PictureFormat format ) {
+    public void destFormat( StreamFormat format ) {
         // Assign format == mRequestedFormat either way.
         // Better to use identical objects than merely equivalent objects.
         if( format == mRequestedFormat || format != null && format.equals( mRequestedFormat ) ) {
@@ -148,8 +149,8 @@ public class VideoPacketResampler {
 
 
     private void updateDestFormat() {
-        PictureFormat source = mSourceFormat != null ? mSourceFormat : mPredictedSourceFormat;
-        PictureFormat dest = PictureFormat.merge( source, mRequestedFormat );
+        StreamFormat source = mSourceFormat != null ? mSourceFormat : mPredictedSourceFormat;
+        StreamFormat dest = StreamFormat.merge( source, mRequestedFormat );
         if( dest.equals( mDestFormat ) ) {
             return;
         }
@@ -160,10 +161,10 @@ public class VideoPacketResampler {
 
     private void init() throws JavException {
         mNeedsInit = false;
-        PictureFormat src = mSourceFormat;
-        PictureFormat dst = mDestFormat;
+        StreamFormat src = mSourceFormat;
+        StreamFormat dst = mDestFormat;
         
-        if( !PictureFormat.isFullyDefined( src ) || !PictureFormat.isFullyDefined( dst ) ) {
+        if( src == null || dst == null || !src.isFullyDefined() || !dst.isFullyDefined() ) {
             return;
         }
 
@@ -171,12 +172,12 @@ public class VideoPacketResampler {
             return;
         }
         
-        mConverter = SwsContext.allocAndInit( src.width(),
-                                              src.height(),
-                                              src.pixelFormat(),
-                                              dst.width(),
-                                              dst.height(),
-                                              dst.pixelFormat(),
+        mConverter = SwsContext.allocAndInit( src.mWidth,
+                                              src.mHeight,
+                                              src.mPixelFormat,
+                                              dst.mWidth,
+                                              dst.mHeight,
+                                              dst.mPixelFormat,
                                               mConversionFlags );
     }
 
@@ -194,18 +195,18 @@ public class VideoPacketResampler {
     }
 
 
-    @Deprecated public void setSourceFormat( PictureFormat format ) {
+    @Deprecated public void setSourceFormat( StreamFormat format ) {
         sourceFormat( format );
     }
 
 
-    @Deprecated public void setDestFormat( PictureFormat format ) {
+    @Deprecated public void setDestFormat( StreamFormat format ) {
         mRequestedFormat = format;
         updateDestFormat();
     }
 
 
-    @Deprecated public PictureFormat getDestFormat() {
+    @Deprecated public StreamFormat getDestFormat() {
         return destFormat();
     }
 

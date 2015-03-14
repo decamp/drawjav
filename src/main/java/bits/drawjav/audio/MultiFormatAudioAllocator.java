@@ -1,9 +1,6 @@
 package bits.drawjav.audio;
 
 import bits.drawjav.*;
-import bits.drawjav.video.PictureFormat;
-import bits.drawjav.video.VideoAllocator;
-import bits.jav.JavException;
 import bits.jav.codec.JavFrame;
 import bits.jav.util.JavSampleFormat;
 import bits.util.ref.AbstractRefable;
@@ -56,9 +53,9 @@ public class MultiFormatAudioAllocator extends AbstractRefable implements AudioA
                 return packet;
             }
 
-            int minSize = JavSampleFormat.getBufferSize( format.channels(),
+            int minSize = JavSampleFormat.getBufferSize( format.mChannels,
                                                          numSamples,
-                                                         format.sampleFormat(),
+                                                         format.mSampleFormat,
                                                          0,
                                                          null );
             if( packet.useableBufElemSize( 0 ) >= minSize ) {

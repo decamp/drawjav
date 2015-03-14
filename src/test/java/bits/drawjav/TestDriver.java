@@ -15,7 +15,6 @@ import javax.media.opengl.awt.GLCanvas;
 import javax.swing.JFrame;
 
 import bits.draw3d.*;
-import bits.drawjav.video.PictureFormat;
 import bits.drawjav.video.VideoTexture;
 import bits.draw3d.util.LimitAnimator;
 import bits.jav.Jav;
@@ -32,10 +31,10 @@ public class TestDriver {
 
     
     public static void main( String[] args ) throws Exception {
-//        testRealtime();
+        testRealtime();
 //        testSynced();
 //        testMultiRealtime();
-        testMultiSynced();
+//        testMultiSynced();
     }
     
     
@@ -49,8 +48,8 @@ public class TestDriver {
         final RealtimeDriver driver   = new RealtimeDriver( playCont.clock(), decoder, mem, null );
         final VideoTexture tex        = new VideoTexture();
         
-        StreamHandle sh = decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 );
-        PictureFormat fmt = new PictureFormat( -1, -1, Jav.AV_PIX_FMT_BGRA, new Rational( 1, 1 ) );
+        Stream sh = decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 );
+        StreamFormat fmt = StreamFormat.createVideo( -1, -1, Jav.AV_PIX_FMT_BGRA, new Rational( 1, 1 ) );
         driver.openVideoStream( decoder, sh, fmt, tex );
         driver.seekWarmupMicros( 3000000L );
         
@@ -83,7 +82,7 @@ public class TestDriver {
         } catch( Exception ex ) {}
     }
     
-    
+
     static void testSynced() throws Exception {
         File file = TEST_FILE;
 
@@ -93,8 +92,8 @@ public class TestDriver {
         final SyncedDriver driver     = new SyncedDriver( mem, playCont.clock(), decoder );
         final VideoTexture tex        = new VideoTexture();
         
-        StreamHandle sh = decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 );
-        PictureFormat fmt = new PictureFormat( -1, -1, Jav.AV_PIX_FMT_BGRA, new Rational( 1, 1 ) );
+        Stream sh = decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 );
+        StreamFormat fmt = StreamFormat.createVideo( -1, -1, Jav.AV_PIX_FMT_BGRA, new Rational( 1, 1 ) );
         driver.openVideoStream( decoder, sh, fmt, tex );
         driver.seekWarmupMicros( 3000000L );
 
@@ -146,7 +145,7 @@ public class TestDriver {
         final VideoTexture tex1           = new VideoTexture();
         final VideoTexture tex2           = new VideoTexture();
 
-        PictureFormat fmt = new PictureFormat(-1, -1, Jav.AV_PIX_FMT_BGRA, new Rational(1, 1) );
+        StreamFormat fmt = StreamFormat.createVideo(-1, -1, Jav.AV_PIX_FMT_BGRA, new Rational(1, 1) );
         driver.openVideoStream( decoder1, decoder1.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ), fmt, tex1 );
         driver.openVideoStream( decoder2, decoder2.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ), fmt, tex2 );
         
@@ -195,7 +194,7 @@ public class TestDriver {
         final VideoTexture tex1        = new VideoTexture();
         final VideoTexture tex2        = new VideoTexture();
         
-        PictureFormat fmt = new PictureFormat( -1, -1, Jav.AV_PIX_FMT_BGRA, new Rational( 1, 1 ) );
+        StreamFormat fmt = StreamFormat.createVideo( -1, -1, Jav.AV_PIX_FMT_BGRA, new Rational( 1, 1 ) );
         driver.openVideoStream( decoder1, decoder1.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ), fmt, tex1 );
         driver.openVideoStream( decoder2, decoder2.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ), fmt, tex2 );
         

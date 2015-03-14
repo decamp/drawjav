@@ -2,7 +2,7 @@ package bits.drawjav.pipe;
 
 import bits.collect.RingList;
 import bits.drawjav.Packet;
-import bits.drawjav.StreamHandle;
+import bits.drawjav.Stream;
 import com.google.common.eventbus.*;
 
 import java.io.IOException;
@@ -49,7 +49,7 @@ public class FilterGraph {
     }
 
 
-    public void connect( Filter src, OutPad srcPad, Filter dst, InPad dstPad, StreamHandle stream ) throws IOException {
+    public void connect( Filter src, OutPad srcPad, Filter dst, InPad dstPad, Stream stream ) throws IOException {
         OutNode a = nodeFor( src ).outputFor( srcPad );
         InNode b = nodeFor( dst ).inputFor( dstPad );
         if( b.mLink != null ) {

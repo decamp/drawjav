@@ -28,7 +28,7 @@ public class ResamplerFilter implements Filter {
 
     private boolean mOpen = false;
 
-    private StreamHandle   mDestStream;
+    private Stream         mDestStream;
     private AudioResampler mResampler;
     private DrawPacket     mOutPacket;
     private Exception      mException;
@@ -162,7 +162,7 @@ public class ResamplerFilter implements Filter {
         }
 
         @Override
-        public void config( StreamHandle stream ) throws IOException {
+        public void config( Stream stream ) throws IOException {
             if( stream == null ) {
                 return;
             }

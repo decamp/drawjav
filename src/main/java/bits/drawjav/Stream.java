@@ -6,22 +6,13 @@
 
 package bits.drawjav;
 
-import bits.drawjav.audio.AudioFormat;
-import bits.drawjav.video.PictureFormat;
-import bits.util.Guid;
-
 /**
  * Represents a single stream of audio or video.
  *
  * @author decamp
  */
-public interface StreamHandle {
+public interface Stream {
 
-    /**
-     * @return Unique identifier for this stream.
-     */
-    public Guid guid();
-    
     /**
      * Types are defined in Jav.AV_MEDIA_TYPE_?
      * @return media type of stream.
@@ -31,7 +22,7 @@ public interface StreamHandle {
     /**
      * @return format if {@code type() == Jav.AV_MEDIA_TYPE_VIDEO}. Otherwise, null.
      */
-    public PictureFormat pictureFormat();
+    public StreamFormat format();
 
     /**
      * @return format if {@code type() == Jav.AV_MEDIA_TYPE_AUDIO}. Otherwise, null.

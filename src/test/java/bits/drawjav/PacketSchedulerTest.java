@@ -59,7 +59,7 @@ public class PacketSchedulerTest {
         
         public void consume( LongPacket p ) {
             System.out.format( "%s : %4.2f\n", 
-                               p.mStream.guid().toString(),
+                               p.mStream.toString(),
                                ( p.startMicros() / 1000000.0 ) );
         }
         
@@ -81,7 +81,7 @@ public class PacketSchedulerTest {
     private static final class LongSource implements SyncClockControl, Closeable {
 
         private final PlayController         mPlayCont;
-        private final StreamHandle           mStream;
+        private final Stream                 mStream;
         private final ObjectPool<LongPacket> mPool;
         private final Sink<LongPacket>       mSink;
         private final ThreadLock             mLock;
@@ -192,22 +192,22 @@ public class PacketSchedulerTest {
     
     
     private static final class LongPacket extends AbstractRefable implements Packet {
-        
-        private final StreamHandle mStream;
+
+        private final Stream mStream;
         long mMicros;
-            
+
         public LongPacket( ObjectPool<LongPacket> pool,
-                           StreamHandle stream,
-                           long micros ) 
+                           Stream stream,
+                           long micros )
         {
             super( pool );
             mStream = stream;
             mMicros = micros;
         }
-        
-        
+
+
         @Override
-        public StreamHandle stream() {
+        public Stream stream() {
             return mStream;
         }
 
@@ -221,11 +221,10 @@ public class PacketSchedulerTest {
             return mMicros;
         }
 
-        
-        
+
         @Override
         protected void freeObject() {}
-        
+
     }
 
 }

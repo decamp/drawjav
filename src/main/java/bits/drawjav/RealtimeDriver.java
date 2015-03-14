@@ -9,8 +9,6 @@ package bits.drawjav;
 import java.io.*;
 import java.util.logging.*;
 
-import bits.drawjav.audio.AudioFormat;
-import bits.drawjav.video.PictureFormat;
 import bits.microtime.*;
 import bits.util.concurrent.ThreadLock;
 
@@ -85,9 +83,9 @@ public class RealtimeDriver implements StreamDriver {
     }
     
     
-    public StreamHandle openVideoStream( PacketReader source,
-                                         StreamHandle stream,
-                                         PictureFormat destFormat,
+    public Stream openVideoStream( PacketReader source,
+                                         Stream stream,
+                                         StreamFormat destFormat,
                                          Sink<? super DrawPacket> sink )
                                          throws IOException 
     {
@@ -95,8 +93,8 @@ public class RealtimeDriver implements StreamDriver {
     }
     
     
-    public StreamHandle openAudioStream( PacketReader source,
-                                         StreamHandle stream,
+    public Stream openAudioStream( PacketReader source,
+                                         Stream stream,
                                          AudioFormat format,
                                          Sink<? super DrawPacket> sink )
                                          throws IOException 
@@ -105,10 +103,10 @@ public class RealtimeDriver implements StreamDriver {
     }
 
 
-    public StreamHandle openStream( boolean isVideo,
+    public Stream openStream( boolean isVideo,
                                     PacketReader source,
-                                    StreamHandle stream,
-                                    PictureFormat pictureFormat,
+                                    Stream stream,
+                                    StreamFormat pictureFormat,
                                     AudioFormat audioFormat,
                                     Sink sink )
                                     throws IOException
@@ -116,7 +114,7 @@ public class RealtimeDriver implements StreamDriver {
         synchronized( mLock ) {
             mSyncer.openPipe( sink, mLock );
             Sink syncedSink = mSyncer.openPipe( sink, mLock );
-            StreamHandle ret;
+            Stream ret;
 
             boolean abort = true;
             try {
@@ -144,7 +142,7 @@ public class RealtimeDriver implements StreamDriver {
 
 
     
-    public boolean closeStream( StreamHandle stream ) throws IOException {
+    public boolean closeStream( Stream stream ) throws IOException {
         synchronized( mLock ) {
             boolean ret = mDriver.closeStream( stream );
             if( !ret ) {

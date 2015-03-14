@@ -7,7 +7,6 @@
 package bits.drawjav;
 
 import bits.drawjav.audio.AudioAllocator;
-import bits.drawjav.audio.AudioFormat;
 import bits.jav.Jav;
 import bits.jav.JavException;
 import bits.jav.codec.JavFrame;
@@ -16,7 +15,6 @@ import bits.util.ref.AbstractRefable;
 import bits.util.ref.ObjectPool;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.logging.Logger;
 
 
@@ -83,9 +81,9 @@ public class OneStreamAudioAllocatorKillme extends AbstractRefable implements Au
             // Check if packet can hold requested number of samples.
             // This calculation isn't that correct for planar packets, but if the packet was
             // allocated here, there will always only be one buffer.
-            int minSize = JavSampleFormat.getBufferSize( format.channels(),
+            int minSize = JavSampleFormat.getBufferSize( format.mChannels,
                                                          numSamples,
-                                                         format.sampleFormat(),
+                                                         format.mSampleFormat,
                                                          0,
                                                          null );
             if( ret.useableBufElemSize( 0 ) >= minSize ) {
@@ -150,9 +148,9 @@ public class OneStreamAudioAllocatorKillme extends AbstractRefable implements Au
         {
             assert samplesPerChannel >= 0;
 
-            int size = JavSampleFormat.getBufferSize( format.channels(),
+            int size = JavSampleFormat.getBufferSize( format.mChannels,
                                                       samplesPerChannel,
-                                                      format.sampleFormat(),
+                                                      format.mSampleFormat,
                                                       align,
                                                       null );
             if( size < 0 ) {
@@ -176,9 +174,9 @@ public class OneStreamAudioAllocatorKillme extends AbstractRefable implements Au
             }
 
             DrawPacketTest ret = new DrawPacketTest( pointer, optPool );
-            ret.fillAudioFrame( format.channels(),
+            ret.fillAudioFrame( format.mChannels,
                                 samplesPerChannel,
-                                format.sampleFormat(),
+                                format.mSampleFormat,
                                 buf,
                                 align );
             return ret;

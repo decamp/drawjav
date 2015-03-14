@@ -1,7 +1,6 @@
 package bits.drawjav.video;
 
 import bits.drawjav.*;
-import bits.jav.JavException;
 import bits.jav.codec.JavFrame;
 import bits.util.ref.AbstractRefable;
 import bits.util.ref.ObjectPool;
@@ -42,7 +41,7 @@ public class MultiFormatVideoAllocator extends AbstractRefable implements VideoA
 
 
     @Override
-    public synchronized DrawPacket alloc( PictureFormat format ) {
+    public synchronized DrawPacket alloc( StreamFormat format ) {
         DrawPacket packet = mPool.poll( format );
         if( packet != null ) {
             return packet;

@@ -30,7 +30,7 @@ public class OneToManyFormatter implements Sink<Packet> {
 
     private static final Logger sLog = Logger.getLogger( OneToManyFormatter.class.getName() );
 
-    private final StreamHandle mStream;
+    private final Stream mStream;
     private final Map<Object, FormatNode> mNodeMap = new HashMap<Object, FormatNode>();
 
     private MemoryManager mMem;
@@ -38,7 +38,7 @@ public class OneToManyFormatter implements Sink<Packet> {
     private boolean            mClosed = false;
 
 
-    public OneToManyFormatter( StreamHandle stream, MemoryManager mem ) {
+    public OneToManyFormatter( Stream stream, MemoryManager mem ) {
         mStream = stream;
         mMem = mem;
     }
@@ -49,7 +49,7 @@ public class OneToManyFormatter implements Sink<Packet> {
     }
 
 
-    public synchronized boolean hasSinkOtherThan( StreamHandle handle ) {
+    public synchronized boolean hasSinkOtherThan( Stream handle ) {
         int formats = mNodeMap.size();
         if( formats < 1 ) {
             return false;
@@ -126,7 +126,7 @@ public class OneToManyFormatter implements Sink<Packet> {
     }
 
     
-    public StreamHandle openVideoStream( PictureFormat destFormat, 
+    public Stream openVideoStream( StreamFormat destFormat,
                                          Sink<? super DrawPacket> sink )
                                          throws IOException 
     {
@@ -134,15 +134,15 @@ public class OneToManyFormatter implements Sink<Packet> {
             return null;
         }
         
-        PictureFormat ret = PictureFormat.merge( mStream.pictureFormat(), destFormat );
+        StreamFormat ret = StreamFormat.merge( mStream.format(), destFormat );
         return openStream( Jav.AVMEDIA_TYPE_VIDEO,
-                           mStream.pictureFormat(),
+                           mStream.format(),
                            ret,
                            sink );
     }
     
     
-    public StreamHandle openAudioStream( AudioFormat destFormat,
+    public Stream openAudioStream( AudioFormat destFormat,
                                          Sink<? super DrawPacket> sink )
                                          throws IOException
     {
@@ -158,7 +158,7 @@ public class OneToManyFormatter implements Sink<Packet> {
     }
     
     
-    public boolean closeStream( StreamHandle stream ) {
+    public boolean closeStream( Stream stream ) {
         if( !( stream instanceof SinkNode ) ) {
             return false;
         }
@@ -208,7 +208,7 @@ public class OneToManyFormatter implements Sink<Packet> {
     
     
     
-    private synchronized StreamHandle openStream( int type, 
+    private synchronized Stream openStream( int type,
                                                   Object sourceFormat,
                                                   Object destFormat,
                                                   Sink dest ) 
@@ -226,11 +226,11 @@ public class OneToManyFormatter implements Sink<Packet> {
                 SinkCaster caster = new SinkCaster();
                 
                 if( type == Jav.AVMEDIA_TYPE_VIDEO ) {
-                    StreamHandle handle = new BasicStreamHandle( type, (PictureFormat)destFormat, null );
+                    Stream handle = new BasicStreamHandle( type, (StreamFormat)destFormat, null );
                     VideoAllocator alloc    = mMem.videoAllocator( handle );
-                    VideoResamplerPipe conv = new VideoResamplerPipe( caster, (PictureFormat)sourceFormat, alloc );
+                    VideoResamplerPipe conv = new VideoResamplerPipe( caster, (StreamFormat)sourceFormat, alloc );
                     alloc.deref();
-                    conv.setPictureConversion( (PictureFormat)destFormat, Jav.SWS_FAST_BILINEAR );
+                    conv.setPictureConversion( (StreamFormat)destFormat, Jav.SWS_FAST_BILINEAR );
                     // As an extra precaution, use the destination format determined
                     // by the video resampler. It should be the same.
                     // If for some reason it's not, we may end up doing redundant conversions,
@@ -240,7 +240,7 @@ public class OneToManyFormatter implements Sink<Packet> {
                     addNode( destFormat, formatNode );
                     
                 } else {
-                    StreamHandle handle     = new BasicStreamHandle( type, null, (AudioFormat)destFormat );
+                    Stream handle     = new BasicStreamHandle( type, null, (AudioFormat)destFormat );
                     AudioAllocator alloc    = mMem.audioAllocator( handle );
                     AudioResamplerPipe conv = new AudioResamplerPipe( caster, (AudioFormat)destFormat, alloc );
                     alloc.deref();
@@ -258,7 +258,7 @@ public class OneToManyFormatter implements Sink<Packet> {
             formatNode.mCaster.addSink( dest );
 
             if( type == Jav.AVMEDIA_TYPE_VIDEO ) {
-                return new SinkNode( type, (PictureFormat)destFormat, null, dest );
+                return new SinkNode( type, (StreamFormat)destFormat, null, dest );
             } else {
                 return new SinkNode( type, null, (AudioFormat)destFormat, dest );
             }
@@ -297,7 +297,7 @@ public class OneToManyFormatter implements Sink<Packet> {
         final Reference<Sink<?>> mSink;
         
         SinkNode( int type,
-                  PictureFormat pictureFormat,
+                  StreamFormat pictureFormat,
                   AudioFormat audioFormat,
                   Sink<?> sink ) 
         {
@@ -309,7 +309,7 @@ public class OneToManyFormatter implements Sink<Packet> {
 
 
 
-    @Deprecated public OneToManyFormatter( StreamHandle source,
+    @Deprecated public OneToManyFormatter( Stream source,
                                            int videoPoolCap,
                                            int audioPoolCap )
     {

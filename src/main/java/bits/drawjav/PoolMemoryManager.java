@@ -34,13 +34,13 @@ public class PoolMemoryManager implements MemoryManager {
     }
 
     @Override
-    public VideoAllocator videoAllocator( StreamHandle stream ) {
+    public VideoAllocator videoAllocator( Stream stream ) {
         mVideoMem.ref();
         return mVideoMem;
     }
 
     @Override
-    public AudioAllocator audioAllocator( StreamHandle stream ) {
+    public AudioAllocator audioAllocator( Stream stream ) {
         mAudioMem.ref();
         return mAudioMem;
     }
