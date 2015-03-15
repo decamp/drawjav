@@ -18,7 +18,7 @@ public class TestAudioPlayer {
     private static final File TEST_FILE = new File( "../../ext/video.mp4" );
 
     public static void main( String[] args ) throws Exception {
-        testPlay();
+        testPlay2();
     }
 
     static void testPlay() throws Exception {
@@ -64,7 +64,7 @@ public class TestAudioPlayer {
         clock.clockStart();
 
         while( true ) {
-            double speed = Math.pow( rand.nextFloat(), 1.5 ) * 5.5 + 0.25;
+            double speed = Math.pow( rand.nextFloat(), 1.5 ) * 4.5 + 0.25;
             Frac frac = new Frac();
             Frac.doubleToRational( speed, 100, frac );
             System.out.println( frac );

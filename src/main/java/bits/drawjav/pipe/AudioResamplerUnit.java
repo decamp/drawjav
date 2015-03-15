@@ -18,7 +18,7 @@ import java.io.IOException;
 /**
  * @author decamp
  */
-public class ResamplerFilter implements Filter {
+public class AudioResamplerUnit implements AvUnit {
 
 
     private final InHandler  mInPad  = new InHandler();
@@ -34,7 +34,7 @@ public class ResamplerFilter implements Filter {
     private Exception      mException;
 
 
-    public ResamplerFilter( MemoryManager optMem ) {
+    public AudioResamplerUnit( MemoryManager optMem ) {
         mOptMem = optMem;
     }
 
@@ -54,7 +54,7 @@ public class ResamplerFilter implements Filter {
         if( mOptMem != null ) {
             alloc = mOptMem.audioAllocator( mDestStream );
         } else {
-            alloc = OneStreamAudioAllocatorKillme.createPacketLimited( 64, -1 );
+            alloc = OneFormatAudioAllocator.createPacketLimited( 64, -1 );
         }
 
         mResampler = new AudioResampler( alloc );

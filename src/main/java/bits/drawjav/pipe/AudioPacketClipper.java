@@ -26,7 +26,7 @@ import java.util.logging.Logger;
 *
 * @author Philip DeCamp
 */
-public class AudioPacketClipper implements SyncClockControl, Filter {
+public class AudioPacketClipper implements SyncClockControl, AvUnit {
 
     private static final Logger sLog = Logger.getLogger( AudioPacketClipper.class.getName() );
 
@@ -34,9 +34,9 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
 
     private final MemoryManager mOptMem;
 
-    private final InPad     mInput  = new InHandler();
-    private final OutPad    mOutput = new OutHandler();
-    private final FullClock mClock  = new FullClock( Clock.SYSTEM_CLOCK );
+    private final InHandler  mInput  = new InHandler();
+    private final OutHandler mOutput = new OutHandler();
+    private final FullClock  mClock  = new FullClock( Clock.SYSTEM_CLOCK );
 
     private boolean mOpen = false;
     private AudioAllocator mAlloc;
@@ -177,7 +177,8 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
 
         final int samps = (int)Frac.multLong( t1 - t0, mOutFormat.mSampleRate, 1000000 );
         mOutPacket = mAlloc.alloc( mOutFormat, samps );
-        mOutPacket.init( mOutStream, t0, t1, false );
+        mOutPacket.init( mOutFormat, t0, t1, false );
+        mOutPacket.stream( mOutStream );
         mOutPacket.nbSamples( samps );
 
         final boolean planar = JavSampleFormat.isPlanar( mOutFormat.mSampleFormat );
@@ -211,13 +212,13 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
             if( !packet.isGap() ) {
                 mOutIsGap = false;
                 if( mFormat == null || !mFormat.matches( packet ) ) {
-                    mFormat = StreamFormat.createAudio( packet );
+                    mFormat = StreamFormat.fromAudioPacket( packet );
                 }
 
                 if( mForward ) {
-                    mOutPacket = clipForward( packet, mFormat, mClipMicros, mAlloc );
+                    mOutPacket = clipForward( packet, mOutStream, mClipMicros, mAlloc );
                 } else {
-                    mOutPacket = clipBackward( packet, mFormat, mClipMicros, mAlloc );
+                    mOutPacket = clipBackward( packet, mOutStream, mClipMicros, mAlloc );
                 }
                 return OKAY;
             }
@@ -293,7 +294,7 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
 
 
     public static DrawPacket clipForward( DrawPacket packet,
-                                          StreamFormat format,
+                                          Stream destStream,
                                           long clipMicros,
                                           AudioAllocator alloc )
     {
@@ -313,11 +314,7 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
         final int totalSamples = packet.nbSamples();
         final int writeSamples = Math.max( 0, Math.min( totalSamples, (int)((1.0 - p) * totalSamples + 0.5) ) );
 
-        //final AudioFormat format = packet.audioFormat();
-        //final int chans      = packet.channels();
-        //final int sampFormat = packet.format();
-        //final int sampSize   = JavSampleFormat.getBytesPerSample( sampFormat );
-
+        final StreamFormat format = destStream.format();
         DrawPacket ret = alloc.alloc( format, totalSamples );
         final int sampSize = JavSampleFormat.getBytesPerSample( format.mSampleFormat );
 
@@ -336,17 +333,16 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
                 }
             }
         }
-        ret.nbSamples( writeSamples );
 
-        // TODO: FIX
-        ret.init( packet.stream(), clipMicros, t1, packet.isGap() );
-        format.getAudioProperties( ret );
+        ret.nbSamples( writeSamples );
+        ret.init( format, clipMicros, t1, packet.isGap() );
+        ret.stream( destStream );
         return ret;
     }
 
 
     public static DrawPacket clipBackward( DrawPacket packet,
-                                           StreamFormat format,
+                                           Stream destStream,
                                            long clipMicros,
                                            AudioAllocator alloc )
     {
@@ -365,6 +361,7 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
         final int totalSamples  = packet.nbSamples();
         final int writeSamples  = Math.max( 0, Math.min( totalSamples, (int)(p * totalSamples + 0.5) ) );
 
+        final StreamFormat format = destStream.format();
         final int sampSize = JavSampleFormat.getBytesPerSample( format.mSampleFormat );
         DrawPacket ret = alloc.alloc( format, totalSamples );
 
@@ -383,9 +380,8 @@ public class AudioPacketClipper implements SyncClockControl, Filter {
         }
 
         ret.nbSamples( writeSamples );
-        // TODO: FIX
-        ret.init( packet.stream(), packet.startMicros(), clipMicros, packet.isGap() );
-        format.getAudioProperties( ret );
+        ret.init( format, packet.startMicros(), clipMicros, packet.isGap() );
+        ret.stream( destStream );
         return ret;
     }
 

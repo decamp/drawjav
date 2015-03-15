@@ -12,20 +12,23 @@ import java.util.*;
 public class IOExceptionList extends IOException {
     
     
-    private final List<Throwable> mList = new ArrayList<Throwable>();
+    private final List<Throwable> mList = new LinkedList<Throwable>();
     
     
     public IOExceptionList() {}
-    
+
+
     public IOExceptionList( String msg ) {
         super( msg );
     }
+
 
     public IOExceptionList( String msg, Throwable firstCause ) {
         super( msg );
         mList.add( firstCause );
     }
-    
+
+
     public IOExceptionList( Throwable firstCause ) {
         mList.add( firstCause );
     }
@@ -36,22 +39,26 @@ public class IOExceptionList extends IOException {
         addCause( t );
         return this;
     }
-    
+
+
     public void addCause( Throwable ex ) {
         if( mList.isEmpty() ) {
             initCause( ex );
         }
         mList.add( ex );
     }
-    
+
+
     public int causeCount() {
         return mList.size();
     }
-    
+
+
     public Throwable getCause( int idx ) {
         return mList.get( idx );
     }
-    
+
+
     public List<Throwable> getCauses() {
         return mList;
     }
@@ -87,7 +94,8 @@ public class IOExceptionList extends IOException {
     public static IOException join( IOException err, IOException newErr ) {
         return join( null, err, newErr );
     }
-    
+
+
     public static IOException join( String msg, IOException err, IOException newErr ) {
         if( err == null ) {
             return newErr;

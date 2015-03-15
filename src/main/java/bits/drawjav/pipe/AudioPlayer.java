@@ -16,16 +16,16 @@ public class AudioPlayer implements Channel {
     private final MemoryManager mMem;
     private final PlayClock     mClock;
 
-    private final ReaderFilter       mReader;
-    private final ResamplerFilter    mResampler;
+    private final PacketReaderUnit   mReader;
+    private final AudioResamplerUnit mResampler;
     private final AudioPacketClipper mClipper;
-    private final SolaFilter         mSola;
-    private final LineOutFilter      mLineOut;
+    private final SolaUnit           mSola;
+    private final LineOutUnit        mLineOut;
 
     private final ClockEventQueue mEvents = new ClockEventQueue( 2048 );
 
-    private final FilterGraph mGraph = new FilterGraph();
-    private final Object      mLock  = mGraph;
+    private final AvGraph mGraph = new AvGraph();
+    private final Object  mLock  = mGraph;
 
     private volatile boolean vOpen = true;
 
@@ -33,7 +33,7 @@ public class AudioPlayer implements Channel {
     public AudioPlayer( MemoryManager optMem,
                         PlayClock optClock,
                         PacketReader reader )
-                        throws IOException
+            throws IOException
     {
         if( optMem == null ) {
             optMem = new PoolPerFormatMemoryManager( 128, 64 * 1024 * 1024, -1, -1 );
@@ -49,11 +49,11 @@ public class AudioPlayer implements Channel {
         Stream srcStream = new BasicStream( srcFormat );
         Stream dstStream = new BasicStream( dstFormat );
 
-        mReader    = new ReaderFilter( reader );
+        mReader    = new PacketReaderUnit( reader );
         mClipper   = new AudioPacketClipper( optMem ); //optMem.audioAllocator( srcStream ) );
-        mResampler = new ResamplerFilter( optMem );
-        mSola      = new SolaFilter( optMem );
-        mLineOut   = new LineOutFilter( null );
+        mResampler = new AudioResamplerUnit( optMem );
+        mSola      = new SolaUnit( optMem );
+        mLineOut   = new LineOutUnit( null );
 
         mGraph.connect( mReader, mReader.output( 0 ), mClipper, mClipper.input( 0 ), srcStream );
         mGraph.connect( mClipper, mClipper.output( 0 ), mResampler, mResampler.input( 0 ), srcStream );
@@ -136,8 +136,8 @@ public class AudioPlayer implements Channel {
             }
 
             switch( mGraph.step() ) {
-            case FilterGraph.WAIT:
-            case FilterGraph.FINISHED:
+            case AvGraph.WAIT:
+            case AvGraph.FINISHED:
                 mGraph.waitForWork( 1000L );
                 break;
             }

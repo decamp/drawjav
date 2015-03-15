@@ -20,12 +20,11 @@ public class VideoPacketResampler {
 
     private final VideoAllocator mAlloc;
 
-    private StreamFormat mPredictedSourceFormat = null;
     private StreamFormat mSourceFormat          = null;
     private StreamFormat mRequestedFormat       = null;
-    private Stream       mDestStream           = null;
-    private StreamFormat mDestFormat           = null;
-    private int          mConversionFlags      = Jav.SWS_FAST_BILINEAR;
+    private Stream       mDestStream            = null;
+    private StreamFormat mDestFormat            = null;
+    private int          mConversionFlags       = Jav.SWS_FAST_BILINEAR;
 
     private boolean    mNeedsInit = false;
     private SwsContext mConverter = null;
@@ -33,35 +32,31 @@ public class VideoPacketResampler {
     private boolean mDisposed = false;
 
 
-    public VideoPacketResampler( VideoAllocator alloc ) {
-        if( alloc == null ) {
+    public VideoPacketResampler( VideoAllocator optAlloc ) {
+        if( optAlloc == null ) {
             mAlloc = OneFormatVideoAllocator.createPacketLimited( 8 );
         } else {
-            mAlloc = alloc;
-            alloc.ref();
+            mAlloc = optAlloc;
+            optAlloc.ref();
         }
     }
 
 
+
     public StreamFormat sourceFormat() {
-        return mSourceFormat != null ? mSourceFormat : mPredictedSourceFormat;
+        return mSourceFormat;
     }
 
 
     public void sourceFormat( StreamFormat format ) {
-        if( format == mPredictedSourceFormat || format != null && format.equals( mPredictedSourceFormat ) ) {
-            mPredictedSourceFormat = format;
-            mSourceFormat = null;
+        if( format == mSourceFormat ) {
             return;
         }
-
-        mPredictedSourceFormat = format;
-        mSourceFormat = null;
-        mNeedsInit = true;
-
-        // Source format may affect destination format if requested format is
-        // partially defined.
-        updateDestFormat();
+        boolean match = StreamFormat.match( format, mSourceFormat );
+        mSourceFormat = format;
+        if( !match ) {
+            updateDestFormat();
+        }
     }
 
     /**
@@ -71,23 +66,20 @@ public class VideoPacketResampler {
         return mRequestedFormat;
     }
 
+
+    public void requestFormat( StreamFormat format ) {
+        boolean match = StreamFormat.match( format, mRequestedFormat );
+        mRequestedFormat = format;
+        if( !match ) {
+            updateDestFormat();
+        }
+    }
+
     /**
      * @return computed destination format. May be different from {@code #requestedFormat()}.
      */
     public StreamFormat destFormat() {
         return mDestFormat;
-    }
-
-
-    public void destFormat( StreamFormat format ) {
-        // Assign format == mRequestedFormat either way.
-        // Better to use identical objects than merely equivalent objects.
-        if( format == mRequestedFormat || format != null && format.equals( mRequestedFormat ) ) {
-            mRequestedFormat = format;
-        } else {
-            mRequestedFormat = format;
-            updateDestFormat();
-        }
     }
 
 
@@ -111,9 +103,8 @@ public class VideoPacketResampler {
             return source;
         }
 
-        if( mSourceFormat == null || !mSourceFormat.matches( source ) ) {
-            mSourceFormat = StreamFormat.createVideo( source );
-            mNeedsInit = true;
+        if( !StreamFormat.match( mSourceFormat, source ) ) {
+            mSourceFormat = StreamFormat.fromVideoPacket( source );
             updateDestFormat();
         }
 
@@ -127,7 +118,8 @@ public class VideoPacketResampler {
         }
 
         DrawPacket dest = mAlloc.alloc( mDestFormat );
-        dest.init( mDestStream, source.startMicros(), source.stopMicros(), false );
+        dest.init( mDestFormat, source.startMicros(), source.stopMicros(), false );
+        dest.stream( mDestStream );
         mConverter.conv( source, dest );
         return dest;
     }
@@ -149,14 +141,15 @@ public class VideoPacketResampler {
 
 
     private void updateDestFormat() {
-        StreamFormat source = mSourceFormat != null ? mSourceFormat : mPredictedSourceFormat;
-        StreamFormat dest = StreamFormat.merge( source, mRequestedFormat );
-        if( dest.equals( mDestFormat ) ) {
+        StreamFormat dest = StreamFormat.merge( mSourceFormat, mRequestedFormat );
+        if( StreamFormat.match( dest, mDestFormat ) ) {
+            mDestFormat = dest;
             return;
         }
+
         mDestFormat = dest;
         mDestStream = new BasicStream( mDestFormat );
-        formatChanged();
+        invalidateConverter();
     }
 
 
@@ -183,7 +176,7 @@ public class VideoPacketResampler {
     }
 
 
-    private void formatChanged() {
+    private void invalidateConverter() {
         if( mNeedsInit ) {
             return;
         }

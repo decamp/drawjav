@@ -175,40 +175,20 @@ public class DrawPacket extends JavFrame implements Packet {
         mIsGap = gap;
     }
 
-
-    @Deprecated public void setPictureFormat( StreamFormat format ) {
-        format( format.mPixelFormat );
-        width( format.mWidth );
-        height( format.mHeight );
-        sampleAspectRatio( format.mSampleAspect );
-    }
-
-
-    @Deprecated public StreamFormat toPictureFormat() {
-        return StreamFormat.createVideo( this );
-    }
-
-
-    @Deprecated public StreamFormat toAudioFormat() {
-        return StreamFormat.createAudio( this );
-    }
-
     /**
      * Initializes packet object.
      */
-    public void init( Stream stream,
+    public void init( StreamFormat optFormat,
                       long startMicros,
                       long stopMicros,
                       boolean isGap )
     {
-        mStream = stream;
         mStartMicros = startMicros;
-        mStopMicros = stopMicros;
-        mIsGap = isGap;
+        mStopMicros  = stopMicros;
+        mIsGap       = isGap;
 
-        StreamFormat format = stream.format();
-        if( format != null ) {
-            format.getProperties( this );
+        if( optFormat != null ) {
+            optFormat.getProperties( this );
         }
     }
 

@@ -148,7 +148,7 @@ public class VideoPanel extends JPanel implements Sink<DrawPacket> {
         int dh = mDstBox.height();
 
         StreamFormat fmt = StreamFormat.createVideo( dw, dh, Jav.AV_PIX_FMT_BGRA, new Rational( 1, 1 ) );
-        mResampler.destFormat( fmt );
+        mResampler.requestFormat( fmt );
         return true;
     }
 

@@ -13,7 +13,7 @@ import java.util.*;
 /**
  * @author Philip DeCamp
  */
-public class ReaderFilter implements Filter, SyncClockControl {
+public class PacketReaderUnit implements AvUnit, SyncClockControl {
 
     private static final int MAX_QUEUE_SIZE = 64;
 
@@ -27,7 +27,7 @@ public class ReaderFilter implements Filter, SyncClockControl {
     private long      mSeekMicros = 0;
 
 
-    public ReaderFilter( PacketReader reader ) {
+    public PacketReaderUnit( PacketReader reader ) {
         mReader = reader;
         int len = reader.streamCount();
         mSources = new OutHandler[len];

@@ -38,11 +38,11 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
     private boolean mNeedsInit = false;
 
     // Values that get set on init.
-    private SwrContext mConverter = null;
-    private Rational   mRateRatio = null;
+    private Stream     mDestStream = null;
+    private SwrContext mConverter  = null;
+    private Rational   mRateRatio  = null;
 
     // Get updated each source packet.
-    private Stream     mStream       = null;
     private long       mStreamMicros = Jav.AV_NOPTS_VALUE;
     private AudioTimer mTimer        = new AudioTimer();
 
@@ -130,10 +130,8 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
             return source;
         }
 
-        Stream stream = source.stream();
-        if( stream != mStream && !stream.equals( mStream ) ) {
-            mStream = stream;
-            StreamFormat format = StreamFormat.createAudio( source );
+        if( !StreamFormat.match( mSourceFormat, source )  ) {
+            StreamFormat format = StreamFormat.fromAudioPacket( source );
             if( !format.equals( mSourceFormat ) ) {
                 mSourceFormat = format;
                 mNeedsInit = true;
@@ -211,6 +209,7 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
             return;
         }
         mDestFormat = dest;
+        mDestStream = new BasicStream( dest );
         invalidateConverter();
     }
 
@@ -235,7 +234,7 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
             return;
         }
 
-        if( dst.equals( src ) ) {
+        if( StreamFormat.match( dst, src ) ) {
             return;
         }
 
@@ -248,6 +247,7 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
             dstLayout = JavChannelLayout.getDefault( dst.mChannels );
         }
 
+        mDestStream = new BasicStream( dst );
         mRateRatio = Rational.reduce( dst.mSampleRate, src.mSampleRate );
         mConverter = SwrContext.allocAndInit( srcLayout,
                                               src.mSampleFormat,
@@ -279,8 +279,8 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
 
         mTimer.computeTimestamps( err, mWork );
         // TODO: THis initialization is wrong.
-        dst.init( mStream, mWork[0], mWork[1], false );
-        mDestFormat.getAudioProperties( dst );
+        dst.init( mDestFormat, mWork[0], mWork[1], false );
+        dst.stream( null );
         mStreamMicros = mWork[1];
 
         return dst;

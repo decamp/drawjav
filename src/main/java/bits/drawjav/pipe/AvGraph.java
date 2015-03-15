@@ -15,9 +15,9 @@ import java.util.logging.Logger;
 /**
  * @author Philip DeCamp
  */
-public class FilterGraph {
+public class AvGraph {
 
-    private static final Logger sLog = Logger.getLogger( FilterGraph.class.getName() );
+    private static final Logger sLog = Logger.getLogger( AvGraph.class.getName() );
 
     public static final int OKAY     = 0;
     public static final int WAIT     = 1;
@@ -27,7 +27,7 @@ public class FilterGraph {
     private final EventBus mBus;
     private final ExecutionQueue mExecutor = new ExecutionQueue();
 
-    private final Map<Filter, FilterNode> mFilterMap = new LinkedHashMap<Filter, FilterNode>();
+    private final Map<AvUnit, FilterNode> mFilterMap = new LinkedHashMap<AvUnit, FilterNode>();
     private final Map<InPad, InNode>      mInMap     = new HashMap<InPad, InNode>();
     private final Map<OutPad, OutNode>    mOutMap    = new HashMap<OutPad, OutNode>();
 
@@ -37,19 +37,18 @@ public class FilterGraph {
     private boolean mNeedInit = true;
 
 
-    FilterGraph() {
+    AvGraph() {
         mBus = new AsyncEventBus( mExecutor );
         mBus.register( new RequestHandler() );
     }
 
 
-
-    public void register( Filter filter ) {
+    public void register( AvUnit filter ) {
         nodeFor( filter );
     }
 
 
-    public void connect( Filter src, OutPad srcPad, Filter dst, InPad dstPad, Stream stream ) throws IOException {
+    public void connect( AvUnit src, OutPad srcPad, AvUnit dst, InPad dstPad, Stream stream ) throws IOException {
         OutNode a = nodeFor( src ).outputFor( srcPad );
         InNode b = nodeFor( dst ).inputFor( dstPad );
         if( b.mLink != null ) {
@@ -171,7 +170,7 @@ public class FilterGraph {
     }
 
 
-    private FilterNode nodeFor( Filter filter ) {
+    private FilterNode nodeFor( AvUnit filter ) {
         FilterNode ret = mFilterMap.get( filter );
         if( ret != null ) {
             return ret;
@@ -186,11 +185,11 @@ public class FilterGraph {
 
 
     private class FilterNode {
-        final Filter mFilter;
+        final AvUnit mFilter;
         final List<InNode>  mInputs  = new ArrayList<InNode>();
         final List<OutNode> mOutputs = new ArrayList<OutNode>();
 
-        FilterNode( Filter filter ) {
+        FilterNode( AvUnit filter ) {
             mFilter = filter;
         }
 
@@ -234,7 +233,7 @@ public class FilterGraph {
         final FilterNode mFilter;
         final OutPad     mPad;
 
-        final Packet[] mPacket = { null };
+        final Packet[]     mPacket = { null };
         final List<InNode> mLinks  = new ArrayList<InNode>();
         int mFullLinkNum = 0;
 
@@ -269,7 +268,7 @@ public class FilterGraph {
                 // Deactivate until links are drained.
                 removeOp( this );
                 mFullLinkNum = 0;
-                for( InNode n: mLinks ) {
+                for( InNode n : mLinks ) {
                     if( n.enqueueInput( mPacket[0] ) ) {
                         mFullLinkNum++;
                     }
@@ -480,7 +479,7 @@ public class FilterGraph {
     private class RequestHandler {
         @Subscribe
         public void process( InPadReadyEvent event ) {
-            synchronized( FilterGraph.this ) {
+            synchronized( AvGraph.this ) {
                 InNode node = mInMap.get( event.mPad );
                 if( node != null ) {
                     offerOp( node );
@@ -490,7 +489,7 @@ public class FilterGraph {
 
         @Subscribe
         public void process( OutPadReadyEvent event ) {
-            synchronized( FilterGraph.this ) {
+            synchronized( AvGraph.this ) {
                 OutNode node = mOutMap.get( event.mPad );
                 if( node != null ) {
                     offerOp( node );
@@ -516,9 +515,9 @@ public class FilterGraph {
 
         @Override
         public void execute( Runnable runnable ) {
-            synchronized( FilterGraph.this ) {
+            synchronized( AvGraph.this ) {
                 if( mQ.isEmpty() ) {
-                    FilterGraph.this.notify();
+                    AvGraph.this.notify();
                 }
                 mQ.offer( runnable );
             }

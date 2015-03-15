@@ -6,7 +6,7 @@ import com.google.common.eventbus.EventBus;
 /**
  * @author Philip DeCamp
  */
-public interface Filter extends Channel {
+public interface AvUnit extends Channel {
     int inputNum();
     InPad input( int idx );
     int outputNum();

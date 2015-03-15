@@ -661,7 +661,8 @@ public class FormatReader implements PacketReader {
             }
 
             mHasKeyFrame = true;
-            ret.init( this, mRange[0], mRange[1], false );
+            ret.init( mFormat, mRange[0], mRange[1], false );
+            ret.stream( this );
 
             return ret;
         }
@@ -778,7 +779,8 @@ public class FormatReader implements PacketReader {
             }
 
             mTimer.packetDecoded( ret.bestEffortTimestamp(), ret.packetDuration(), mRange );
-            ret.init( this, mRange[0], mRange[1], false );
+            ret.init( mFormat, mRange[0], mRange[1], false );
+            ret.stream( this );
             return ret;
         }
 

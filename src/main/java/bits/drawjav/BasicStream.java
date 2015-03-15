@@ -23,6 +23,6 @@ public class BasicStream implements Stream {
 
     @Override
     public StreamFormat format() {
-        return null;
+        return mFormat;
     }
 }

@@ -15,7 +15,7 @@ import java.nio.*;
 /**
  * @author Philip DeCamp
  */
-public class SolaFilter implements Filter {
+public class SolaUnit implements AvUnit {
 
     private final MemoryManager mMem;
 
@@ -41,7 +41,7 @@ public class SolaFilter implements Filter {
     private boolean     mOutPadFull = false;
 
 
-    public SolaFilter( MemoryManager mem ) {
+    public SolaUnit( MemoryManager mem ) {
         mMem = mem;
     }
 
@@ -148,7 +148,8 @@ public class SolaFilter implements Filter {
             long t0 = mSrc.startMicros();
             long t1 = mSrc.stopMicros();
             long mDstStop = t0 + (long)( p * ( t1 - t0 ) );
-            mDst.init( mStream, mDstStart, mDstStop, false );
+            mDst.init( mFormat, mDstStart, mDstStop, false );
+            mDst.stream( mStream );
             mDstStart = mDstStop;
             mOutPadFull = true;
         }

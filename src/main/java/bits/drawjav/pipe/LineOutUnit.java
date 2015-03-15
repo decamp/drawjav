@@ -22,7 +22,7 @@ import java.util.*;
 /**
  * @author Philip DeCamp
  */
-public class LineOutFilter implements Filter, InPad<DrawPacket>, SyncClockControl {
+public class LineOutUnit implements AvUnit, InPad<DrawPacket>, SyncClockControl {
 
     public static final int DEFAULT_BUFFER_LENGTH = 1024 * 256 * 2;
 
@@ -49,7 +49,7 @@ public class LineOutFilter implements Filter, InPad<DrawPacket>, SyncClockContro
     private final byte[]     mBuf          = new byte[8 * 1024];
     private       ByteBuffer mAltPacketBuf = null;
 
-    private DrawPacket    mPacket                 = null;
+    private DrawPacket  mPacket                 = null;
     private FloatBuffer mPacketBuf              = null;
     private int         mPacketSamplesRemaining = 0;
 
@@ -60,12 +60,12 @@ public class LineOutFilter implements Filter, InPad<DrawPacket>, SyncClockContro
     private volatile boolean mStateChanged = true;
 
 
-    public LineOutFilter( Clock optClock ) throws IOException {
+    public LineOutUnit( Clock optClock ) throws IOException {
         this( optClock, DEFAULT_BUFFER_LENGTH );
     }
 
 
-    public LineOutFilter( Clock optClock, int bufferBytes ) throws IOException {
+    public LineOutUnit( Clock optClock, int bufferBytes ) throws IOException {
         mRequestedBufferSize = bufferBytes;
         mClock = optClock == null ? Clock.SYSTEM_CLOCK : optClock;
     }
@@ -106,7 +106,7 @@ public class LineOutFilter implements Filter, InPad<DrawPacket>, SyncClockContro
         if( bus != null ) {
             bus.register( this );
         }
-        new Thread( LineOutFilter.class.getName() ) {
+        new Thread( LineOutUnit.class.getName() ) {
             public void run() {
                 playLoop();
             }

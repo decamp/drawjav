@@ -92,7 +92,7 @@ public class MultiFormatAudioAllocator extends AbstractRefable implements AudioA
 
         @Override
         public boolean offer( DrawPacket obj ) {
-            return mPool.offer( obj.toPictureFormat(), obj );
+            return mPool.offer( StreamFormat.fromAudioPacket( obj ), obj );
         }
 
     }

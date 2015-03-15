@@ -33,7 +33,7 @@ public class VideoResamplerPipe implements Sink<DrawPacket> {
 
 
     public void setPictureConversion( StreamFormat format, int swsFlags ) {
-        mConverter.destFormat( format );
+        mConverter.requestFormat( format );
         mConverter.conversionFlags( swsFlags );
     }
 

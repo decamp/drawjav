@@ -54,19 +54,6 @@ public class StreamFormat {
     }
 
 
-    public static StreamFormat createAudio( JavFrame packet ) {
-        return new StreamFormat( AVMEDIA_TYPE_AUDIO,
-                                 packet.channels(),
-                                 packet.sampleRate(),
-                                 packet.format(),
-                                 packet.channelLayout(),
-                                 NO_WIDTH,
-                                 NO_HEIGHT,
-                                 AV_PIX_FMT_NONE,
-                                 NO_SAMPLE_ASPECT );
-    }
-
-
     public static StreamFormat createVideo( int w, int h, int format, Rational aspect ) {
         return new StreamFormat( AVMEDIA_TYPE_VIDEO,
                                  NO_CHANNELS,
@@ -80,7 +67,32 @@ public class StreamFormat {
     }
 
 
-    public static StreamFormat createVideo( JavFrame packet ) {
+    public static StreamFormat fromPacket( int type, JavFrame packet ) {
+        switch( type ) {
+        case AVMEDIA_TYPE_AUDIO:
+            return fromAudioPacket( packet );
+        case AVMEDIA_TYPE_VIDEO:
+            return fromVideoPacket( packet );
+        default:
+            return new StreamFormat( type );
+        }
+    }
+
+
+    public static StreamFormat fromAudioPacket( JavFrame packet ) {
+        return new StreamFormat( AVMEDIA_TYPE_AUDIO,
+                                 packet.channels(),
+                                 packet.sampleRate(),
+                                 packet.format(),
+                                 packet.channelLayout(),
+                                 NO_WIDTH,
+                                 NO_HEIGHT,
+                                 AV_PIX_FMT_NONE,
+                                 NO_SAMPLE_ASPECT );
+    }
+
+
+    public static StreamFormat fromVideoPacket( JavFrame packet ) {
         return new StreamFormat( AVMEDIA_TYPE_VIDEO,
                                  NO_CHANNELS,
                                  NO_SAMPLE_RATE,
@@ -210,10 +222,11 @@ public class StreamFormat {
 
     /**
      * Determines if the packets of format {@code src} can be passed directly to a destination
-     * of format {@code dst} without conversion.
+     * of format {@code dst} without conversion. Note that this does not necessarily mean
+     * that they are equivalent because either format may contain undefined values.
      *
      * @param src Format of sourceFormat. May be partially defined or null.
-     * @param dst   Format of destination. May be partially defined or null.
+     * @param dst Format of destination. May be partially defined or null.
      * @return true iff data from src can be passed directly to dst.
      */
     public static boolean areCompatible( StreamFormat src, StreamFormat dst ) {
@@ -285,6 +298,55 @@ public class StreamFormat {
         return true;
     }
 
+    /**
+     * Determines if the relevant properties in the format match those in the frame.
+     */
+    public static boolean match( StreamFormat format, JavFrame frame ) {
+        if( format != null && frame != null ) {
+            switch( format.mType ) {
+            case AVMEDIA_TYPE_AUDIO:
+                return format.mChannels == frame.channels() &&
+                       format.mSampleRate == frame.sampleRate() &&
+                       format.mSampleFormat == frame.format() &&
+                       format.mChannelLayout == frame.channelLayout();
+
+            case AVMEDIA_TYPE_VIDEO:
+                return format.mWidth == frame.width() &&
+                       format.mHeight == frame.height() &&
+                       format.mPixelFormat == frame.format() &&
+                       format.mSampleAspect.equals( frame.sampleAspectRatio() );
+            }
+        }
+
+        return format == null && frame == null;
+    }
+
+    /**
+     * Determines if the relevant properties in the format match those in the frame.
+     */
+    public static boolean match( StreamFormat a, StreamFormat b ) {
+        if( a != null && b != null ) {
+            if( a.mType != b.mType ) {
+                return false;
+            }
+
+            switch( a.mType ) {
+            case AVMEDIA_TYPE_AUDIO:
+                return a.mChannels == b.mChannels &&
+                       a.mSampleRate == b.mSampleRate &&
+                       a.mSampleFormat == b.mSampleFormat &&
+                       a.mChannelLayout == b.mChannelLayout;
+
+            case AVMEDIA_TYPE_VIDEO:
+                return a.mWidth == b.mWidth &&
+                       a.mHeight == b.mHeight &&
+                       a.mPixelFormat == b.mPixelFormat &&
+                       a.mSampleAspect.equals( b.mSampleAspect );
+            }
+        }
+
+        return a == null && b == null;
+    }
 
 
     public static StreamFormat fromCodecContext( JavCodecContext cc ) {
@@ -450,6 +512,8 @@ public class StreamFormat {
         }
         return false;
     }
+
+
 
     /**
      * @return true iff width() and height() are both defined and thus non-negative.

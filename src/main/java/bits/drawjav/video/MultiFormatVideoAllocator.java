@@ -73,7 +73,8 @@ public class MultiFormatVideoAllocator extends AbstractRefable implements VideoA
 
         @Override
         public boolean offer( DrawPacket obj ) {
-            return mPool.offer( obj.toPictureFormat(), obj );
+            StreamFormat format = StreamFormat.fromVideoPacket( obj );
+            return mPool.offer( format, obj );
         }
 
     }

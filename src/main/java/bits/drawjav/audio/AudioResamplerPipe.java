@@ -15,7 +15,7 @@ import bits.drawjav.*;
 /**
  * @author decamp
  */
-public class AudioResamplerPipe implements Sink<DrawPacket> {
+@Deprecated public class AudioResamplerPipe implements Sink<DrawPacket> {
 
     private final Sink<? super DrawPacket> mSink;
     private final AudioResampler           mResampler;
