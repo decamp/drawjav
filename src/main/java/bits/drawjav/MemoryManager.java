@@ -9,11 +9,10 @@ package bits.drawjav;
 import bits.drawjav.audio.AudioAllocator;
 import bits.drawjav.video.VideoAllocator;
 
-
 /**
  * @author Philip DeCamp
  */
 public interface MemoryManager {
-    public VideoAllocator videoAllocator( Stream stream );
-    public AudioAllocator audioAllocator( Stream stream );
+    public VideoAllocator videoAllocator( StreamFormat stream );
+    public AudioAllocator audioAllocator( StreamFormat stream );
 }

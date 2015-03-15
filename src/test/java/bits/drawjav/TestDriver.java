@@ -6,20 +6,14 @@
 
 package bits.drawjav;
 
-import static javax.media.opengl.GL.*;
-
 import java.io.File;
 
-import javax.media.opengl.*;
-import javax.media.opengl.awt.GLCanvas;
-import javax.swing.JFrame;
-
-import bits.draw3d.*;
+import bits.drawjav.video.VideoWindow;
 import bits.drawjav.video.VideoTexture;
-import bits.draw3d.util.LimitAnimator;
 import bits.jav.Jav;
 import bits.jav.util.Rational;
 import bits.microtime.PlayController;
+import bits.microtime.Ticker;
 
 
 /**
@@ -57,7 +51,7 @@ public class TestDriver {
         //AudioLinePlayer player = new AudioLinePlayer(sh.audioFormat(), playCont.masterClock());
         //playCont.caster().addListener(player);
         //driver.openAudioStream(sh, sh.audioFormat(), player);
-        new VideoFrame( null, tex );
+        new VideoWindow( null, tex );
 
         playCont.control().clockSeek( 0 );
         driver.start();
@@ -102,15 +96,15 @@ public class TestDriver {
         //playCont.caster().addListener(player);
         //driver.openAudioStream(sh, sh.audioFormat(), player);
 
-        final DrawNode update = new DrawNodeAdapter() {
-            public void pushDraw( DrawEnv d ) {
+        final Ticker update = new Ticker() {
+            public void tick() {
                 playCont.tick();
                 driver.tick();
                 driver.tick();
             }
         };
         
-        new VideoFrame( update, tex );
+        new VideoWindow( update, tex );
         
         try {
             Thread.sleep( 1000L );
@@ -154,7 +148,7 @@ public class TestDriver {
         //playCont.caster().addListener(player);
         //driver.openAudioStream(sh, sh.audioFormat(), player);
         
-        new VideoFrame( null, tex1, tex2 );
+        new VideoWindow( null, tex1, tex2 );
         
         playCont.control().clockSeek( 0L );
         driver.start();
@@ -202,95 +196,19 @@ public class TestDriver {
         //AudioLinePlayer player = new AudioLinePlayer(sh.audioFormat(), playCont.masterClock());
         //playCont.caster().addListener(player);
         //driver.openAudioStream(sh, sh.audioFormat(), player);
-        final DrawNode update = new DrawNodeAdapter() {
-            public void pushDraw( DrawEnv d ) {
+        final Ticker update = new Ticker() {
+            public void tick() {
                 playCont.tick();
                 driver.tick();
                 driver.tick();
             }
         };
         
-        new VideoFrame( update, tex1, tex2 );
+        new VideoWindow( update, tex1, tex2 );
         
         playCont.control().clockSeek( 0L );
         driver.start();
         playCont.control().clockStart();
         
     }
-
-    
-    private static class VideoFrame extends JFrame implements GLEventListener {
-
-        private final DrawNode   mUpdateNode;
-        private final DrawUnit[] mTexs;
-        private final GLCanvas   mCanvas;
-        private final DrawEnv mEnv = new DrawEnv();
-
-        public VideoFrame( DrawNode updateNode, DrawUnit... texs ) {
-            mUpdateNode = updateNode;
-            mTexs = texs;
-
-            GLProfile profile = GLProfile.get( GLProfile.GL3 );
-            GLCapabilities glc = new GLCapabilities( profile );
-            mCanvas = new GLCanvas( glc );
-
-            setSize( 1024, 768 );
-            setLocationRelativeTo( null );
-            setDefaultCloseOperation( JFrame.EXIT_ON_CLOSE );
-            getContentPane().add( mCanvas );
-
-            mCanvas.addGLEventListener( this );
-
-            setVisible( true );
-            new LimitAnimator( mCanvas ).start();
-        }
-
-
-        public void display( GLAutoDrawable gld ) {
-            final DrawEnv d = mEnv;
-            d.init( gld, null );
-            GL gl = d.mGl;
-
-            if( mUpdateNode != null ) {
-                mUpdateNode.pushDraw( d );
-                mUpdateNode.popDraw( d );
-            }
-
-            d.mProj.identity();
-            d.mView.identity();
-            d.mView.setOrtho( 0, 1, 0, 1, -1, 1 );
-            gl.glClearColor( 0, 0, 0, 0 );
-            gl.glClear( GL_COLOR_BUFFER_BIT );
-            DrawStream s = d.drawStream();
-            s.config( true, true, false );
-            s.color( 1, 1, 1, 1 );
-            gl.glActiveTexture( GL_TEXTURE0 );
-
-            for( int i = 0; i < mTexs.length; i++ ) {
-                float y0 = (float)i / mTexs.length;
-                float y1 = (float)(i + 1) / mTexs.length;
-                mTexs[i].bind( d );
-
-                s.beginQuads();
-                s.tex( 0, 1 );
-                s.vert( 0, y0 );
-                s.tex( 1, 1 );
-                s.vert( 1, y0 );
-                s.tex( 1, 0 );
-                s.vert( 1, y1 );
-                s.tex( 0, 0 );
-                s.vert( 0, y1 );
-                s.end();
-            }
-        }
-
-        public void init( GLAutoDrawable arg0 ) {}
-
-        @Override
-        public void dispose( GLAutoDrawable drawable ) {}
-
-        public void reshape( GLAutoDrawable arg0, int arg1, int arg2, int arg3, int arg4 ) {}
-
-    }
-
 }

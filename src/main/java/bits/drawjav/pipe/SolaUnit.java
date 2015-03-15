@@ -77,7 +77,7 @@ public class SolaUnit implements AvUnit {
         mBus = bus;
         bus.register( new ClockHandler() );
         mSola = new Sola( mFormat.mSampleRate );
-        mAlloc = mMem.audioAllocator( mStream );
+        mAlloc = mMem.audioAllocator( mFormat );
         mOpen = true;
     }
 
@@ -218,8 +218,7 @@ public class SolaUnit implements AvUnit {
         }
 
         @Override
-        public void config( Stream stream ) {
-            StreamFormat format = stream.format();
+        public void config( StreamFormat format ) {
             if( format == null ) {
                 throw new IllegalArgumentException( "Missing audio format" );
             }
@@ -230,7 +229,6 @@ public class SolaUnit implements AvUnit {
                 throw new IllegalArgumentException( "Only mono is supported." );
             }
 
-            mStream = stream;
             mFormat = format;
         }
     }

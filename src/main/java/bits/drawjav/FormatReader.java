@@ -208,7 +208,7 @@ public class FormatReader implements PacketReader {
     }
 
     @Override
-    public void openStream( bits.drawjav.Stream stream ) throws IOException {
+    public void openStream( Stream stream ) throws IOException {
         assertOpen();
         ReaderStream ss = mStreams[((ReaderStream)stream).index()];
         if( ss.isOpen() ) {
@@ -218,13 +218,13 @@ public class FormatReader implements PacketReader {
         switch( ss.mFormat.mType ) {
         case AVMEDIA_TYPE_AUDIO: {
             AudioStream s = (AudioStream)ss;
-            s.open( mMem.audioAllocator( stream ) );
+            s.open( mMem.audioAllocator( stream.format() ) );
             updateSeekStream();
             return;
         }
         case AVMEDIA_TYPE_VIDEO: {
             VideoStream s = (VideoStream)ss;
-            s.open( mMem.videoAllocator( stream ) );
+            s.open( mMem.videoAllocator( stream.format() ) );
             updateSeekStream();
             return;
         }

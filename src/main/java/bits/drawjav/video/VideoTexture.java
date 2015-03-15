@@ -6,12 +6,15 @@
 
 package bits.drawjav.video;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
 import java.util.*;
 import static javax.media.opengl.GL3.*;
 
 import bits.draw3d.*;
 import bits.drawjav.*;
+import bits.drawjav.pipe.InPad;
 import bits.jav.Jav;
 
 /**
@@ -19,7 +22,7 @@ import bits.jav.Jav;
 *
 * @author Philip DeCamp
 */
-public class VideoTexture implements Texture, Sink<DrawPacket> {
+public class VideoTexture implements Texture, Sink<DrawPacket>, InPad<DrawPacket> {
 
     private DrawPacket mNextFrame    = null;
     private DrawPacket mCurrentFrame = null;
@@ -38,7 +41,7 @@ public class VideoTexture implements Texture, Sink<DrawPacket> {
     private boolean mNeedInit   = true;
     private boolean mDisposed   = false;
 
-    private final int[] mRevert = { 0, 0 };
+    private Exception mEx = null;
 
 
     public VideoTexture() {
@@ -48,39 +51,73 @@ public class VideoTexture implements Texture, Sink<DrawPacket> {
 
 
     //==========================
-    // Sink methods
+    // InPad/Sink methods
     //==========================
 
-    public void consume( DrawPacket frame ) {
-        if( frame == null || frame.dataElem( 0 ) == 0 ) {
+    public void config( StreamFormat format ) throws IOException {
+        if( format == null ) {
             return;
+        }
+
+        if( format.mPixelFormat != Jav.AV_PIX_FMT_BGR24 &&
+            format.mPixelFormat != Jav.AV_PIX_FMT_BGRA )
+        {
+            throw new IOException( "Unsupported stream format." );
+        }
+    }
+
+
+    public boolean isThreaded() {
+        return false;
+    }
+
+
+    public Object lock() {
+        return null;
+    }
+
+
+    public Exception exception() {
+        Exception ret = mEx;
+        mEx = null;
+        return ret;
+    }
+
+
+    public int offer( DrawPacket frame ) {
+        if( frame == null || frame.dataElem( 0 ) == 0 ) {
+            return OKAY;
         }
 
         int w = frame.width();
         int h = frame.height();
         if( w <= 0 || h <= 0 || frame.isGap() ) {
-            return;
-        }
-
-        switch( frame.format() ) {
-        case Jav.AV_PIX_FMT_BGR24:
-        case Jav.AV_PIX_FMT_BGRA:
-            break;
-        default:
-            return;
+            return OKAY;
         }
 
         synchronized(this) {
             if( mDisposed ) {
-                return;
+                mEx = new ClosedChannelException();
+                return EXCEPTION;
             }
 
             frame.ref();
             if(mNextFrame != null) {
                 mNextFrame.deref();
             }
-            mNextFrame  = frame;
+            mNextFrame = frame;
+            return OKAY;
         }
+    }
+
+
+    public int status() {
+        return InPad.OKAY;
+    }
+
+
+    public void consume( DrawPacket frame ) {
+        offer( frame );
     }
 
 

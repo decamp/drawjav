@@ -27,7 +27,7 @@ import bits.drawjav.*;
     {
         mSink = sink;
         mResampler = new AudioResampler( alloc );
-        mResampler.destFormat( destFormat );
+        mResampler.requestFormat( destFormat );
     }
 
 

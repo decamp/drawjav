@@ -34,7 +34,7 @@ public class PoolPerFormatMemoryManager implements MemoryManager {
 
 
     @Override
-    public VideoAllocator videoAllocator( Stream stream ) {
+    public VideoAllocator videoAllocator( StreamFormat stream ) {
         if( mVideoItemCap > 0 || mVideoByteCap <= 0 ) {
             return OneFormatVideoAllocator.createPacketLimited( mVideoItemCap );
         } else {
@@ -43,7 +43,7 @@ public class PoolPerFormatMemoryManager implements MemoryManager {
     }
 
     @Override
-    public AudioAllocator audioAllocator( Stream stream ) {
+    public AudioAllocator audioAllocator( StreamFormat stream ) {
         if( mAudioItemCap > 0 || mAudioByteCap <= 0 ) {
             return OneFormatAudioAllocator.createPacketLimited( mAudioItemCap, -1 );
         } else {

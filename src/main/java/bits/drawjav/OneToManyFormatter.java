@@ -227,7 +227,7 @@ public class OneToManyFormatter implements Sink<Packet> {
                 
                 if( type == Jav.AVMEDIA_TYPE_VIDEO ) {
                     Stream handle = new BasicStream( destFormat );
-                    VideoAllocator alloc    = mMem.videoAllocator( handle );
+                    VideoAllocator alloc    = mMem.videoAllocator( handle.format() );
                     VideoResamplerPipe conv = new VideoResamplerPipe( caster, sourceFormat, alloc );
                     alloc.deref();
                     conv.setPictureConversion( destFormat, Jav.SWS_FAST_BILINEAR );
@@ -241,7 +241,7 @@ public class OneToManyFormatter implements Sink<Packet> {
                     
                 } else {
                     Stream handle = new BasicStream( destFormat );
-                    AudioAllocator alloc = mMem.audioAllocator( handle );
+                    AudioAllocator alloc = mMem.audioAllocator( handle.format() );
                     AudioResamplerPipe conv = new AudioResamplerPipe( caster, destFormat, alloc );
                     alloc.deref();
 

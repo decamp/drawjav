@@ -20,14 +20,14 @@ public class VideoResamplerPipe implements Sink<DrawPacket> {
 
 
     private final Sink<? super DrawPacket> mSink;
-    private final VideoPacketResampler     mConverter;
+    private final VideoResampler           mConverter;
 
     public VideoResamplerPipe( Sink<? super DrawPacket> sink,
                                StreamFormat sourceFormat,
                                VideoAllocator alloc )
     {
         mSink = sink;
-        mConverter = new VideoPacketResampler( alloc );
+        mConverter = new VideoResampler( alloc );
         mConverter.sourceFormat( sourceFormat );
     }
 

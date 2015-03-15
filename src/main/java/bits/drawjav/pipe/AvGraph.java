@@ -1,8 +1,7 @@
 package bits.drawjav.pipe;
 
 import bits.collect.RingList;
-import bits.drawjav.Packet;
-import bits.drawjav.Stream;
+import bits.drawjav.*;
 import com.google.common.eventbus.*;
 
 import java.io.IOException;
@@ -48,15 +47,15 @@ public class AvGraph {
     }
 
 
-    public void connect( AvUnit src, OutPad srcPad, AvUnit dst, InPad dstPad, Stream stream ) throws IOException {
+    public void connect( AvUnit src, OutPad srcPad, AvUnit dst, InPad dstPad, StreamFormat format ) throws IOException {
         OutNode a = nodeFor( src ).outputFor( srcPad );
         InNode b = nodeFor( dst ).inputFor( dstPad );
         if( b.mLink != null ) {
             throw new IllegalArgumentException( "Input Pad already linked." );
         }
-        if( stream != null ) {
-            srcPad.config( stream );
-            dstPad.config( stream );
+        if( format != null ) {
+            srcPad.config( format );
+            dstPad.config( format );
         }
 
         a.mLinks.add( b );
@@ -524,7 +523,7 @@ public class AvGraph {
         }
 
         Runnable poll() {
-            synchronized( this ) {
+            synchronized( AvGraph.this ) {
                 return mQ.poll();
             }
         }

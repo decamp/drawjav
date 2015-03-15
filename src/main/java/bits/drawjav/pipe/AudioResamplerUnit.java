@@ -28,7 +28,7 @@ public class AudioResamplerUnit implements AvUnit {
 
     private boolean mOpen = false;
 
-    private Stream         mDestStream;
+    private StreamFormat   mDestFormat;
     private AudioResampler mResampler;
     private DrawPacket     mOutPacket;
     private Exception      mException;
@@ -36,11 +36,6 @@ public class AudioResamplerUnit implements AvUnit {
 
     public AudioResamplerUnit( MemoryManager optMem ) {
         mOptMem = optMem;
-    }
-
-
-    public StreamFormat destFormat() {
-        return mResampler.destFormat();
     }
 
 
@@ -52,13 +47,13 @@ public class AudioResamplerUnit implements AvUnit {
 
         AudioAllocator alloc = null;
         if( mOptMem != null ) {
-            alloc = mOptMem.audioAllocator( mDestStream );
+            alloc = mOptMem.audioAllocator( mDestFormat );
         } else {
             alloc = OneFormatAudioAllocator.createPacketLimited( 64, -1 );
         }
 
         mResampler = new AudioResampler( alloc );
-        mResampler.destFormat( mDestStream.format() );
+        mResampler.requestFormat( mDestFormat );
     }
 
 
@@ -162,15 +157,12 @@ public class AudioResamplerUnit implements AvUnit {
         }
 
         @Override
-        public void config( Stream stream ) throws IOException {
-            if( stream == null ) {
+        public void config( StreamFormat format ) throws IOException {
+            if( format == null ) {
                 return;
             }
 
-            if( stream.format() == null ) {
-                throw new IllegalArgumentException( "Missing picture format." );
-            }
-            mDestStream = stream;
+            mDestFormat = format;
         }
     }
 

@@ -22,7 +22,7 @@ public class AudioPlayer implements Channel {
     private final SolaUnit           mSola;
     private final LineOutUnit        mLineOut;
 
-    private final ClockEventQueue mEvents = new ClockEventQueue( 2048 );
+    private final ClockEventQueue mEvents;
 
     private final AvGraph mGraph = new AvGraph();
     private final Object  mLock  = mGraph;
@@ -33,7 +33,7 @@ public class AudioPlayer implements Channel {
     public AudioPlayer( MemoryManager optMem,
                         PlayClock optClock,
                         PacketReader reader )
-            throws IOException
+                        throws IOException
     {
         if( optMem == null ) {
             optMem = new PoolPerFormatMemoryManager( 128, 64 * 1024 * 1024, -1, -1 );
@@ -54,13 +54,12 @@ public class AudioPlayer implements Channel {
         mResampler = new AudioResamplerUnit( optMem );
         mSola      = new SolaUnit( optMem );
         mLineOut   = new LineOutUnit( null );
+        mEvents    = new ClockEventQueue( mGraph, mClock, 2048 );
 
-        mGraph.connect( mReader, mReader.output( 0 ), mClipper, mClipper.input( 0 ), srcStream );
-        mGraph.connect( mClipper, mClipper.output( 0 ), mResampler, mResampler.input( 0 ), srcStream );
-//        mGraph.connect( mReader, mReader.output( 0 ), mResampler, mResampler.input( 0 ), srcStream );
-        mGraph.connect( mResampler, mResampler.output( 0 ), mSola, mSola.input( 0 ), dstStream );
-        mGraph.connect( mSola, mSola.output( 0 ), mLineOut, mLineOut.input( 0 ), dstStream );
-//        mGraph.connect( mResampler, mResampler.output( 0 ), mLineOut, mLineOut.input( 0 ), dstStream );
+        mGraph.connect( mReader, mReader.output( 0 ), mClipper, mClipper.input( 0 ), srcFormat );
+        mGraph.connect( mClipper, mClipper.output( 0 ), mResampler, mResampler.input( 0 ), srcFormat );
+        mGraph.connect( mResampler, mResampler.output( 0 ), mSola, mSola.input( 0 ), dstFormat );
+        mGraph.connect( mSola, mSola.output( 0 ), mLineOut, mLineOut.input( 0 ), dstFormat );
 
         synchronized( mClock ) {
             mClock.addListener( mEvents );
@@ -107,31 +106,36 @@ public class AudioPlayer implements Channel {
 
                 // Process events.
                 while( true ) {
-                    ClockEvent e = mEvents.poll();
+                    Object e = mEvents.poll();
                     if( e == null ) {
                         break;
                     }
 
-                    switch( e.mId ) {
-                    case ClockEvent.CLOCK_RATE: {
-                        ClockEvent seek;
-                        synchronized( mClock ) {
-                            seek = ClockEvent.createClockSeek( this, mClock.masterBasis(), mClock.timeBasis() );
+                    if( e instanceof ClockEvent ) {
+                        switch( ((ClockEvent)e).mId ) {
+                        case ClockEvent.CLOCK_RATE: {
+                            ClockEvent seek;
+                            synchronized( mClock ) {
+                                seek = ClockEvent.createClockSeek( this, mClock.masterBasis(), mClock.timeBasis() );
+                            }
+                            mGraph.postEvent( e );
+                            mGraph.postEvent( seek );
+                            mGraph.clear();
+                            break;
                         }
+
+                        case ClockEvent.CLOCK_SEEK:
+                            mGraph.postEvent( e );
+                            mGraph.clear();
+                            break;
+
+                        default:
+                            mGraph.postEvent( e );
+                        }
+                    } else {
                         mGraph.postEvent( e );
-                        mGraph.postEvent( seek );
-                        mGraph.clear();
-                        break;
                     }
 
-                    case ClockEvent.CLOCK_SEEK:
-                        mGraph.postEvent( e );
-                        mGraph.clear();
-                        break;
-
-                    default:
-                        mGraph.postEvent( e );
-                    }
                 }
             }
 

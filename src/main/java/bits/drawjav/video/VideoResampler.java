@@ -16,9 +16,9 @@ import bits.jav.swscale.*;
  * 
  * @author decamp
  */
-public class VideoPacketResampler {
+public class VideoResampler {
 
-    private final VideoAllocator mAlloc;
+    private VideoAllocator mAlloc;
 
     private StreamFormat mSourceFormat          = null;
     private StreamFormat mRequestedFormat       = null;
@@ -32,15 +32,24 @@ public class VideoPacketResampler {
     private boolean mDisposed = false;
 
 
-    public VideoPacketResampler( VideoAllocator optAlloc ) {
-        if( optAlloc == null ) {
-            mAlloc = OneFormatVideoAllocator.createPacketLimited( 8 );
-        } else {
-            mAlloc = optAlloc;
-            optAlloc.ref();
+    public VideoResampler( VideoAllocator optAlloc ) {
+        mAlloc = optAlloc;
+        if( optAlloc != null ) {
+            optAlloc.deref();
         }
     }
 
+
+
+    public void allocator( VideoAllocator alloc ) {
+        if( alloc != null ) {
+            alloc.ref();
+        }
+        if( mAlloc != null ) {
+            mAlloc.deref();
+        }
+        mAlloc = alloc;
+    }
 
 
     public StreamFormat sourceFormat() {
@@ -188,25 +197,5 @@ public class VideoPacketResampler {
         mNeedsInit = true;
     }
 
-
-    @Deprecated public void setSourceFormat( StreamFormat format ) {
-        sourceFormat( format );
-    }
-
-
-    @Deprecated public void setDestFormat( StreamFormat format ) {
-        mRequestedFormat = format;
-        updateDestFormat();
-    }
-
-
-    @Deprecated public StreamFormat getDestFormat() {
-        return destFormat();
-    }
-
-
-    @Deprecated public void setConversionFlags( int flags ) {
-        conversionFlags( flags );
-    }
 
 }

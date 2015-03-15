@@ -1,6 +1,6 @@
 package bits.drawjav.pipe;
 
-import bits.drawjav.Stream;
+import bits.drawjav.StreamFormat;
 import bits.util.ref.Refable;
 
 import java.io.IOException;
@@ -22,7 +22,7 @@ public class OutPadAdapter implements OutPad {
     }
 
     @Override
-    public void config( Stream stream ) throws IOException {}
+    public void config( StreamFormat format ) throws IOException {}
 
     @Override
     public boolean isThreaded() {

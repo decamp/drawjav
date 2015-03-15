@@ -48,7 +48,6 @@ public class AudioPacketClipper implements SyncClockControl, AvUnit {
     private boolean    mOutIsGap;
 
     // Used to cut up large packets when mOutIsGap == true (which means mOutPacket has no samples)
-    private Stream       mOutStream;
     private StreamFormat mOutFormat;
     private long         mOutStart;
     private long         mOutPos;
@@ -90,7 +89,7 @@ public class AudioPacketClipper implements SyncClockControl, AvUnit {
         if( mOptMem == null ) {
             mAlloc = OneFormatAudioAllocator.createPacketLimited( 32, 1024 * 4 );
         } else {
-            mAlloc = mOptMem.audioAllocator( mOutStream );
+            mAlloc = mOptMem.audioAllocator( mOutFormat );
         }
 
         if( bus != null ) {
@@ -178,7 +177,6 @@ public class AudioPacketClipper implements SyncClockControl, AvUnit {
         final int samps = (int)Frac.multLong( t1 - t0, mOutFormat.mSampleRate, 1000000 );
         mOutPacket = mAlloc.alloc( mOutFormat, samps );
         mOutPacket.init( mOutFormat, t0, t1, false );
-        mOutPacket.stream( mOutStream );
         mOutPacket.nbSamples( samps );
 
         final boolean planar = JavSampleFormat.isPlanar( mOutFormat.mSampleFormat );
@@ -203,7 +201,6 @@ public class AudioPacketClipper implements SyncClockControl, AvUnit {
                 return OKAY;
             }
 
-            packet.stream( mOutStream );
             if( mOutPacket != null ) {
                 return DRAIN_FILTER;
             }
@@ -216,9 +213,9 @@ public class AudioPacketClipper implements SyncClockControl, AvUnit {
                 }
 
                 if( mForward ) {
-                    mOutPacket = clipForward( packet, mOutStream, mClipMicros, mAlloc );
+                    mOutPacket = clipForward( packet, mOutFormat, mClipMicros, mAlloc );
                 } else {
-                    mOutPacket = clipBackward( packet, mOutStream, mClipMicros, mAlloc );
+                    mOutPacket = clipBackward( packet, mOutFormat, mClipMicros, mAlloc );
                 }
                 return OKAY;
             }
@@ -263,10 +260,10 @@ public class AudioPacketClipper implements SyncClockControl, AvUnit {
 
 
     private class OutHandler extends OutPadAdapter {
+
         @Override
-        public void config( Stream stream ) {
-            mOutStream = stream;
-            mOutFormat = stream.format();
+        public void config( StreamFormat format ) {
+            mOutFormat = format;
         }
 
         @Override
@@ -294,7 +291,7 @@ public class AudioPacketClipper implements SyncClockControl, AvUnit {
 
 
     public static DrawPacket clipForward( DrawPacket packet,
-                                          Stream destStream,
+                                          StreamFormat format,
                                           long clipMicros,
                                           AudioAllocator alloc )
     {
@@ -314,7 +311,6 @@ public class AudioPacketClipper implements SyncClockControl, AvUnit {
         final int totalSamples = packet.nbSamples();
         final int writeSamples = Math.max( 0, Math.min( totalSamples, (int)((1.0 - p) * totalSamples + 0.5) ) );
 
-        final StreamFormat format = destStream.format();
         DrawPacket ret = alloc.alloc( format, totalSamples );
         final int sampSize = JavSampleFormat.getBytesPerSample( format.mSampleFormat );
 
@@ -336,13 +332,12 @@ public class AudioPacketClipper implements SyncClockControl, AvUnit {
 
         ret.nbSamples( writeSamples );
         ret.init( format, clipMicros, t1, packet.isGap() );
-        ret.stream( destStream );
         return ret;
     }
 
 
     public static DrawPacket clipBackward( DrawPacket packet,
-                                           Stream destStream,
+                                           StreamFormat format,
                                            long clipMicros,
                                            AudioAllocator alloc )
     {
@@ -361,7 +356,7 @@ public class AudioPacketClipper implements SyncClockControl, AvUnit {
         final int totalSamples  = packet.nbSamples();
         final int writeSamples  = Math.max( 0, Math.min( totalSamples, (int)(p * totalSamples + 0.5) ) );
 
-        final StreamFormat format = destStream.format();
+
         final int sampSize = JavSampleFormat.getBytesPerSample( format.mSampleFormat );
         DrawPacket ret = alloc.alloc( format, totalSamples );
 
@@ -381,7 +376,6 @@ public class AudioPacketClipper implements SyncClockControl, AvUnit {
 
         ret.nbSamples( writeSamples );
         ret.init( format, packet.startMicros(), clipMicros, packet.isGap() );
-        ret.stream( destStream );
         return ret;
     }
 

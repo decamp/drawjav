@@ -1,6 +1,7 @@
 package bits.drawjav.pipe;
 
 import bits.drawjav.Stream;
+import bits.drawjav.StreamFormat;
 import bits.util.ref.Refable;
 
 
@@ -20,7 +21,7 @@ abstract class InPadAdapter<T extends Refable> implements InPad<T> {
     }
 
     @Override
-    public void config( Stream stream ) {}
+    public void config( StreamFormat format ) {}
 
     @Override
     public boolean isThreaded() {

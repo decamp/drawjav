@@ -163,14 +163,9 @@ public class LineOutUnit implements AvUnit, InPad<DrawPacket>, SyncClockControl 
     //// SinkPad Methods /////
 
     @Override
-    public void config( Stream stream ) throws IOException {
-        if( stream == null ) {
-            return;
-        }
-
-        StreamFormat format = stream.format();
+    public void config( StreamFormat format ) throws IOException {
         if( format == null ) {
-            throw new IllegalArgumentException( "Missing AudioFormat." );
+            return;
         }
 
         mChannels = format.mChannels;

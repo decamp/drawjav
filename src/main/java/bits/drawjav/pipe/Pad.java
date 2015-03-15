@@ -1,6 +1,7 @@
 package bits.drawjav.pipe;
 
 import bits.drawjav.Stream;
+import bits.drawjav.StreamFormat;
 
 import java.io.IOException;
 
@@ -38,13 +39,12 @@ public interface Pad {
     public static final int DRAIN_FILTER =  3;
     public static final int WAIT         =  4;
 
-
     /**
      * Must be called before opening Filter.
      * @param stream The stream handle for the incoming data,
      *               or {@code null} if the pad will not be opened.
      */
-    void config( Stream stream ) throws IOException;
+    void config( StreamFormat stream ) throws IOException;
 
     /**
      * @return true iff this is a threaded pad.

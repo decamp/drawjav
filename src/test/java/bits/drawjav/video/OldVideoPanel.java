@@ -26,23 +26,23 @@ import java.util.Set;
 /**
  * @author decamp
  */
-public class VideoPanel extends JPanel implements Sink<DrawPacket> {
+public class OldVideoPanel extends JPanel implements Sink<DrawPacket> {
 
-    private final VideoPacketResampler mResampler = new VideoPacketResampler( null );
-    private       DrawPacket           mSrc       = null;
-    private       BufferedImage        mImage     = null;
-    private       int[]                mRow       = null;
+    private final VideoResampler mResampler = new VideoResampler( null );
+    private       DrawPacket     mSrc       = null;
+    private       BufferedImage  mImage     = null;
+    private       int[]          mRow       = null;
 
     private int  mFrameWidth  = -1;
     private int  mFrameHeight = -1;
     private int  mPanelWidth  = -1;
     private int  mPanelHeight = -1;
-    private Rect mDstBox     = null;
+    private Rect mDstBox      = null;
 
     Set<Object> testSet = new HashSet<Object>();
 
 
-    public VideoPanel() {
+    public OldVideoPanel() {
         setDoubleBuffered( false );
     }
 

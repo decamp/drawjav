@@ -34,7 +34,7 @@ public class VideoPanelTest {
         frame.setSize( 800, 600 );
         frame.setLocationRelativeTo( null );
         
-        VideoPanel panel = new VideoPanel();
+        OldVideoPanel panel = new OldVideoPanel();
         frame.setContentPane( panel );
         frame.setVisible( true );
         

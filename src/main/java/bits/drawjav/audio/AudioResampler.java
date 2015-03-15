@@ -89,16 +89,9 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
     }
 
     /**
-     * @return computed destination format. May be different from {@code #requestedFormat()}.
-     */
-    public StreamFormat destFormat() {
-        return mDestFormat;
-    }
-
-    /**
      * @param format Requested output format
      */
-    public void destFormat( StreamFormat format ) {
+    public void requestFormat( StreamFormat format ) {
         // Assign format == mRequestedFormat either way.
         // Better to use identical objects than merely equivalent objects.
         if( format == mRequestedFormat || format != null && format.equals( mRequestedFormat ) ) {
@@ -108,6 +101,14 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
             updateDestFormat();
         }
     }
+
+    /**
+     * @return computed destination format. May be different from {@code #requestedFormat()}.
+     */
+    public StreamFormat destFormat() {
+        return mDestFormat;
+    }
+
 
 
     public int conversionFlags() {
