@@ -91,7 +91,7 @@
 //                return ret;
 //            }
 //
-//            mPool.dispose( ret );
+//            mPool.vDispose( ret );
 //        }
 //
 //        if( format != null && numSamples > 0 ) {

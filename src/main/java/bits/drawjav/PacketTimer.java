@@ -21,7 +21,7 @@ class PacketTimer {
     private final Rational mTimeBase;
     private final Rational mMicrosPerPts;
 
-    // Changed only on init()
+    // Changed only on vInit()
     private long mStartPts;
     private long mStartMicros;
     private long mSyncThreshPts;

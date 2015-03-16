@@ -45,7 +45,7 @@
 //                                          MemoryManager optMem )
 //                                          throws IOException
 //    {
-//        Jav.init();
+//        Jav.vInit();
 //        if( !file.exists() ) {
 //            throw new FileNotFoundException();
 //        }
@@ -539,7 +539,7 @@
 //
 //
 //        public void initTimer( long startSrcPts, long startDstMicros ) {
-//            mTimer.init( startSrcPts, startDstMicros );
+//            mTimer.vInit( startSrcPts, startDstMicros );
 //        }
 //
 //        @SuppressWarnings( "unused" )
@@ -686,7 +686,7 @@
 //            }
 //
 //            mHasKeyFrame = true;
-//            ret.init( this, mRange[0], mRange[1], mFormat, false );
+//            ret.vInit( this, mRange[0], mRange[1], mFormat, false );
 //
 //            return ret;
 //        }
@@ -821,7 +821,7 @@
 //                pts = ret.packetDts();
 //            }
 //            mTimer.packetDecoded( pts, ret.packetDuration(), mRange );
-//            ret.init( this, mRange[0], mRange[1], mFormat, false );
+//            ret.vInit( this, mRange[0], mRange[1], mFormat, false );
 //            return ret;
 //        }
 //

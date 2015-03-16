@@ -480,7 +480,7 @@ public class AvGraph {
         public void process( InPadReadyEvent event ) {
             synchronized( AvGraph.this ) {
                 InNode node = mInMap.get( event.mPad );
-                if( node != null ) {
+                if( node != null && node.mPacket != null ) {
                     offerOp( node );
                 }
             }

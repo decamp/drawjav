@@ -115,8 +115,8 @@ public class AudioResamplerUnit implements AvUnit {
 
             // Check for empty packet.
             if( packet.isGap() ) {
-//                mOutPacket = packet;
-//                packet.ref();
+                mOutPacket = packet;
+                packet.ref();
                 return OKAY;
             }
 

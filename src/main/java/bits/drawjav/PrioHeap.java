@@ -17,7 +17,7 @@ import java.util.*;
  * @author decamp
  */
 @SuppressWarnings( {"unchecked", "rawtypes"} )
-class PrioHeap<T extends HeapNode> extends HeapNode {
+public class PrioHeap<T extends HeapNode> extends HeapNode {
     
     private final Comparator mComp;
     public HeapNode[] mArr;

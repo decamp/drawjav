@@ -9,6 +9,6 @@ package bits.drawjav;
 /**
  * @author decamp
  */
-class HeapNode {
+public class HeapNode {
     public int mHeapIndex;
 }

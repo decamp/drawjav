@@ -106,7 +106,7 @@ public class CostPool<T extends Refable> implements ObjectPool<T>, Channel {
     }
 
     /**
-     * Must be called by user to dispose of object that should not return to pool.
+     * Must be called by user to vDispose of object that should not return to pool.
      * @param item
      */
     public void dispose( T item ) {

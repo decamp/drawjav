@@ -191,9 +191,9 @@ public class MultiCostPool<T extends Refable> implements Channel {
     }
 
     /**
-     * Must be called by user to dispose of object that should not return to pool.
+     * Must be called by user to vDispose of object that should not return to pool.
      *
-     * @param item Item to dispose.
+     * @param item Item to vDispose.
      */
     public void dispose( T item ) {
         try {

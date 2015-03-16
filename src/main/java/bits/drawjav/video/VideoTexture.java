@@ -303,7 +303,7 @@ public class VideoTexture implements Texture, Sink<DrawPacket>, InPad<DrawPacket
         if( mCurrentFrame != null ) {
             mCurrentFrame.deref();
         }
-        mCurrentFrame  = mNextFrame;
+        mCurrentFrame = mNextFrame;
         return true;
     }
 

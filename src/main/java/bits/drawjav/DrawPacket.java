@@ -122,11 +122,19 @@ public class DrawPacket extends JavFrame implements Packet {
     private long    mStopMicros;
     private boolean mIsGap;
 
+//    private static final List<Exception> ALL_CREATED_ATS = new ArrayList<Exception>();
+//    private int mCreatedAt;
+
 
     @SuppressWarnings( { "unchecked", "rawtypes" } )
-    protected DrawPacket( long pointer, ObjectPool<? super DrawPacket> pool )
-    {
+    protected DrawPacket( long pointer, ObjectPool<? super DrawPacket> pool ) {
         super( pointer, (ObjectPool)pool );
+//        synchronized( DrawPacket.class ) {
+//            Exception e = new Exception();
+//            e.fillInStackTrace();
+//            mCreatedAt = ALL_CREATED_ATS.size();
+//            ALL_CREATED_ATS.add( e );
+//        }
     }
 
 
@@ -184,14 +192,13 @@ public class DrawPacket extends JavFrame implements Packet {
                       boolean isGap )
     {
         mStartMicros = startMicros;
-        mStopMicros  = stopMicros;
-        mIsGap       = isGap;
+        mStopMicros = stopMicros;
+        mIsGap = isGap;
 
         if( optFormat != null ) {
             optFormat.getProperties( this );
         }
     }
-
 
     @Override
     protected void finalize() throws Throwable {
@@ -199,8 +206,10 @@ public class DrawPacket extends JavFrame implements Packet {
         if( p != 0L ) {
             synchronized( DrawPacket.class ) {
                 if( !sHasWarnedAboutFinalization ) {
-                    sHasWarnedAboutFinalization = false;
+                    sHasWarnedAboutFinalization = true;
                     LOG.warning( "Frame finalized without being destroyed." );
+                    //Exception e = ALL_CREATED_ATS.get( mCreatedAt );
+                    //e.printStackTrace();
                 }
             }
         }

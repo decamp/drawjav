@@ -1,10 +1,7 @@
 package bits.drawjav.pipe;
 
-import bits.drawjav.Stream;
 import bits.drawjav.StreamFormat;
-
 import java.io.IOException;
-
 
 /**
  * A Pad is like a slot or a port on a filter that either receives input packets or delivers output packets.

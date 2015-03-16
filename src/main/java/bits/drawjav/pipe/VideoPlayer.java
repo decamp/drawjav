@@ -21,8 +21,9 @@ public class VideoPlayer {
 
     private final PacketReaderUnit   mReader;
     private final VideoResamplerUnit mResampler;
+    private final SchedulerUnit      mScheduler;
     private final VideoTextureUnit   mTexture;
-    private final GraphDriver mDriver;
+    private final GraphDriver        mDriver;
 
 
     public VideoPlayer( MemoryManager optMem,
@@ -40,15 +41,20 @@ public class VideoPlayer {
         mClock = optClock;
 
         StreamFormat dstFormat = StreamFormat.createVideo( -1, -1, Jav.AV_PIX_FMT_BGRA, new Rational( 1, 1 ) );
-        Stream dstStream = new BasicStream( dstFormat );
 
         mReader    = new PacketReaderUnit( reader );
         mResampler = new VideoResamplerUnit( mMem );
+        mScheduler = new SchedulerUnit();
         mTexture   = new VideoTextureUnit();
+
+        mScheduler.addStream( mClock, 16 );
 
         AvGraph graph = new AvGraph();
         graph.connect( mReader, mReader.output( 0 ), mResampler, mResampler.input( 0 ), null );
-        graph.connect( mResampler, mResampler.output( 0 ), mTexture, mTexture.input( 0 ), dstFormat );
+        graph.connect( mResampler, mResampler.output( 0 ), mScheduler, mScheduler.input( 0 ), dstFormat );
+        graph.connect( mScheduler, mScheduler.output( 0 ), mTexture, mTexture.input( 0 ), dstFormat );
+//        graph.connect( mResampler, mResampler.output( 0 ), mTexture, mTexture.input( 0 ), dstFormat );
+
 
         mDriver = new GraphDriver( graph, graph, mClock );
     }

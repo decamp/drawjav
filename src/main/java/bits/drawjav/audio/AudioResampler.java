@@ -37,7 +37,7 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
 
     private boolean mNeedsInit = false;
 
-    // Values that get set on init.
+    // Values that get set on vInit.
     private Stream     mDestStream = null;
     private SwrContext mConverter  = null;
     private Rational   mRateRatio  = null;
