@@ -55,7 +55,6 @@ public class VideoPlayer {
         graph.connect( mScheduler, mScheduler.output( 0 ), mTexture, mTexture.input( 0 ), dstFormat );
 //        graph.connect( mResampler, mResampler.output( 0 ), mTexture, mTexture.input( 0 ), dstFormat );
 
-
         mDriver = new GraphDriver( graph, graph, mClock );
     }
 

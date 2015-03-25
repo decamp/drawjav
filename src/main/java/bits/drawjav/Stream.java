@@ -14,7 +14,7 @@ package bits.drawjav;
 public interface Stream {
 
     /**
-     * @return format if {@code type() == Jav.AV_MEDIA_TYPE_VIDEO}. Otherwise, null.
+     * @return format of stream. May be {@code null}
      */
     public StreamFormat format();
 

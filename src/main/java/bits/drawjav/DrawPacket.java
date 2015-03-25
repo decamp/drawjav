@@ -53,16 +53,20 @@ public class DrawPacket extends JavFrame implements Packet {
 
         switch( format.mType ) {
         case Jav.AVMEDIA_TYPE_AUDIO:
-            try {
-                ret.fillAudioFrame( format.mChannels,
-                                    size,
-                                    format.mSampleFormat,
-                                    buf,
-                                    0 );
-            } catch( JavException e ) {
-                throw new RuntimeException( e );
+            if( size > 0 ) {
+                try {
+                    ret.fillAudioFrame( format.mChannels,
+                                        size,
+                                        format.mSampleFormat,
+                                        buf,
+                                        0 );
+                } catch( JavException e ) {
+                    throw new RuntimeException( e );
+                }
+                return ret;
             }
-            return ret;
+            break;
+
         case Jav.AVMEDIA_TYPE_VIDEO:
             try {
                 ret.fillVideoFrame( format.mWidth,

@@ -11,26 +11,26 @@ import java.nio.channels.Channel;
  */
 public class GraphDriver implements Channel {
 
-    private final Object          mLock;
+    private final Object mLock;
 
     private final AvGraph         vGraph;
-    private final ClockEventQueue vEvents;
+    private final ClockEventQueue mEvents;
 
     private volatile boolean vOpen = false;
 
 
     public GraphDriver( Object lock, AvGraph graph, PlayClock optClock ) {
-        mLock   = lock == null ? this : lock;
-        vGraph  = graph;
-        vEvents = new ClockEventQueue( mLock, optClock, 1024 );
+        mLock = lock == null ? this : lock;
+        vGraph = graph;
+        mEvents = new ClockEventQueue( mLock, optClock, 1024 );
         if( optClock != null ) {
-            optClock.addListener( vEvents );
+            optClock.addListener( mEvents );
         }
     }
 
 
     public void postEvent( Object event ) {
-        vEvents.offer( event );
+        mEvents.offer( event );
     }
 
 
@@ -74,7 +74,7 @@ public class GraphDriver implements Channel {
 
                 // Process events.
                 while( true ) {
-                    Object e = vEvents.poll();
+                    Object e = mEvents.poll();
                     if( e == null ) {
                         break;
                     }

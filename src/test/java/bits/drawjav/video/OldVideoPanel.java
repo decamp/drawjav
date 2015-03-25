@@ -26,6 +26,7 @@ import java.util.Set;
 /**
  * @author decamp
  */
+@Deprecated
 public class OldVideoPanel extends JPanel implements Sink<DrawPacket> {
 
     private final VideoResampler mResampler = new VideoResampler( null );

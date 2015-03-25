@@ -10,5 +10,5 @@ package bits.drawjav;
  * @author Philip DeCamp
  */
 public interface MemoryManager {
-    public PacketAllocator<DrawPacket> allocator( StreamFormat stream );
+    public PacketAllocator<DrawPacket> allocator( StreamFormat format );
 }

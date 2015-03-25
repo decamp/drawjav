@@ -1,11 +1,9 @@
 package bits.drawjav;
 
-import bits.drawjav.pipe.ClearUnitEvent;
+import bits.drawjav.pipe.ClearGraphEvent;
 import bits.microtime.*;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 
 /**
@@ -43,7 +41,7 @@ public class ClockEventQueue implements SyncClockControl {
         synchronized( this ) {
             offer( ClockEvent.createClockSeek( this, exec, seek ) );
             // TODO: Clear logic should probably not be here.
-            offer( ClearUnitEvent.INSTANCE );
+            offer( ClearGraphEvent.INSTANCE );
         }
     }
 
@@ -63,7 +61,7 @@ public class ClockEventQueue implements SyncClockControl {
         synchronized( this ) {
             offer( a );
             offer( b );
-            offer( ClearUnitEvent.INSTANCE );
+            offer( ClearGraphEvent.INSTANCE );
         }
     }
 

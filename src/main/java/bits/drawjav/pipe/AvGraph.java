@@ -1,6 +1,5 @@
 package bits.drawjav.pipe;
 
-import bits.collect.RingList;
 import bits.drawjav.*;
 import com.google.common.eventbus.*;
 
@@ -30,8 +29,8 @@ public class AvGraph {
     private final Map<InPad, InNode>      mInMap     = new HashMap<InPad, InNode>();
     private final Map<OutPad, OutNode>    mOutMap    = new HashMap<OutPad, OutNode>();
 
-    private RingList<Op> mQueue    = new RingList<Op>();
-    private RingList<Op> vRequests = new RingList<Op>();
+    private Deque<Op> mQueue    = new ArrayDeque<Op>();
+    private Deque<Op> vRequests = new ArrayDeque<Op>();
 
     private boolean mNeedInit = true;
 
@@ -144,7 +143,7 @@ public class AvGraph {
             removeOp( op );
         }
         op.mEnqueued = true;
-        mQueue.add( 0, op );
+        mQueue.addFirst( op );
     }
 
 
@@ -353,6 +352,7 @@ public class AvGraph {
     }
 
 
+    @SuppressWarnings( "unchecked" )
     private class InNode extends Op {
         final FilterNode mFilter;
         final InPad      mPad;
@@ -437,7 +437,7 @@ public class AvGraph {
             }
 
             if( mPacket != null ) {
-                mPacket.deref();;
+                mPacket.deref();
                 mPacket = null;
             }
             if( packet != null ) {
@@ -494,6 +494,11 @@ public class AvGraph {
                     offerOp( node );
                 }
             }
+        }
+
+        @Subscribe
+        public void process( ClearGraphEvent event ) {
+            clear();
         }
     }
 

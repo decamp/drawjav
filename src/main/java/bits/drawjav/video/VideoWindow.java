@@ -37,9 +37,6 @@ public class VideoWindow extends JFrame implements GLEventListener {
         getContentPane().add( mCanvas );
 
         mCanvas.addGLEventListener( this );
-
-        setVisible( true );
-        new LimitAnimator( mCanvas ).start();
     }
 
 
@@ -88,6 +85,12 @@ public class VideoWindow extends JFrame implements GLEventListener {
 
 
     public void reshape( GLAutoDrawable arg0, int arg1, int arg2, int arg3, int arg4 ) {}
+
+
+    public void start() {
+        setVisible( true );
+        new LimitAnimator( mCanvas ).start();
+    }
 
 }
 
