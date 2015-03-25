@@ -16,9 +16,9 @@ import bits.jav.swscale.*;
  * 
  * @author decamp
  */
-public class VideoResampler {
+public class VideoResampler implements PacketConverter<DrawPacket> {
 
-    private VideoAllocator mAlloc;
+    private PacketAllocator<DrawPacket> mAlloc;
 
     private StreamFormat mSourceFormat          = null;
     private StreamFormat mRequestedFormat       = null;
@@ -32,7 +32,7 @@ public class VideoResampler {
     private boolean mDisposed = false;
 
 
-    public VideoResampler( VideoAllocator optAlloc ) {
+    public VideoResampler( PacketAllocator<DrawPacket> optAlloc ) {
         mAlloc = optAlloc;
         if( optAlloc != null ) {
             optAlloc.deref();
@@ -41,7 +41,7 @@ public class VideoResampler {
 
 
 
-    public void allocator( VideoAllocator alloc ) {
+    public void allocator( PacketAllocator<DrawPacket> alloc ) {
         if( alloc != null ) {
             alloc.ref();
         }
@@ -106,6 +106,8 @@ public class VideoResampler {
     }
 
 
+
+
     public DrawPacket convert( DrawPacket source ) throws JavException {
         if( source.isGap() ) {
             source.ref();
@@ -126,12 +128,20 @@ public class VideoResampler {
             return source;
         }
 
-        DrawPacket dest = mAlloc.alloc( mDestFormat );
+        DrawPacket dest = mAlloc.alloc( mDestFormat, 0 );
         dest.init( mDestFormat, source.startMicros(), source.stopMicros(), false );
         dest.stream( mDestStream );
         mConverter.conv( source, dest );
         return dest;
     }
+
+
+    public DrawPacket drain() {
+        return null;
+    }
+
+
+    public void clear() {}
 
 
     public void close() {

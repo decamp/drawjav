@@ -16,6 +16,7 @@ import static javax.media.opengl.GL3.*;
 import bits.collect.RingList;
 
 import bits.draw3d.*;
+import bits.glui.GPanel;
 import bits.jav.util.Rational;
 import bits.microtime.*;
 import bits.png.NativeZLib;
@@ -26,7 +27,8 @@ import bits.util.ref.*;
 
 
 /**
- * Draw node that encodes frame buffer directly to H264/MP4 file. 
+ * Encodes frame buffer directly to H264/MP4 file.
+ * May be used as a DrawNode or a GPanel.
  * Encoding is performed on separate thread for better performance.
  * Multiple video captures may be run in parallel.
  * Video captures may be scheduled at any time.
@@ -35,7 +37,7 @@ import bits.util.ref.*;
  * 
  * @author decamp
  */
-public class VideoExportNode implements DrawNode, ReshapeListener {
+public class VideoExportNode extends GPanel implements DrawNode, ReshapeListener {
     
     public static final int QUALITY_HIGHEST = 100;
     public static final int QUALITY_LOWEST  = 0;
@@ -61,10 +63,7 @@ public class VideoExportNode implements DrawNode, ReshapeListener {
     
     private Integer mReadTarget     = null;
     private boolean mDoubleBuffered = false;
-    
-    private int mWidth  = 0;
-    private int mHeight = 0;
-    
+
     
     public VideoExportNode( Clock clock ) {
         mClock = clock;
@@ -197,8 +196,7 @@ public class VideoExportNode implements DrawNode, ReshapeListener {
 
     @Override
     public void reshape( DrawEnv d ) {
-        mWidth  = d.mViewport.mW;
-        mHeight = d.mViewport.mH;
+        setSize( d.mViewport.mW, d.mViewport.mH );
     }
 
     @Override
@@ -206,28 +204,41 @@ public class VideoExportNode implements DrawNode, ReshapeListener {
 
     @Override
     public void popDraw( DrawEnv d ) {
+        processFrame( d );
+    }
+
+
+    @Override
+    public void paintComponent( DrawEnv d ) {
+        super.paintComponent( d );
+        processFrame( d );
+    }
+
+
+    private void processFrame( DrawEnv d ) {
         long t = mClock.micros();
-        
+
         while( !mNewStreams.isEmpty() && mNewStreams.peek().startMicros() <= t ) {
             Stream s = mNewStreams.remove();
             mStreams.add( s );
         }
-        
+
         int len = mStreams.size();
         for( int i = 0; i < len; i++ ) {
             Stream s = mStreams.get( i );
-            if( s.stopMicros() <= t || !s.process( d, mWidth, mHeight ) ) {
+            if( s.stopMicros() <= t || !s.process( d, width(), height() ) ) {
                 s.close();
                 mStreams.remove( i-- );
                 len--;
             }
         }
     }
+
     
 
 
     public static interface Job extends Closeable, TimeRanged {
-        public void registerCompletionCallback( Runnable r );
+        public void addCompletionCallback( Runnable r );
     }
     
     
@@ -716,7 +727,7 @@ public class VideoExportNode implements DrawNode, ReshapeListener {
         }
         
         
-        public synchronized void registerCompletionCallback( Runnable r ) {
+        public synchronized void addCompletionCallback( Runnable r ) {
             mCompletionCallbacks.add( r );
         }
     }

@@ -13,7 +13,6 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 public class ClockEventQueue implements SyncClockControl {
 
-
     private final Object mLock;
     private final PlayClock mClock;
     private final Queue<Object> mQueue = new LinkedList<Object>();

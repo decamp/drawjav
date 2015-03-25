@@ -10,8 +10,7 @@ import java.io.*;
 import java.util.*;
 
 public class IOExceptionList extends IOException {
-    
-    
+
     private final List<Throwable> mList = new LinkedList<Throwable>();
     
     

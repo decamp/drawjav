@@ -10,7 +10,7 @@ import java.util.logging.Logger;
 /**
  * @author Philip DeCamp
  */
-public class RawPacketAllocator extends AbstractRefable implements JavPacketAllocator {
+public class RawPacketAllocator extends AbstractRefable {
 
     private static final Logger LOG = Logger.getLogger( RawPacketAllocator.class.getName() );
 
@@ -44,7 +44,7 @@ public class RawPacketAllocator extends AbstractRefable implements JavPacketAllo
     }
 
 
-    public synchronized JavPacket alloc( int size ) {
+    public synchronized JavPacket alloc( StreamFormat format, int size ) {
         if( size > mAllocSize ) {
             if( mJavPool != null ) {
                 mJavPool.deref();

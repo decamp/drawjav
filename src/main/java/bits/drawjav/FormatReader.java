@@ -18,9 +18,6 @@ import bits.jav.codec.*;
 import bits.jav.format.*;
 import bits.jav.util.Rational;
 
-import bits.drawjav.audio.*;
-import bits.drawjav.video.*;
-
 
 /**
  * Not thread-safe.
@@ -180,12 +177,12 @@ public class FormatReader implements PacketReader {
     }
 
     @Override
-    public bits.drawjav.Stream stream( int index ) {
+    public Stream stream( int index ) {
         return mStreams[index];
     }
 
 
-    public bits.drawjav.Stream stream( int mediaType, int index ) {
+    public Stream stream( int mediaType, int index ) {
         for( ReaderStream s : mStreams ) {
             if( s.mFormat.mType == mediaType ) {
                 if( index-- == 0 ) {
@@ -198,15 +195,16 @@ public class FormatReader implements PacketReader {
 
     @Override
     @SuppressWarnings( { "rawtypes", "unchecked" } )
-    public List<bits.drawjav.Stream> streams() {
+    public List<Stream> streams() {
         return (List)Arrays.asList( mStreams );
     }
 
 
-    public boolean isStreamOpen( bits.drawjav.Stream stream ) {
+    public boolean isStreamOpen( Stream stream ) {
         return mStreams[((ReaderStream)stream).index()].isOpen();
     }
 
+    @SuppressWarnings( "unchecked" )
     @Override
     public void openStream( Stream stream ) throws IOException {
         assertOpen();
@@ -218,13 +216,13 @@ public class FormatReader implements PacketReader {
         switch( ss.mFormat.mType ) {
         case AVMEDIA_TYPE_AUDIO: {
             AudioStream s = (AudioStream)ss;
-            s.open( mMem.audioAllocator( stream.format() ) );
+            s.open( mMem.allocator( stream.format() ) );
             updateSeekStream();
             return;
         }
         case AVMEDIA_TYPE_VIDEO: {
             VideoStream s = (VideoStream)ss;
-            s.open( mMem.videoAllocator( stream.format() ) );
+            s.open( mMem.allocator( stream.format() ) );
             updateSeekStream();
             return;
         }
@@ -232,30 +230,16 @@ public class FormatReader implements PacketReader {
         }
     }
 
-
-    public void openVideoStream( bits.drawjav.Stream stream, VideoAllocator alloc ) throws IOException {
+    @SuppressWarnings( "unchecked" )
+    public void openStream( Stream stream, PacketAllocator alloc ) throws IOException {
         assertOpen();
         ReaderStream ss = mStreams[((ReaderStream)stream).index()];
-        if( ss.mFormat.mType != Jav.AVMEDIA_TYPE_VIDEO ) {
-            throw new IllegalArgumentException( "Not a video stream." );
-        }
-        ((VideoStream)ss).open( alloc );
-        updateSeekStream();
-    }
-
-
-    public void openAudioStream( bits.drawjav.Stream stream, AudioAllocator alloc ) throws IOException {
-        assertOpen();
-        ReaderStream ss = mStreams[((ReaderStream)stream).index()];
-        if( ss.mFormat.mType != Jav.AVMEDIA_TYPE_AUDIO ) {
-            throw new IllegalArgumentException( "Not an audio stream." );
-        }
-        ((AudioStream)ss).open( alloc );
+        ss.open( alloc );
         updateSeekStream();
     }
 
     @Override
-    public void closeStream( bits.drawjav.Stream stream ) throws IOException {
+    public void closeStream( Stream stream ) throws IOException {
         ReaderStream ss = mStreams[((ReaderStream)stream).index()];
         if( !ss.isOpen() ) {
             return;
@@ -278,7 +262,7 @@ public class FormatReader implements PacketReader {
     }
 
 
-    public void seek( bits.drawjav.Stream stream, long micros ) throws IOException {
+    public void seek( Stream stream, long micros ) throws IOException {
         assertOpen();
 
         if( stream == null ) {
@@ -487,11 +471,11 @@ public class FormatReader implements PacketReader {
             mTimer          = new PacketTimer( mTimeBase );
         }
 
-
         @Override
         public StreamFormat format() {
             return mFormat;
         }
+
 
         public JavStream javStream() {
             return mStream;
@@ -533,6 +517,8 @@ public class FormatReader implements PacketReader {
         }
 
 
+        public abstract void open( PacketAllocator<DrawPacket> alloc ) throws JavException;
+
         public abstract boolean isOpen();
 
         public abstract void close() throws IOException;
@@ -554,10 +540,10 @@ public class FormatReader implements PacketReader {
         private final long[] mRange    = new long[2];
         private final int[]  mGotFrame = new int[1];
 
-        private boolean        mIsOpen       = false;
-        private VideoAllocator mAlloc        = null;
-        private boolean        mHasKeyFrame  = false;
-        private DrawPacket     mCurrentFrame = null;
+        private boolean                     mIsOpen       = false;
+        private PacketAllocator<DrawPacket> mAlloc        = null;
+        private boolean                     mHasKeyFrame  = false;
+        private DrawPacket                  mCurrentFrame = null;
 
 
         VideoStream( JavStream stream ) {
@@ -567,7 +553,7 @@ public class FormatReader implements PacketReader {
         }
 
 
-        void open( VideoAllocator alloc ) throws JavException {
+        public void open( PacketAllocator<DrawPacket> alloc ) throws JavException {
             if( mIsOpen ) {
                 return;
             }
@@ -639,7 +625,7 @@ public class FormatReader implements PacketReader {
             DrawPacket ret = mCurrentFrame;
             mCurrentFrame = null;
             if( ret == null ) {
-                ret = mAlloc.alloc( mFormat );
+                ret = mAlloc.alloc( mFormat, 0 );
             }
 
             int n = mCodecContext.decodeVideo( packet, ret, mGotFrame );
@@ -693,9 +679,9 @@ public class FormatReader implements PacketReader {
         private final long[] mRange    = new long[2];
         private final int[]  mGotFrame = new int[1];
 
-        private boolean        mIsOpen       = false;
-        private AudioAllocator mAlloc        = null;
-        private DrawPacket     mCurrentFrame = null;
+        private boolean                     mIsOpen       = false;
+        private PacketAllocator<DrawPacket> mAlloc        = null;
+        private DrawPacket                  mCurrentFrame = null;
 
 
         AudioStream( JavStream stream ) {
@@ -704,7 +690,8 @@ public class FormatReader implements PacketReader {
         }
 
 
-        void open( AudioAllocator alloc ) throws JavException {
+        @Override
+        public void open( PacketAllocator<DrawPacket> alloc ) throws JavException {
             if( mIsOpen ) {
                 return;
             }
@@ -812,6 +799,8 @@ public class FormatReader implements PacketReader {
             super( stream );
         }
 
+        @Override
+        public void open( PacketAllocator<DrawPacket> alloc ) throws JavException {}
 
         @Override
         public boolean isOpen() {

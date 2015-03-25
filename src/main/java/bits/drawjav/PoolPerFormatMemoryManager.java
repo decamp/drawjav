@@ -6,8 +6,7 @@
 
 package bits.drawjav;
 
-import bits.drawjav.audio.*;
-import bits.drawjav.video.*;
+import bits.jav.Jav;
 
 
 /**
@@ -34,20 +33,24 @@ public class PoolPerFormatMemoryManager implements MemoryManager {
 
 
     @Override
-    public VideoAllocator videoAllocator( StreamFormat stream ) {
-        if( mVideoItemCap > 0 || mVideoByteCap <= 0 ) {
-            return OneFormatVideoAllocator.createPacketLimited( mVideoItemCap );
-        } else {
-            return OneFormatVideoAllocator.createByteLimited( mVideoByteCap );
+    public PacketAllocator<DrawPacket> allocator( StreamFormat stream ) {
+        switch( stream.mType ) {
+        case Jav.AVMEDIA_TYPE_AUDIO:
+            if( mAudioItemCap > 0 || mAudioByteCap <= 0 ) {
+                return OneFormatAllocator.createPacketLimited( mAudioItemCap, -1 );
+            } else {
+                return OneFormatAllocator.createByteLimited( mAudioByteCap, -1 );
+            }
+
+        case Jav.AVMEDIA_TYPE_VIDEO:
+            if( mVideoItemCap > 0 || mVideoByteCap <= 0 ) {
+                return OneFormatAllocator.createPacketLimited( mVideoItemCap, -1 );
+            } else {
+                return OneFormatAllocator.createByteLimited( mVideoByteCap, -1 );
+            }
         }
+
+        return null;
     }
 
-    @Override
-    public AudioAllocator audioAllocator( StreamFormat stream ) {
-        if( mAudioItemCap > 0 || mAudioByteCap <= 0 ) {
-            return OneFormatAudioAllocator.createPacketLimited( mAudioItemCap, -1 );
-        } else {
-            return OneFormatAudioAllocator.createByteLimited( mAudioByteCap, -1 );
-        }
-    }
 }

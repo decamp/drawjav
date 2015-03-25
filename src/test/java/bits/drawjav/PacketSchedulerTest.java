@@ -10,6 +10,8 @@ import java.io.*;
 import java.nio.channels.ClosedChannelException;
 import java.util.*;
 
+import bits.drawjav.old.PacketScheduler;
+import bits.drawjav.old.Sink;
 import bits.microtime.*;
 import bits.util.concurrent.ThreadLock;
 import bits.util.ref.*;

@@ -10,6 +10,10 @@ import java.io.*;
 
 
 public interface PacketConverter<T> extends Closeable {
+    public void requestFormat( StreamFormat format );
+    public StreamFormat requestedFormat();
+    public StreamFormat sourceFormat();
+    public StreamFormat destFormat();
     public T convert( T packet ) throws IOException;
     public T drain() throws IOException;
     public void clear();

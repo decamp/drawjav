@@ -15,25 +15,23 @@ public class MultiCostPool<T extends Refable> implements Channel {
 
     private static final Logger sLog = Logger.getLogger( MultiCostPool.class.getName() );
 
-
     private final Object mLock = this;
     private final CostMetric<? super T> mMetric;
-    private final LinkedHashMap<Object, Pool> sPools = new LinkedHashMap<Object, Pool>( 12, 0.75f, false );
+    private final LinkedHashMap<Object, Pool> vPools = new LinkedHashMap<Object, Pool>( 12, 0.75f, false );
 
 
     private final int mMaxEmptyAge = 10; // Max times a pool may be empty during poll before being disposed.
 
-    private long    sCostCap     = -1;  // Max allowed cost of items in pool before items are disposed.
-    private long    sWarningCost = -1;  // When outstanding cost gets this high, issue warning to user.
-    private boolean sHasWarned   = false;
+    private long    vCostCap     = -1;  // Max allowed cost of items in pool before items are disposed.
+    private long    vWarningCost = -1;  // When outstanding cost gets this high, issue warning to user.
+    private boolean vHasWarned   = false;
 
-    private long sPoolCostTotal  = 0;  // Current cost of items in pool.
-    private long sAllocatedTotal = 0;  // Current cost of items outside pool.
+    private long    vPoolCostTotal  = 0;  // Current cost of items in pool.
+    private long    vAllocatedTotal = 0;  // Current cost of items outside pool.
+    //private long    vAllocatedMax = 0;    // For debugging.
 
-    private long sAllocatedMax = 0; // For debugging. Delete this.
-
-    private int     sDisposing = 0;
-    private boolean sOpen      = true;
+    private int     vDisposing = 0;
+    private boolean vOpen      = true;
 
 
     /**
@@ -44,13 +42,13 @@ public class MultiCostPool<T extends Refable> implements Channel {
      *                       item will be assigned a cost of 1.
      */
     public MultiCostPool( long costCap, long warningThresh, CostMetric<? super T> optMetric ) {
-        sCostCap = costCap;
+        vCostCap = costCap;
         if( optMetric == null ) {
             mMetric = CostMetric.ONE;
         } else {
             mMetric = optMetric;
         }
-        sWarningCost = warningThresh;
+        vWarningCost = warningThresh;
     }
 
 
@@ -71,11 +69,11 @@ public class MultiCostPool<T extends Refable> implements Channel {
      */
     public T poll( Object key ) {
         synchronized( mLock ) {
-            Pool pool = sPools.remove( key );
+            Pool pool = vPools.remove( key );
             if( pool == null ) {
                 return null;
             }
-            sPools.put( key, pool );
+            vPools.put( key, pool );
             return pool.sPoll();
         }
     }
@@ -93,22 +91,22 @@ public class MultiCostPool<T extends Refable> implements Channel {
 
         synchronized( mLock ) {
             // Check if there's any room.
-            if( sDisposing > 0 ) {
-                sAllocatedTotal -= itemCost;
-                if( sAllocatedTotal < sPoolCostTotal ) {
-                    sAllocatedTotal = sPoolCostTotal;
+            if( vDisposing > 0 ) {
+                vAllocatedTotal -= itemCost;
+                if( vAllocatedTotal < vPoolCostTotal ) {
+                    vAllocatedTotal = vPoolCostTotal;
                 }
                 return false;
             }
 
             // Get pool from map. Note that pool may be null.
-            Pool pool = sPools.get( key );
+            Pool pool = vPools.get( key );
 
             // Check if there's enough room.
-            if( sCostCap < 0 || sPoolCostTotal < sCostCap ) {
+            if( vCostCap < 0 || vPoolCostTotal < vCostCap ) {
                 if( pool == null ) {
                     pool = new Pool();
-                    sPools.put( key, pool );
+                    vPools.put( key, pool );
                 }
                 pool.sPush( item, itemCost );
                 return true;
@@ -118,10 +116,10 @@ public class MultiCostPool<T extends Refable> implements Channel {
             // Need to clear space.
             // Note that pool may still be null.
             derefList = new ArrayList<T>( 2 );
-            sDisposing++;
-            long spaceNeeded = sPoolCostTotal - sCostCap + 1;
+            vDisposing++;
+            long spaceNeeded = vPoolCostTotal - vCostCap + 1;
             long spaceCleared = 0;
-            Iterator<Pool> iter = sPools.values().iterator();
+            Iterator<Pool> iter = vPools.values().iterator();
 
             while( spaceCleared < spaceNeeded && iter.hasNext() ) {
                 Pool p = iter.next();
@@ -137,7 +135,7 @@ public class MultiCostPool<T extends Refable> implements Channel {
             if( ret ) {
                 if( pool == null ) {
                     pool = new Pool();
-                    sPools.put( key, pool );
+                    vPools.put( key, pool );
                 }
                 pool.sPush( item, itemCost );
             }
@@ -149,7 +147,7 @@ public class MultiCostPool<T extends Refable> implements Channel {
             }
         } finally {
             synchronized( mLock ) {
-                sDisposing--;
+                vDisposing--;
             }
         }
 
@@ -164,27 +162,26 @@ public class MultiCostPool<T extends Refable> implements Channel {
      */
     public void allocated( T item ) {
         synchronized( mLock ) {
-            if( !sOpen ) {
+            if( !vOpen ) {
                 return;
             }
 
             long cost = mMetric.costOf( item );
-            sAllocatedTotal += cost;
+            vAllocatedTotal += cost;
 
-            if( sAllocatedTotal > sAllocatedMax ) {
-                sAllocatedMax = sAllocatedTotal;
-                String sizeDesc;
+//            if( vAllocatedTotal > vAllocatedMax ) {
+//                vAllocatedMax = vAllocatedTotal;
+//                String sizeDesc;
+//                if( mMetric == CostMetric.ONE ) {
+//                    sizeDesc = vAllocatedMax + " items";
+//                } else {
+//                    sizeDesc = (vAllocatedMax / 1024.0 / 1024.0) + " mb";
+//                }
+//                System.out.println( "!!! MultiCostPool size : " + sizeDesc + ", " + item.getClass().getSimpleName() );
+//            }
 
-                if( mMetric == CostMetric.ONE ) {
-                    sizeDesc = sAllocatedMax + " items";
-                } else {
-                    sizeDesc = (sAllocatedMax / 1024.0 / 1024.0) + " mb";
-                }
-                //System.out.println( "!!! MultiCostPool size : " + sizeDesc + ", " + item.getClass().getSimpleName() );
-            }
-
-            if( sAllocatedTotal >= sWarningCost && !sHasWarned && sWarningCost >= 0 ) {
-                sHasWarned = true;
+            if( vAllocatedTotal >= vWarningCost && !vHasWarned && vWarningCost >= 0 ) {
+                vHasWarned = true;
                 sLog.warning( "Detected unusually high allocation rate of pooled objects. There might be a memory leak." );
             }
         }
@@ -198,12 +195,12 @@ public class MultiCostPool<T extends Refable> implements Channel {
     public void dispose( T item ) {
         try {
             synchronized( this ) {
-                sDisposing++;
+                vDisposing++;
             }
             item.deref();
         } finally {
             synchronized( this ) {
-                sDisposing--;
+                vDisposing--;
             }
         }
     }
@@ -225,36 +222,36 @@ public class MultiCostPool<T extends Refable> implements Channel {
 
     @Override
     public boolean isOpen() {
-        return sOpen;
+        return vOpen;
     }
 
 
 
     boolean hasWarned() {
-        return sHasWarned;
+        return vHasWarned;
     }
 
 
     long warningThresh() {
-        return sWarningCost;
+        return vWarningCost;
     }
 
 
     long poolCost() {
-        return sPoolCostTotal;
+        return vPoolCostTotal;
     }
 
 
     long poolCost( Object key ) {
         synchronized( mLock ) {
-            Pool pool = sPools.get( key );
+            Pool pool = vPools.get( key );
             return pool == null ? 0 : pool.sPoolCost;
         }
     }
 
 
     long allocatedCost() {
-        return sAllocatedTotal;
+        return vAllocatedTotal;
     }
 
 
@@ -267,15 +264,15 @@ public class MultiCostPool<T extends Refable> implements Channel {
         try {
             synchronized( mLock ) {
                 if( closing ) {
-                    if( !sOpen ) {
+                    if( !vOpen ) {
                         return;
                     }
-                    sOpen = false;
+                    vOpen = false;
                 }
 
-                pools = new ArrayList<Pool>( sPools.values() );
-                sPools.clear();
-                sDisposing++;
+                pools = new ArrayList<Pool>( vPools.values() );
+                vPools.clear();
+                vDisposing++;
             }
 
             for( Pool pool: pools ) {
@@ -294,7 +291,7 @@ public class MultiCostPool<T extends Refable> implements Channel {
             synchronized( this ) {
                 if( !closing ) {
                     // If closing, leave mDisposing at 1.
-                    sDisposing--;
+                    vDisposing--;
                 }
             }
         }
@@ -310,7 +307,7 @@ public class MultiCostPool<T extends Refable> implements Channel {
         void sPush( T item, long cost ) {
             sPool.push( item );
             sPoolCost += cost;
-            sPoolCostTotal += cost;
+            vPoolCostTotal += cost;
         }
 
 
@@ -320,7 +317,7 @@ public class MultiCostPool<T extends Refable> implements Channel {
                 return null;
 
             case 1:
-                sPoolCostTotal -= sPoolCost;
+                vPoolCostTotal -= sPoolCost;
                 sPoolCost = 0;
                 return sPool.pop();
 
@@ -328,7 +325,7 @@ public class MultiCostPool<T extends Refable> implements Channel {
                 T item = sPool.pop();
                 long cost = mMetric.costOf( item );
                 sPoolCost -= cost;
-                sPoolCostTotal -= cost;
+                vPoolCostTotal -= cost;
                 return item;
             }
         }
@@ -344,7 +341,7 @@ public class MultiCostPool<T extends Refable> implements Channel {
 
             ret = Math.min( ret, sPoolCost );
             sPoolCost -= ret;
-            sPoolCostTotal -= ret;
+            vPoolCostTotal -= ret;
             return ret;
         }
 
@@ -352,7 +349,7 @@ public class MultiCostPool<T extends Refable> implements Channel {
         void sClear( List<T> derefList ) {
             derefList.addAll( sPool );
             sPool.clear();
-            sPoolCostTotal -= sPoolCost;
+            vPoolCostTotal -= sPoolCost;
             sPoolCost = 0;
         }
 

@@ -45,11 +45,11 @@ public class AudioResamplerUnit implements AvUnit {
         }
         mOpen = true;
 
-        AudioAllocator alloc = null;
+        PacketAllocator alloc = null;
         if( mOptMem != null ) {
-            alloc = mOptMem.audioAllocator( mDestFormat );
+            alloc = mOptMem.allocator( mDestFormat );
         } else {
-            alloc = OneFormatAudioAllocator.createPacketLimited( 64, -1 );
+            alloc = OneFormatAllocator.createPacketLimited( 64, -1 );
         }
 
         mResampler = new AudioResampler( alloc );

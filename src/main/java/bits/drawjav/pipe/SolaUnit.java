@@ -1,7 +1,6 @@
 package bits.drawjav.pipe;
 
 import bits.drawjav.*;
-import bits.drawjav.audio.*;
 import bits.jav.Jav;
 import bits.jav.util.JavMem;
 import bits.microtime.ClockEvent;
@@ -28,11 +27,12 @@ public class SolaUnit implements AvUnit {
 
     private Stream         mStream     = null;
     private StreamFormat   mFormat     = null;
-    private AudioAllocator mAlloc      = null;
     private DrawPacket     mSrc        = null;
     private FloatBuffer    mSrcBuf     = null;
     private FloatBuffer    mWorkFloats = null;
     private ByteBuffer     mWorkBytes  = null;
+
+    private PacketAllocator<DrawPacket> mAlloc = null;
 
     private DrawPacket  mDst        = null;
     private FloatBuffer mDstBuf     = null;
@@ -77,7 +77,7 @@ public class SolaUnit implements AvUnit {
         mBus = bus;
         bus.register( new ClockHandler() );
         mSola = new Sola( mFormat.mSampleRate );
-        mAlloc = mMem.audioAllocator( mFormat );
+        mAlloc = mMem.allocator( mFormat );
         mOpen = true;
     }
 

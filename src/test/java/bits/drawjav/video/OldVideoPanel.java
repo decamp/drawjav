@@ -7,7 +7,7 @@
 package bits.drawjav.video;
 
 import bits.drawjav.DrawPacket;
-import bits.drawjav.Sink;
+import bits.drawjav.old.Sink;
 import bits.drawjav.StreamFormat;
 import bits.jav.Jav;
 import bits.jav.util.Rational;

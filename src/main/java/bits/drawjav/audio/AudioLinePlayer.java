@@ -7,6 +7,7 @@
 package bits.drawjav.audio;
 
 import bits.drawjav.*;
+import bits.drawjav.old.Sink;
 import bits.jav.Jav;
 import bits.microtime.*;
 

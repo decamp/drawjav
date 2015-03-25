@@ -14,6 +14,7 @@ import static javax.media.opengl.GL3.*;
 
 import bits.draw3d.*;
 import bits.drawjav.*;
+import bits.drawjav.old.Sink;
 import bits.drawjav.pipe.InPad;
 import bits.jav.Jav;
 

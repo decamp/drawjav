@@ -7,10 +7,9 @@
 package bits.drawjav.pipe;
 
 import bits.drawjav.*;
+import bits.drawjav.OneFormatAllocator;
 import bits.drawjav.video.*;
-import bits.jav.Jav;
 import bits.jav.JavException;
-import bits.jav.swscale.SwsContext;
 import bits.util.ref.Refable;
 import com.google.common.eventbus.EventBus;
 
@@ -49,11 +48,11 @@ public class VideoResamplerUnit implements AvUnit {
         }
         mOpen = true;
 
-        VideoAllocator alloc = null;
+        PacketAllocator<DrawPacket> alloc;
         if( mOptMem != null ) {
-            alloc = mOptMem.videoAllocator( mDestFormat );
+            alloc = mOptMem.allocator( mDestFormat );
         } else {
-            alloc = OneFormatVideoAllocator.createPacketLimited( 32 );
+            alloc = OneFormatAllocator.createPacketLimited( 32, 0 );
         }
 
         mResampler = new VideoResampler( alloc );

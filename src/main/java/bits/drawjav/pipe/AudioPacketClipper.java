@@ -7,7 +7,6 @@
 package bits.drawjav.pipe;
 
 import bits.drawjav.*;
-import bits.drawjav.audio.*;
 import bits.jav.util.JavMem;
 import bits.jav.util.JavSampleFormat;
 import bits.microtime.*;
@@ -39,13 +38,13 @@ public class AudioPacketClipper implements SyncClockControl, AvUnit {
     private final FullClock  mClock  = new FullClock( Clock.SYSTEM_CLOCK );
 
     private boolean mOpen = false;
-    private AudioAllocator mAlloc;
 
-    private long    mClipMicros = Long.MIN_VALUE;
-    private boolean mForward    = true;
+    private PacketAllocator<DrawPacket> mAlloc;
 
-    private DrawPacket mOutPacket;
-    private boolean    mOutIsGap;
+    private long            mClipMicros = Long.MIN_VALUE;
+    private boolean         mForward    = true;
+    private DrawPacket      mOutPacket;
+    private boolean         mOutIsGap;
 
     // Used to cut up large packets when mOutIsGap == true (which means mOutPacket has no samples)
     private StreamFormat mOutFormat;
@@ -87,9 +86,9 @@ public class AudioPacketClipper implements SyncClockControl, AvUnit {
 
         mOpen = true;
         if( mOptMem == null ) {
-            mAlloc = OneFormatAudioAllocator.createPacketLimited( 32, 1024 * 4 );
+            mAlloc = OneFormatAllocator.createPacketLimited( 32, 1024 * 4 );
         } else {
-            mAlloc = mOptMem.audioAllocator( mOutFormat );
+            mAlloc = mOptMem.allocator( mOutFormat );
         }
 
         if( bus != null ) {
@@ -293,7 +292,7 @@ public class AudioPacketClipper implements SyncClockControl, AvUnit {
     public static DrawPacket clipForward( DrawPacket packet,
                                           StreamFormat format,
                                           long clipMicros,
-                                          AudioAllocator alloc )
+                                          PacketAllocator<DrawPacket> alloc )
     {
         long t0 = packet.startMicros();
         long t1 = packet.stopMicros();
@@ -339,7 +338,7 @@ public class AudioPacketClipper implements SyncClockControl, AvUnit {
     public static DrawPacket clipBackward( DrawPacket packet,
                                            StreamFormat format,
                                            long clipMicros,
-                                           AudioAllocator alloc )
+                                           PacketAllocator<DrawPacket> alloc )
     {
         long t0 = packet.startMicros();
         long t1 = packet.stopMicros();

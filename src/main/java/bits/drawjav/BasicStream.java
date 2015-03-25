@@ -6,16 +6,12 @@
 
 package bits.drawjav;
 
-import java.io.IOException;
-
-import bits.util.Guid;
-
 /**
  * @author decamp
  */
 public class BasicStream implements Stream {
 
-    private final StreamFormat mFormat;
+    protected final StreamFormat mFormat;
 
     public BasicStream( StreamFormat format ) {
         mFormat = format;

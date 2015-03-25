@@ -30,92 +30,88 @@ public class DrawPacket extends JavFrame implements Packet {
     private static boolean sHasWarnedAboutFinalization = false;
 
 
-    public static DrawPacket createAuto( ObjectPool<? super DrawPacket> optPool ) {
+    public static DrawPacket create( ObjectPool<? super DrawPacket> optPool, StreamFormat format, int size ) {
+        if( format != null ) {
+            int bufSize = computeBufferSize( format, size );
+            ByteBuffer buf = Jav.allocEncodingBuffer( bufSize );
+            return create( optPool, format, size, buf );
+        }
+
+        return createEmpty( optPool );
+    }
+
+
+    public static DrawPacket create( ObjectPool<? super DrawPacket> optPool,
+                                     StreamFormat format,
+                                     int size,
+                                     ByteBuffer buf )
+    {
+        DrawPacket ret = createEmpty( optPool );
+        if( format == null ) {
+            return ret;
+        }
+
+        switch( format.mType ) {
+        case Jav.AVMEDIA_TYPE_AUDIO:
+            try {
+                ret.fillAudioFrame( format.mChannels,
+                                    size,
+                                    format.mSampleFormat,
+                                    buf,
+                                    0 );
+            } catch( JavException e ) {
+                throw new RuntimeException( e );
+            }
+            return ret;
+        case Jav.AVMEDIA_TYPE_VIDEO:
+            try {
+                ret.fillVideoFrame( format.mWidth,
+                                    format.mHeight,
+                                    format.mPixelFormat,
+                                    buf );
+            } catch( JavException e ) {
+                throw new RuntimeException( e );
+            }
+            return ret;
+        }
+
+        format.getProperties( ret );
+        return ret;
+    }
+
+
+    public static DrawPacket createEmpty( ObjectPool<? super DrawPacket> optPool ) {
         long p = nAllocFrame();
         if( p == 0 ) {
-            throw new OutOfMemoryError( "Allocation failed." );
+            throw new OutOfMemoryError();
         }
         return new DrawPacket( p, optPool );
     }
 
 
-    public static DrawPacket createVideo( ObjectPool<? super DrawPacket> optPool,
-                                          StreamFormat format )
-    {
-        int size = nComputeVideoBufferSize( format.mWidth, format.mHeight, format.mPixelFormat );
-        size += Jav.FF_INPUT_BUFFER_PADDING_SIZE;
-        ByteBuffer buf = Jav.allocEncodingBuffer( size );
-        return createVideo( optPool, format, buf );
-    }
-    
-    
-    public static DrawPacket createVideo( ObjectPool<? super DrawPacket> optPool,
-                                          StreamFormat format,
-                                          ByteBuffer buf )
-    {
-        long pointer = nAllocFrame();
-        if( pointer == 0 ) {
-            throw new OutOfMemoryError();
-        }
-        DrawPacket ret = new DrawPacket( pointer, optPool );
-        try {
-            ret.fillVideoFrame( format.mWidth, format.mHeight, format.mPixelFormat, buf );
-        } catch( JavException e ) {
-            throw new RuntimeException( e );
+    public static int computeBufferSize( StreamFormat format, int size ) {
+        if( format == null ) {
+            return 0;
         }
 
-        Rational rat = format.mSampleAspect;
-        if( rat != null ) {
-            ret.sampleAspectRatio( rat );
-        }
-        return ret;
-    }
+        int len;
 
-
-    public static DrawPacket createAudio( ObjectPool<? super DrawPacket> optPool,
-                                          StreamFormat format,
-                                          int samplesPerChannel,
-                                          int align )
-    {
-        assert samplesPerChannel >= 0;
-
-        int size = JavSampleFormat.getBufferSize( format.mChannels,
-                                                  samplesPerChannel,
+        switch( format.mType ) {
+        case Jav.AVMEDIA_TYPE_VIDEO:
+            return nComputeVideoBufferSize( format.mWidth,
+                                            format.mHeight,
+                                            format.mPixelFormat );
+        case Jav.AVMEDIA_TYPE_AUDIO:
+            return JavSampleFormat.getBufferSize( format.mChannels,
+                                                  size,
                                                   format.mSampleFormat,
-                                                  align,
+                                                  0,
                                                   null );
-
-        if( size < 0 ) {
-            DrawPacket ret = createAuto( optPool );
-            format.getAudioProperties( ret );
-            return ret;
+        default:
+            return 0;
         }
 
-        ByteBuffer buf = Jav.allocEncodingBuffer( size );
-        return createAudio( optPool, format, samplesPerChannel, align, buf );
     }
-
-
-    public static DrawPacket createAudio( ObjectPool<? super DrawPacket> optPool,
-                                          StreamFormat format,
-                                          int samplesPerChannel,
-                                          int align,
-                                          ByteBuffer buf )
-    {
-        long pointer = nAllocFrame();
-        if( pointer == 0 ) {
-            throw new OutOfMemoryError();
-        }
-
-        DrawPacket ret = new DrawPacket( pointer, optPool );
-        ret.fillAudioFrame( format.mChannels,
-                            samplesPerChannel,
-                            format.mSampleFormat,
-                            buf,
-                            align );
-        return ret;
-    }
-
 
     private Stream  mStream;
     private long    mStartMicros;

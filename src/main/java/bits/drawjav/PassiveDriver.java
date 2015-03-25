@@ -10,6 +10,7 @@ import java.io.*;
 import java.nio.channels.ClosedChannelException;
 import java.util.logging.*;
 
+import bits.drawjav.old.*;
 import bits.microtime.*;
 
 
@@ -26,7 +27,7 @@ public class PassiveDriver implements StreamDriver {
 
     private static Logger sLog = Logger.getLogger( SyncedDriver.class.getName() );
 
-    private final PacketReader mReader;
+    private final PacketReader        mReader;
     private final ManyToManyFormatter mSink;
 
     private boolean     mClosed     = false;

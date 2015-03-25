@@ -26,7 +26,7 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
 
     private static final Logger sLog = Logger.getLogger( AudioResampler.class.getName() );
 
-    private final AudioAllocator mAlloc;
+    private final PacketAllocator<DrawPacket> mAlloc;
 
     private StreamFormat mSourceFormat        = null;
     private StreamFormat mPredictSourceFormat = null;
@@ -51,9 +51,9 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
     private boolean mDisposed = false;
 
 
-    public AudioResampler( AudioAllocator optAlloc ) {
+    public AudioResampler( PacketAllocator<DrawPacket> optAlloc ) {
         if( optAlloc == null ) {
-            mAlloc = OneFormatAudioAllocator.createPacketLimited( 32, 1024 * 4 );
+            mAlloc = OneFormatAllocator.createPacketLimited( 32, 1024 * 4 );
         } else {
             mAlloc = optAlloc;
             optAlloc.ref();
@@ -108,7 +108,6 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
     public StreamFormat destFormat() {
         return mDestFormat;
     }
-
 
 
     public int conversionFlags() {

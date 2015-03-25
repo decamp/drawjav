@@ -4,6 +4,7 @@ package bits.drawjav;
  * @author Philip DeCamp
  */
 public interface CostMetric<T> {
+
     public long costOf( T obj );
 
     public static CostMetric<Object> ONE = new CostMetric<Object>() {
@@ -11,4 +12,5 @@ public interface CostMetric<T> {
             return 1;
         }
     };
+
 }

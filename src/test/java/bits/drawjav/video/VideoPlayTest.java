@@ -39,7 +39,7 @@
 //        //File file = new File( "/code/bits/cannesamp/resources_ext/params_nfl/mcdonalds_preroll.mp4" );
 //
 ////        {
-////            PlayController playCont = PlayController.createAuto();
+////            PlayController playCont = PlayController.createEmpty();
 ////            FormatDecoder decoder = FormatDecoder.openFile( file, true, 0L );
 ////            decoder.openStream( decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ) );
 ////
@@ -57,11 +57,11 @@
 ////        }
 //
 //        {
-//            PlayController playCont = PlayController.createAuto();
+//            PlayController playCont = PlayController.createEmpty();
 //            FormatReader decoder = FormatReader.openFile( file, true, 0L, null );
 //            decoder.openStream( decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ) );
 //
-//            StreamFormat fmt = StreamFormat.createVideo( -1, -1, Jav.AV_PIX_FMT_BGR24, null );
+//            StreamFormat fmt = StreamFormat.create( -1, -1, Jav.AV_PIX_FMT_BGR24, null );
 //            RealtimeDriver driver = new RealtimeDriver( playCont.clock(), decoder, null, null );
 //            driver.seekWarmupMicros( 3000000L );
 //            driver.openVideoStream( null, decoder.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 ), fmt, panel );

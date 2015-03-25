@@ -1,9 +1,6 @@
 package bits.drawjav;
 
-import bits.drawjav.audio.AudioAllocator;
-import bits.drawjav.audio.MultiFormatAudioAllocator;
-import bits.drawjav.video.MultiFormatVideoAllocator;
-import bits.drawjav.video.VideoAllocator;
+import bits.jav.Jav;
 
 
 /**
@@ -11,8 +8,8 @@ import bits.drawjav.video.VideoAllocator;
  */
 public class PoolMemoryManager implements MemoryManager {
 
-    private MultiFormatVideoAllocator mVideoMem;
-    private MultiFormatAudioAllocator mAudioMem;
+    private MultiFormatAllocator mVideoMem;
+    private MultiFormatAllocator mAudioMem;
 
 
     public PoolMemoryManager( int audioItemCap,
@@ -21,28 +18,30 @@ public class PoolMemoryManager implements MemoryManager {
                               int videoByteCap )
     {
         if( videoItemCap > 0 || videoByteCap < 0 ) {
-            mVideoMem = MultiFormatVideoAllocator.createPacketLimited( videoItemCap );
+            mVideoMem = MultiFormatAllocator.createPacketLimited( videoItemCap );
         } else {
-            mVideoMem = MultiFormatVideoAllocator.createByteLimited( videoByteCap );
+            mVideoMem = MultiFormatAllocator.createByteLimited( videoByteCap );
         }
 
         if( audioItemCap > 0 || audioByteCap < 0 ) {
-            mAudioMem = MultiFormatAudioAllocator.createPacketLimited( audioItemCap );
+            mAudioMem = MultiFormatAllocator.createPacketLimited( audioItemCap );
         } else {
-            mAudioMem = MultiFormatAudioAllocator.createByteLimited( audioByteCap );
+            mAudioMem = MultiFormatAllocator.createByteLimited( audioByteCap );
         }
     }
 
     @Override
-    public VideoAllocator videoAllocator( StreamFormat stream ) {
-        mVideoMem.ref();
-        return mVideoMem;
-    }
+    public PacketAllocator allocator( StreamFormat format ) {
+        switch( format.mType ) {
+        case Jav.AVMEDIA_TYPE_AUDIO:
+            mAudioMem.ref();
+            return mAudioMem;
+        case Jav.AVMEDIA_TYPE_VIDEO:
+            mVideoMem.ref();
+            return mVideoMem;
+        }
 
-    @Override
-    public AudioAllocator audioAllocator( StreamFormat stream ) {
-        mAudioMem.ref();
-        return mAudioMem;
+        return null;
     }
 
 }

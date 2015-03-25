@@ -8,7 +8,7 @@ import bits.jav.util.Rational;
 * Supports arbitrary sample-rate conversion. <br/>
 * Uses kaiser-windowed sinc filter.
 *
-* This file is kept around because it's nice to have a pure java tool around.
+* This file is kept around because it's sometimes nice to have a pure java tool.
 * However, it's recommended you use swsresample instead.
 */
 public class SincResampler {

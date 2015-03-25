@@ -10,6 +10,8 @@ import java.io.*;
 import javax.swing.JFrame;
 
 import bits.drawjav.*;
+import bits.drawjav.old.RealtimeDriver;
+import bits.drawjav.old.Sink;
 import bits.jav.Jav;
 import bits.microtime.Frac;
 import bits.microtime.PlayController;
