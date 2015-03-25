@@ -347,7 +347,6 @@ public class SchedulerUnit implements AvUnit {
 
 
         void vClear() {
-            System.out.println( "CLEAR" );
             Command head = vReadyHead;
             vReadyHead = null;
             vReadyTail = null;
@@ -383,8 +382,6 @@ public class SchedulerUnit implements AvUnit {
                     if( packet == null ) {
                         return OKAY;
                     }
-
-                    System.out.println( packet.startMicros() );
 
                     if( mStreamSize++ >= mStreamCap ) {
                         mStreamSize--;
