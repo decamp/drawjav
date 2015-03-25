@@ -18,7 +18,7 @@ public class AudioPlayerTest {
     private static final File TEST_FILE = new File( "../../ext/video.mp4" );
 
     public static void main( String[] args ) throws Exception {
-        testPlay2();
+        testPlay();
     }
 
     static void testPlay() throws Exception {
@@ -30,6 +30,7 @@ public class AudioPlayerTest {
         reader.openStream( stream );
 
         AudioPlayer player = new AudioPlayer( mem, clock, reader );
+        player.start();
         Random rand = new Random( 1 );
         clock.clockStart();
 
@@ -60,6 +61,7 @@ public class AudioPlayerTest {
         reader.openStream( stream );
 
         AudioPlayer player = new AudioPlayer( mem, clock, reader );
+        player.start();
         Random rand = new Random( 1 );
         clock.clockStart();
 

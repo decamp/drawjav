@@ -21,13 +21,7 @@ public class AudioPlayer implements Channel {
     private final AudioPacketClipper mClipper;
     private final SolaUnit           mSola;
     private final LineOutUnit        mLineOut;
-
-    private final ClockEventQueue mEvents;
-
-    private final AvGraph mGraph = new AvGraph();
-    private final Object  mLock  = mGraph;
-
-    private volatile boolean vOpen = true;
+    private final GraphDriver        mDriver;
 
 
     public AudioPlayer( MemoryManager optMem,
@@ -44,35 +38,22 @@ public class AudioPlayer implements Channel {
         }
         mClock = optClock;
 
-        StreamFormat  srcFormat = StreamFormat.createAudio( 1, 48000, Jav.AV_SAMPLE_FMT_S16P );
-        StreamFormat  dstFormat = StreamFormat.createAudio( 1, 48000, Jav.AV_SAMPLE_FMT_FLT );
-        Stream srcStream = new BasicStream( srcFormat );
-        Stream dstStream = new BasicStream( dstFormat );
+        StreamFormat srcFormat = StreamFormat.createAudio( 1, 48000, Jav.AV_SAMPLE_FMT_S16P );
+        StreamFormat dstFormat = StreamFormat.createAudio( 1, 48000, Jav.AV_SAMPLE_FMT_FLT );
 
         mReader    = new PacketReaderUnit( reader );
         mClipper   = new AudioPacketClipper( optMem ); //optMem.audioAllocator( srcStream ) );
         mResampler = new AudioResamplerUnit( optMem );
         mSola      = new SolaUnit( optMem );
         mLineOut   = new LineOutUnit( null );
-        mEvents    = new ClockEventQueue( mGraph, mClock, 2048 );
 
-        mGraph.connect( mReader, mReader.output( 0 ), mClipper, mClipper.input( 0 ), srcFormat );
-        mGraph.connect( mClipper, mClipper.output( 0 ), mResampler, mResampler.input( 0 ), srcFormat );
-        mGraph.connect( mResampler, mResampler.output( 0 ), mSola, mSola.input( 0 ), dstFormat );
-        mGraph.connect( mSola, mSola.output( 0 ), mLineOut, mLineOut.input( 0 ), dstFormat );
+        AvGraph graph = new AvGraph();
+        graph.connect( mReader,    mReader.output( 0 ),    mClipper,   mClipper.input( 0 ),   srcFormat );
+        graph.connect( mClipper,   mClipper.output( 0 ),   mResampler, mResampler.input( 0 ), srcFormat );
+        graph.connect( mResampler, mResampler.output( 0 ), mSola,      mSola.input( 0 ),      dstFormat );
+        graph.connect( mSola,      mSola.output( 0 ),      mLineOut,   mLineOut.input( 0 ),   dstFormat );
 
-        synchronized( mClock ) {
-            mClock.addListener( mEvents );
-            mClock.addListener( mLineOut );
-            mClock.applyTo( mEvents );
-            mClock.applyTo( mLineOut );
-        }
-
-        new Thread( "AudioPlayer" ) {
-            public void run() {
-                runLoop();
-            }
-        }.start();
+        mDriver = new GraphDriver( graph, graph, mClock );
     }
 
 
@@ -80,72 +61,19 @@ public class AudioPlayer implements Channel {
         return mClock;
     }
 
+
+    public void start() {
+        mDriver.start();
+    }
+
     @Override
     public boolean isOpen() {
-        return vOpen;
+        return mDriver.isOpen();
     }
 
     @Override
     public void close() throws IOException {
-        synchronized( mLock ) {
-            if( !vOpen ) {
-                return;
-            }
-            vOpen = false;
-            mLock.notifyAll();
-        }
-    }
-
-
-    private void runLoop() {
-        while( true ) {
-            synchronized( mLock ) {
-                if( !vOpen ) {
-                    return;
-                }
-
-                // Process events.
-                while( true ) {
-                    Object e = mEvents.poll();
-                    if( e == null ) {
-                        break;
-                    }
-
-                    if( e instanceof ClockEvent ) {
-                        switch( ((ClockEvent)e).mId ) {
-                        case ClockEvent.CLOCK_RATE: {
-                            ClockEvent seek;
-                            synchronized( mClock ) {
-                                seek = ClockEvent.createClockSeek( this, mClock.masterBasis(), mClock.timeBasis() );
-                            }
-                            mGraph.postEvent( e );
-                            mGraph.postEvent( seek );
-                            mGraph.clear();
-                            break;
-                        }
-
-                        case ClockEvent.CLOCK_SEEK:
-                            mGraph.postEvent( e );
-                            mGraph.clear();
-                            break;
-
-                        default:
-                            mGraph.postEvent( e );
-                        }
-                    } else {
-                        mGraph.postEvent( e );
-                    }
-
-                }
-            }
-
-            switch( mGraph.step() ) {
-            case AvGraph.WAIT:
-            case AvGraph.FINISHED:
-                mGraph.waitForWork( 1000L );
-                break;
-            }
-        }
+        mDriver.close();
     }
 
 }

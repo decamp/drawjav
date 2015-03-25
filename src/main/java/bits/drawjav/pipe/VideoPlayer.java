@@ -9,12 +9,13 @@ import bits.microtime.PlayClock;
 import bits.microtime.PlayController;
 
 import java.io.IOException;
+import java.nio.channels.Channel;
 
 
 /**
  * @author Philip DeCamp
  */
-public class VideoPlayer {
+public class VideoPlayer implements Channel {
 
     private final MemoryManager mMem;
     private final PlayClock     mClock;
@@ -59,11 +60,6 @@ public class VideoPlayer {
     }
 
 
-    public void start() {
-        mDriver.start();
-    }
-
-
     public PlayClock clock() {
         return mClock;
     }
@@ -71,6 +67,21 @@ public class VideoPlayer {
 
     public Texture texture() {
         return mTexture.texture();
+    }
+
+
+    public void start() {
+        mDriver.start();
+    }
+
+    @Override
+    public boolean isOpen() {
+        return mDriver.isOpen();
+    }
+
+    @Override
+    public void close() throws IOException {
+        mDriver.close();
     }
 
 }
