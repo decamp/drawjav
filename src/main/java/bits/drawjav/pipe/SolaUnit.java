@@ -177,7 +177,7 @@ public class SolaUnit implements AvUnit {
         @Override
         public int status() {
             return !mOpen ? CLOSED :
-                   mSrc == null ? OKAY : DRAIN_FILTER;
+                   mSrc == null ? OKAY : DRAIN_UNIT;
         }
 
         @Override
@@ -186,7 +186,7 @@ public class SolaUnit implements AvUnit {
                 return CLOSED;
             }
             if( mSrc != null ) {
-                return DRAIN_FILTER;
+                return DRAIN_UNIT;
             }
 
             if( packet.isGap() ) {
@@ -238,7 +238,7 @@ public class SolaUnit implements AvUnit {
         @Override
         public int status() {
             return !mOpen ? CLOSED :
-                    mSrc != null ? OKAY : FILL_FILTER;
+                    mSrc != null ? OKAY : FILL_UNIT;
         }
 
         @Override
@@ -263,7 +263,7 @@ public class SolaUnit implements AvUnit {
 
                 // Check if anything to process.
                 if( mSrc == null ) {
-                    return FILL_FILTER;
+                    return FILL_UNIT;
                 }
 
                 doProcess();

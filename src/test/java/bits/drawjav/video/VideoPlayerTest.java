@@ -18,7 +18,8 @@ public class VideoPlayerTest {
 
 
     public static void main( String[] args ) throws Exception {
-        testRealtime();
+//        testRealtime();
+        testStepping();
 //        testSynced();
 //        testMultiRealtime();
 //        testMultiSynced();
@@ -36,11 +37,16 @@ public class VideoPlayerTest {
         Stream sh = reader.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 );
         reader.openStream( sh );
 
-        final VideoPlayer player = new VideoPlayer( mem, playCont.clock(), reader );
-        new VideoWindow( playCont, player.texture() );
+        final VideoPlayer player = new VideoPlayer( mem, playCont.clock(), reader, false );
+        VideoWindow win = new VideoWindow( playCont, player.texture() );
+
 
         clock.clockSeek( 0 );
         player.start();
+        win.start();
+
+        // Update playcontroller before we start clock so that master clock will be caught up.
+        playCont.tick();
         clock.clockStart();
 
 //        try {
@@ -61,6 +67,51 @@ public class VideoPlayerTest {
 ////            }
 //        } catch( Exception ex ) {}
     }
+
+    static void testStepping() throws Exception {
+        final MemoryManager mem       = new PoolMemoryManager( -1, 1024 * 1024 * 16, -1, 1024 * 1024 * 256 );
+        final PlayController playCont = PlayController.createStepping( 0, 1000000L / 30L );
+        final ClockControl clock      = playCont.clock();
+        final FormatReader reader     = FormatReader.openFile( TEST_FILE, true, 0, mem );
+
+        Stream sh = reader.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 );
+        reader.openStream( sh );
+
+        final VideoPlayer player = new VideoPlayer( mem, playCont.clock(), reader, true );
+
+
+        Ticker ticker = new Ticker() {
+            @Override
+            public void tick() {
+                playCont.tick();
+                player.tick();
+            }
+        };
+
+        final VideoWindow win = new VideoWindow( ticker, player.texture() );
+        win.start();
+        clock.clockStart();
+
+        try {
+            Thread.sleep( 2000L );
+            System.out.println( "STOP" );
+            playCont.control().clockStop();
+            Thread.sleep( 2000L );
+            System.out.println("SEEK");
+            playCont.control().clockSeek( 100000L );
+            Thread.sleep( 2000L );
+            System.out.println("PLAY");
+            playCont.control().clockStart();
+
+            while( true ) {
+                Thread.sleep( 5000L );
+                System.out.println("SEEK");
+                playCont.control().clockSeek( 10000L );
+            }
+        } catch( Exception ex ) {}
+    }
+
+
 
 
 }

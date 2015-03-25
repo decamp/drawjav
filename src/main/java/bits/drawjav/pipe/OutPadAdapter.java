@@ -18,7 +18,7 @@ public class OutPadAdapter implements OutPad {
 
     @Override
     public int poll( Refable[] out ) {
-        return FILL_FILTER;
+        return FILL_UNIT;
     }
 
     @Override

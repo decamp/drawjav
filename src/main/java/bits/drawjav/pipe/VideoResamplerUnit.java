@@ -52,7 +52,7 @@ public class VideoResamplerUnit implements AvUnit {
         if( mOptMem != null ) {
             alloc = mOptMem.allocator( mDestFormat );
         } else {
-            alloc = OneFormatAllocator.createPacketLimited( 32, 0 );
+            alloc = OneFormatAllocator.createPacketLimited( 32 );
         }
 
         mResampler = new VideoResampler( alloc );
@@ -97,7 +97,7 @@ public class VideoResamplerUnit implements AvUnit {
     @Override
     public void clear() {
         if( mResampler != null ) {
-            //mResampler.clear();
+            mResampler.clear();
         }
     }
 
@@ -107,14 +107,14 @@ public class VideoResamplerUnit implements AvUnit {
         @Override
         public int status() {
             return mException != null ? EXCEPTION :
-                   mOutPacket != null ? DRAIN_FILTER : OKAY;
+                   mOutPacket != null ? DRAIN_UNIT : OKAY;
         }
 
         @Override
         public int offer( DrawPacket packet ) {
             mException = null;
             if( mOutPacket != null ) {
-                return DRAIN_FILTER;
+                return DRAIN_UNIT;
             }
 
             // Check for empty packet.
@@ -146,13 +146,13 @@ public class VideoResamplerUnit implements AvUnit {
     private class OutHandler extends OutPadAdapter {
         @Override
         public int status() {
-            return mOutPacket == null ? FILL_FILTER : OKAY;
+            return mOutPacket == null ? FILL_UNIT : OKAY;
         }
 
         @Override
         public int poll( Refable[] out ) {
             if( mOutPacket == null ) {
-                return FILL_FILTER;
+                return FILL_UNIT;
             }
 
             out[0] = mOutPacket;

@@ -37,16 +37,16 @@ public class PoolPerFormatMemoryManager implements MemoryManager {
         switch( stream.mType ) {
         case Jav.AVMEDIA_TYPE_AUDIO:
             if( mAudioItemCap > 0 || mAudioByteCap <= 0 ) {
-                return OneFormatAllocator.createPacketLimited( mAudioItemCap, -1 );
+                return OneFormatAllocator.createPacketLimited( mAudioItemCap );
             } else {
-                return OneFormatAllocator.createByteLimited( mAudioByteCap, -1 );
+                return OneFormatAllocator.createByteLimited( mAudioByteCap );
             }
 
         case Jav.AVMEDIA_TYPE_VIDEO:
             if( mVideoItemCap > 0 || mVideoByteCap <= 0 ) {
-                return OneFormatAllocator.createPacketLimited( mVideoItemCap, -1 );
+                return OneFormatAllocator.createPacketLimited( mVideoItemCap );
             } else {
-                return OneFormatAllocator.createByteLimited( mVideoByteCap, -1 );
+                return OneFormatAllocator.createByteLimited( mVideoByteCap );
             }
         }
 

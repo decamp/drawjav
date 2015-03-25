@@ -149,7 +149,7 @@ public class AudioClipperFilterTest {
         arr[0].deref();
         arr[0] = null;
 
-        assertTrue( clipper.output( 0 ).status() == Pad.FILL_FILTER );
+        assertTrue( clipper.output( 0 ).status() == Pad.FILL_UNIT );
     }
 
     @Test
@@ -198,7 +198,7 @@ public class AudioClipperFilterTest {
         arr[0].deref();
         arr[0] = null;
 
-        assertTrue( clipper.output( 0 ).status() == Pad.FILL_FILTER );
+        assertTrue( clipper.output( 0 ).status() == Pad.FILL_UNIT );
     }
 
 }

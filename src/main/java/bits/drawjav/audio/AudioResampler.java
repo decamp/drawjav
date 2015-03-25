@@ -53,7 +53,7 @@ public class AudioResampler implements PacketConverter<DrawPacket> {
 
     public AudioResampler( PacketAllocator<DrawPacket> optAlloc ) {
         if( optAlloc == null ) {
-            mAlloc = OneFormatAllocator.createPacketLimited( 32, 1024 * 4 );
+            mAlloc = OneFormatAllocator.createPacketLimited( 32 );
         } else {
             mAlloc = optAlloc;
             optAlloc.ref();

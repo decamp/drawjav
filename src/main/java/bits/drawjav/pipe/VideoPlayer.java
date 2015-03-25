@@ -19,6 +19,7 @@ public class VideoPlayer implements Channel {
 
     private final MemoryManager mMem;
     private final PlayClock     mClock;
+    private final boolean       mStepping;
 
     private final PacketReaderUnit   mReader;
     private final VideoResamplerUnit mResampler;
@@ -29,13 +30,15 @@ public class VideoPlayer implements Channel {
 
     public VideoPlayer( MemoryManager optMem,
                         PlayClock optClock,
-                        PacketReader reader )
+                        PacketReader reader,
+                        boolean stepping )
                         throws IOException
     {
         if( optMem == null ) {
             optMem = new PoolPerFormatMemoryManager( 128, 64 * 1024 * 1024, -1, -1 );
         }
         mMem = optMem;
+        mStepping = stepping;
         if( optClock == null ) {
             optClock = PlayController.createAuto().clock();
         }
@@ -45,18 +48,21 @@ public class VideoPlayer implements Channel {
 
         mReader    = new PacketReaderUnit( reader );
         mResampler = new VideoResamplerUnit( mMem );
-        mScheduler = new SchedulerUnit();
+        mScheduler = stepping ? new TickerSchedulerUnit() : new ThreadedSchedulerUnit();
         mTexture   = new VideoTextureUnit();
 
         mScheduler.addStream( mClock, 16 );
 
         AvGraph graph = new AvGraph();
-        graph.connect( mReader, mReader.output( 0 ), mResampler, mResampler.input( 0 ), null );
+        graph.connect( mReader,    mReader.output( 0 ),    mResampler, mResampler.input( 0 ), null );
         graph.connect( mResampler, mResampler.output( 0 ), mScheduler, mScheduler.input( 0 ), dstFormat );
-        graph.connect( mScheduler, mScheduler.output( 0 ), mTexture, mTexture.input( 0 ), dstFormat );
-//        graph.connect( mResampler, mResampler.output( 0 ), mTexture, mTexture.input( 0 ), dstFormat );
+        graph.connect( mScheduler, mScheduler.output( 0 ), mTexture,   mTexture.input( 0 ),   dstFormat );
 
-        mDriver = new GraphDriver( graph, graph, mClock );
+        if( !stepping ) {
+            mDriver = GraphDriver.createThreaded( mClock, graph );
+        } else {
+            mDriver = GraphDriver.createStepping( mClock, graph, mScheduler );
+        }
     }
 
 
@@ -70,8 +76,18 @@ public class VideoPlayer implements Channel {
     }
 
 
+    public boolean isStepping() {
+        return mStepping;
+    }
+
+
     public void start() {
         mDriver.start();
+    }
+
+
+    public void tick() {
+        mDriver.tick();
     }
 
     @Override

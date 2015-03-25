@@ -86,7 +86,7 @@ public class AudioPacketClipper implements SyncClockControl, AvUnit {
 
         mOpen = true;
         if( mOptMem == null ) {
-            mAlloc = OneFormatAllocator.createPacketLimited( 32, 1024 * 4 );
+            mAlloc = OneFormatAllocator.createPacketLimited( 32 );
         } else {
             mAlloc = mOptMem.allocator( mOutFormat );
         }
@@ -201,7 +201,7 @@ public class AudioPacketClipper implements SyncClockControl, AvUnit {
             }
 
             if( mOutPacket != null ) {
-                return DRAIN_FILTER;
+                return DRAIN_UNIT;
             }
             mOutIsGap = false;
 
@@ -253,7 +253,7 @@ public class AudioPacketClipper implements SyncClockControl, AvUnit {
 
         @Override
         public int status() {
-            return mOutPacket == null ? OKAY : DRAIN_FILTER;
+            return mOutPacket == null ? OKAY : DRAIN_UNIT;
         }
     }
 
@@ -267,13 +267,13 @@ public class AudioPacketClipper implements SyncClockControl, AvUnit {
 
         @Override
         public int status() {
-            return mOutPacket == null ? FILL_FILTER : OKAY;
+            return mOutPacket == null ? FILL_UNIT : OKAY;
         }
 
         @Override
         public int poll( Refable[] out ) {
             if( mOutPacket == null ) {
-                return FILL_FILTER;
+                return FILL_UNIT;
             }
 
             out[0] = mOutPacket;

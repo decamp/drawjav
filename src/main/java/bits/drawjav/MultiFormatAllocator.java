@@ -11,7 +11,7 @@ import bits.util.ref.ObjectPool;
  *
  * @author Philip DeCamp
  */
-public class MultiFormatAllocator extends AbstractRefable implements PacketAllocator {
+public class MultiFormatAllocator extends AbstractRefable implements PacketAllocator<DrawPacket> {
 
 
     private static final CostMetric<JavFrame> BYTE_COST = new CostMetric<JavFrame>() {

@@ -45,11 +45,11 @@ public class AudioResamplerUnit implements AvUnit {
         }
         mOpen = true;
 
-        PacketAllocator alloc = null;
+        PacketAllocator<DrawPacket> alloc = null;
         if( mOptMem != null ) {
             alloc = mOptMem.allocator( mDestFormat );
         } else {
-            alloc = OneFormatAllocator.createPacketLimited( 64, -1 );
+            alloc = OneFormatAllocator.createPacketLimited( 64 );
         }
 
         mResampler = new AudioResampler( alloc );
@@ -103,14 +103,14 @@ public class AudioResamplerUnit implements AvUnit {
         @Override
         public int status() {
             return mException != null ? EXCEPTION :
-                   mOutPacket != null ? DRAIN_FILTER : OKAY;
+                   mOutPacket != null ? DRAIN_UNIT : OKAY;
         }
 
         @Override
         public int offer( DrawPacket packet ) {
             mException = null;
             if( mOutPacket != null ) {
-                return DRAIN_FILTER;
+                return DRAIN_UNIT;
             }
 
             // Check for empty packet.
@@ -142,13 +142,13 @@ public class AudioResamplerUnit implements AvUnit {
     private class OutHandler extends OutPadAdapter {
         @Override
         public int status() {
-            return mOutPacket == null ? FILL_FILTER : OKAY;
+            return mOutPacket == null ? FILL_UNIT : OKAY;
         }
 
         @Override
         public int poll( Refable[] out ) {
             if( mOutPacket == null ) {
-                return FILL_FILTER;
+                return FILL_UNIT;
             }
 
             out[0] = mOutPacket;

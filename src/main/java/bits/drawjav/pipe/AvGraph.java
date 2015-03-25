@@ -285,7 +285,7 @@ public class AvGraph {
                 // not that that should be much of a problem with current threading model.
                 break;
 
-            case OutPad.FILL_FILTER:
+            case OutPad.FILL_UNIT:
                 removeOp( this );
                 if( mFilter.isSource() ) {
                     // If this is a source, there's nothing we can do.
@@ -391,7 +391,7 @@ public class AvGraph {
                 // Leave Op in place and try again.
                 break;
 
-            case InPad.DRAIN_FILTER:
+            case InPad.DRAIN_UNIT:
                 removeOp( this );
                 // If this is a sink, there's nothing we can do.
                 if( mFilter.isSink() ) {

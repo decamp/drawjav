@@ -29,36 +29,30 @@ public class OneFormatAllocator extends AbstractRefable implements PacketAllocat
     };
 
 
-    public static OneFormatAllocator createPacketLimited( int maxPackets, int defaultSampleNum ) {
+    public static OneFormatAllocator createPacketLimited( int maxPackets ) {
         CostPool<DrawPacket> pool = new CostPool<DrawPacket>( maxPackets, maxPackets * 100, null );
-        return new OneFormatAllocator( pool, defaultSampleNum );
+        return new OneFormatAllocator( pool );
     }
 
 
-    public static OneFormatAllocator createByteLimited( long maxBytes, int defaultSampleNum ) {
+    public static OneFormatAllocator createByteLimited( long maxBytes ) {
         CostPool<DrawPacket> pool = new CostPool<DrawPacket>( maxBytes, maxBytes * 100, BYTE_COST );
-        return new OneFormatAllocator( pool, defaultSampleNum );
+        return new OneFormatAllocator( pool );
     }
 
 
     private final CostPool<DrawPacket> mPool;
 
     private StreamFormat mPoolFormat;
-    private int          mDefaultSize;
 
     private boolean mHasFormat        = false;
     private boolean mHasChangedFormat = false;
 
 
-    OneFormatAllocator( CostPool<DrawPacket> pool, int defaultSize ) {
+    OneFormatAllocator( CostPool<DrawPacket> pool ) {
         mPool = pool;
-        mDefaultSize = defaultSize;
     }
 
-
-    public synchronized DrawPacket alloc( StreamFormat format ) {
-        return alloc( format, mDefaultSize );
-    }
 
     @Override
     public synchronized DrawPacket alloc( StreamFormat format, int size ) {

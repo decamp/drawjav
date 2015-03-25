@@ -53,7 +53,7 @@ public class AudioPlayer implements Channel {
         graph.connect( mResampler, mResampler.output( 0 ), mSola,      mSola.input( 0 ),      dstFormat );
         graph.connect( mSola,      mSola.output( 0 ),      mLineOut,   mLineOut.input( 0 ),   dstFormat );
 
-        mDriver = new GraphDriver( graph, graph, mClock );
+        mDriver = GraphDriver.createThreaded( mClock, graph );
     }
 
 
