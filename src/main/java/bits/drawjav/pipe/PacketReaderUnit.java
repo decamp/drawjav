@@ -13,7 +13,7 @@ import java.util.*;
 /**
  * @author Philip DeCamp
  */
-public class PacketReaderUnit implements AvUnit, SyncClockControl {
+public final class PacketReaderUnit implements AvUnit, SyncClockControl {
 
     private static final int MAX_QUEUE_SIZE = 64;
 
@@ -91,6 +91,7 @@ public class PacketReaderUnit implements AvUnit, SyncClockControl {
 
     @Subscribe
     public void processClockEvent( ClockEvent event ) {
+        System.out.println( event + "\t" + event.mSource );
         event.apply( this );
     }
 

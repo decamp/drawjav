@@ -1,53 +1,90 @@
 package bits.drawjav.pipe;
 
 import bits.drawjav.ClockEventQueue;
-import bits.microtime.PlayClock;
-import bits.microtime.Ticker;
+import bits.microtime.*;
 
 import java.io.IOException;
 import java.nio.channels.Channel;
 
 /**
+ * Drives AvGraph processing operations. GraphDriver operates in one of two modes:
+ * <p>
+ * <b>Manual Mode</b>: User must repeatedly call {@code tick()}. On each call, GraphDriver will process data until
+ * nothing is left to be done, then return. Normally, {@code tick()} will be called on each rendering frame
+ * or each clock update.
+ * <p>
+ * <b>Threaded Mode</b>: Entered by calling {@code startThreadedMode()}. GraphDriver will use an internal thread to
+ * continuously process data until {@code close()} is called. In this mode, calling {@code tick()} will
+ * call listener Tickers, but will have no other effect.
+ *
  * @author Philip DeCamp
  */
-public abstract class GraphDriver implements Channel, Ticker {
-
-
-    public static GraphDriver createThreaded( PlayClock clock, AvGraph graph ) {
-        return new ThreadedGraphDriver( clock, graph );
-    }
-
-
-    public static GraphDriver createStepping( PlayClock clock, AvGraph graph, Ticker optPreStep ) {
-        return new SteppingGraphDriver( clock, graph, optPreStep );
-    }
-
+public final class GraphDriver implements Channel, Ticker {
 
     final Object          mLock;
     final AvGraph         vGraph;
     final ClockEventQueue mEvents;
-    final Ticker          mOptTicker;
 
-    volatile boolean vOpen = false;
+    volatile Ticker  vTicker   = null;
+    volatile boolean vThreaded = false;
+    volatile boolean vOpen     = true;
 
 
-    GraphDriver( PlayClock optClock, AvGraph graph, Ticker optTicker ) {
-        mLock      = graph;
-        vGraph     = graph;
-        mEvents    = new ClockEventQueue( mLock, optClock, 1024 );
-        mOptTicker = optTicker;
-
-        if( optClock != null ) {
-            optClock.addListener( mEvents );
-        }
+    public GraphDriver( PlayClock optClock, AvGraph graph ) {
+        mLock   = graph;
+        vGraph  = graph;
+        mEvents = new ClockEventQueue( mLock, optClock, 1024 );
     }
 
 
 
-    public abstract void start();
+    public void startThreadedMode() {
+        synchronized( mLock ) {
+            if( vThreaded || !vOpen ) {
+                return;
+            }
+
+            vThreaded = true;
+            new Thread( "GraphDriver" ) {
+                public void run() {
+                    step( true );
+                }
+            }.start();
+        }
+    }
 
 
-    public abstract void tick();
+    public void tick() {
+        Ticker t = vTicker;
+        if( t !=  null ) {
+            t.tick();
+        }
+
+        if( vThreaded ) {
+            return;
+        }
+
+        step( false );
+    }
+
+    /**
+     * "Child Tickers" can be added to the GraphDriver. These tickers will be updated on each call
+     * to {@code GraphDriver.tick()} prior to processing graph data.
+     *
+     * @param t Ticker to call each {@code tick()} step.
+     */
+    public void addTicker( Ticker t ) {
+        synchronized( mLock ) {
+            vTicker = TickCaster.add( vTicker, t );
+        }
+    }
+
+
+    public void removeTicker( Ticker t ) {
+        synchronized( mLock ) {
+            vTicker = TickCaster.remove( vTicker, t );
+        }
+    }
 
 
     public void postEvent( Object event ) {
@@ -71,102 +108,33 @@ public abstract class GraphDriver implements Channel, Ticker {
     }
 
 
-
-    private static final class ThreadedGraphDriver extends GraphDriver {
-
-        ThreadedGraphDriver( PlayClock optClock, AvGraph graph ) {
-            super( optClock, graph, null );
-        }
-
-        @Override
-        public void tick() {}
-
-
-        public void start() {
+    private void step( boolean wait ) {
+        while( true ) {
             synchronized( mLock ) {
-                if( vOpen ) {
+                if( !vOpen ) {
                     return;
                 }
-                vOpen = true;
-                new Thread( "GraphDriver" ) {
-                    public void run() {
-                        runLoop();
+
+                // Process events.
+                while( true ) {
+                    Object e = mEvents.poll();
+                    if( e == null ) {
+                        break;
                     }
-                }.start();
-            }
-        }
-
-
-        private void runLoop() {
-            while( true ) {
-                synchronized( mLock ) {
-                    if( !vOpen ) {
-                        return;
-                    }
-
-                    // Process events.
-                    while( true ) {
-                        Object e = mEvents.poll();
-                        if( e == null ) {
-                            break;
-                        }
-                        vGraph.postEvent( e );
-                    }
-                }
-
-                switch( vGraph.step() ) {
-                case AvGraph.WAIT:
-                case AvGraph.FINISHED:
-                    vGraph.waitForWork( 1000L );
-                    break;
+                    vGraph.postEvent( e );
                 }
             }
-        }
 
-    }
-
-
-    private static final class SteppingGraphDriver extends GraphDriver {
-
-        SteppingGraphDriver( PlayClock optClock, AvGraph graph, Ticker optTicker ) {
-            super( optClock, graph, optTicker );
-            vOpen = true;
-        }
-
-
-        @Override
-        public void tick() {
-            if( mOptTicker != null ) {
-                mOptTicker.tick();
-            }
-
-            while( true ) {
-                synchronized( mLock ) {
-                    if( !vOpen ) {
-                        return;
-                    }
-
-                    // Process events.
-                    while( true ) {
-                        Object e = mEvents.poll();
-                        if( e == null ) {
-                            break;
-                        }
-                        vGraph.postEvent( e );
-                    }
-                }
-
-                switch( vGraph.step() ) {
-                case AvGraph.WAIT:
-                case AvGraph.FINISHED:
+            switch( vGraph.step() ) {
+            case AvGraph.WAIT:
+            case AvGraph.FINISHED:
+                if( !wait ) {
                     return;
                 }
+                vGraph.waitForWork( 1000L );
+                break;
             }
         }
-
-
-        public void start() {}
-
     }
 
 }

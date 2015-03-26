@@ -13,7 +13,7 @@ import java.util.logging.Logger;
 /**
  * @author Philip DeCamp
  */
-public class ThreadedSchedulerUnit implements SchedulerUnit {
+public final class ThreadedSchedulerUnit implements SchedulerUnit {
 
 
     private static final Logger sLog = Logger.getLogger( ThreadedSchedulerUnit.class.getName() );
@@ -161,8 +161,6 @@ public class ThreadedSchedulerUnit implements SchedulerUnit {
         } catch( RuntimeException ex ) {
             ex.printStackTrace();
         }
-
-
     }
 
 

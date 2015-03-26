@@ -21,7 +21,7 @@ import java.io.IOException;
 *
 * @author decamp
 */
-public class VideoResamplerUnit implements AvUnit {
+public final class VideoResamplerUnit implements AvUnit {
 
     private final InHandler  mInPad  = new InHandler();
     private final OutHandler mOutPad = new OutHandler();
@@ -98,6 +98,11 @@ public class VideoResamplerUnit implements AvUnit {
     public void clear() {
         if( mResampler != null ) {
             mResampler.clear();
+        }
+
+        if( mOutPacket != null ) {
+            mOutPacket.deref();
+            mOutPacket = null;
         }
     }
 

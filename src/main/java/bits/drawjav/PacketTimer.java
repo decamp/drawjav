@@ -14,7 +14,7 @@ class PacketTimer {
     private static final long NAN = Jav.AV_NOPTS_VALUE;
     private static final Rational MICROS = new Rational( 1, 1000000 );
 
-    // If the stream start offset is smaller than this,
+    // If the stream startThreadedMode offset is smaller than this,
     // assume it actually starts at 0.
     private static final long STREAM_START_THRESHOLD = 500000L;
 
@@ -27,7 +27,7 @@ class PacketTimer {
     private long mSyncThreshPts;
     private long mSyncThreshMicros = 2000000L;
 
-    // Estimates of acutal start pts and micros.
+    // Estimates of acutal startThreadedMode pts and micros.
     private long mOffsetPts;
     private long mOffsetMicros;
 
@@ -153,7 +153,7 @@ class PacketTimer {
     private void sync( long syncPts, long posPts ) {
         mNeedSync = false;
         
-        // Check if seek was for before file start.
+        // Check if seek was for before file startThreadedMode.
         if( syncPts < mStartPts ) {
             syncPts = mStartPts;
         }

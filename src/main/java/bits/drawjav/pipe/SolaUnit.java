@@ -14,7 +14,7 @@ import java.nio.*;
 /**
  * @author Philip DeCamp
  */
-public class SolaUnit implements AvUnit {
+public final class SolaUnit implements AvUnit {
 
     private final MemoryManager mMem;
 

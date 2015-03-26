@@ -15,7 +15,7 @@ import java.util.*;
  *
  * @author Philip DeCamp
  */
-public class TickerSchedulerUnit implements SchedulerUnit {
+public final class TickerSchedulerUnit implements SchedulerUnit {
 
     private final Object           mLock    = this;
     private final List<StreamNode> vStreams = new ArrayList<StreamNode>();
@@ -159,6 +159,7 @@ public class TickerSchedulerUnit implements SchedulerUnit {
                 vFireUnitUpdate();
             }
         }
+
 
         void vClear() {
             if( vQueue.isEmpty() ) {

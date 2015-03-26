@@ -35,10 +35,11 @@ public class AvGraph {
     private boolean mNeedInit = true;
 
 
-    AvGraph() {
+    public AvGraph() {
         mBus = new AsyncEventBus( mExecutor );
         mBus.register( new RequestHandler() );
     }
+
 
 
     public void register( AvUnit filter ) {
@@ -472,7 +473,6 @@ public class AvGraph {
         }
 
     }
-
 
 
     private class RequestHandler {

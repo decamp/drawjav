@@ -184,7 +184,7 @@ public class PassiveDriver implements StreamDriver {
     }
     
     /**
-     * @return start time of currently held packet, or Long.MIN_VALUE if no packet.
+     * @return startThreadedMode time of currently held packet, or Long.MIN_VALUE if no packet.
      */
     public synchronized long currentMicros() {
         return mNextPacket == null ? Long.MIN_VALUE : mNextPacket.startMicros();

@@ -69,7 +69,7 @@
 //
 //            playCont.control().clockRate( new Frac( 1, 1 ) );
 //            playCont.control().clockSeek( 100000L );
-//            driver.start();
+//            driver.startThreadedMode();
 //            playCont.control().clockStart();
 //        }
 //

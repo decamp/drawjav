@@ -1,6 +1,7 @@
 package bits.drawjav.video;
 
 import bits.drawjav.*;
+import bits.drawjav.pipe.AvGraph;
 import bits.drawjav.pipe.VideoPlayer;
 import bits.jav.Jav;
 import bits.microtime.*;
@@ -20,9 +21,7 @@ public class VideoPlayerTest {
     public static void main( String[] args ) throws Exception {
 //        testRealtime();
         testStepping();
-//        testSynced();
-//        testMultiRealtime();
-//        testMultiSynced();
+//        testSteppingSeek();
     }
 
 
@@ -45,7 +44,7 @@ public class VideoPlayerTest {
         player.start();
         win.start();
 
-        // Update playcontroller before we start clock so that master clock will be caught up.
+        // Update playcontroller before we startThreadedMode clock so that master clock will be caught up.
         playCont.tick();
         clock.clockStart();
 
@@ -67,6 +66,7 @@ public class VideoPlayerTest {
 ////            }
 //        } catch( Exception ex ) {}
     }
+
 
     static void testStepping() throws Exception {
         final MemoryManager mem       = new PoolMemoryManager( -1, 1024 * 1024 * 16, -1, 1024 * 1024 * 256 );
@@ -112,6 +112,32 @@ public class VideoPlayerTest {
     }
 
 
+    static void testSteppingSeek() throws Exception {
+        final MemoryManager mem       = new PoolMemoryManager( -1, 1024 * 1024 * 16, -1, 1024 * 1024 * 256 );
+        final PlayController playCont = PlayController.createStepping( 0, 1000000L / 30L );
+        final ClockControl clock      = playCont.clock();
+        final FormatReader reader     = FormatReader.openFile( TEST_FILE, true, 0, mem );
 
+        Stream sh = reader.stream( Jav.AVMEDIA_TYPE_VIDEO, 0 );
+        reader.openStream( sh );
+
+        final VideoPlayer player = new VideoPlayer( mem, playCont.clock(), reader, true );
+        Ticker ticker = new Ticker() {
+            @Override
+            public void tick() {
+                playCont.tick();
+                player.tick();
+            }
+        };
+
+        final VideoWindow win = new VideoWindow( ticker, player.texture() );
+        win.start();
+        clock.clockStart();
+
+        try {
+            Thread.sleep( 2000L );
+            playCont.control().clockSeek( 0L );
+        } catch( Exception ex ) {}
+    }
 
 }

@@ -5,14 +5,8 @@
 */
 package bits.drawjav.pipe;
 
-import bits.drawjav.audio.WavWriter;
 import bits.microtime.Frac;
-
-import java.io.File;
-import java.io.IOException;
 import java.nio.FloatBuffer;
-import java.util.Arrays;
-
 
 /**
 * Implementation of SOLA-FS. This filter will compress or expand

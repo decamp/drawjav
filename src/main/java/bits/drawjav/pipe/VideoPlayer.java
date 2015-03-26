@@ -15,7 +15,7 @@ import java.nio.channels.Channel;
 /**
  * @author Philip DeCamp
  */
-public class VideoPlayer implements Channel {
+public final class VideoPlayer implements Channel {
 
     private final MemoryManager mMem;
     private final PlayClock     mClock;
@@ -58,10 +58,9 @@ public class VideoPlayer implements Channel {
         graph.connect( mResampler, mResampler.output( 0 ), mScheduler, mScheduler.input( 0 ), dstFormat );
         graph.connect( mScheduler, mScheduler.output( 0 ), mTexture,   mTexture.input( 0 ),   dstFormat );
 
-        if( !stepping ) {
-            mDriver = GraphDriver.createThreaded( mClock, graph );
-        } else {
-            mDriver = GraphDriver.createStepping( mClock, graph, mScheduler );
+        mDriver = new GraphDriver( mClock, graph );
+        if( stepping ) {
+            mDriver.addTicker( mScheduler );
         }
     }
 
@@ -82,7 +81,9 @@ public class VideoPlayer implements Channel {
 
 
     public void start() {
-        mDriver.start();
+        if( !mStepping ) {
+            mDriver.startThreadedMode();
+        }
     }
 
 
