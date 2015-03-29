@@ -192,6 +192,10 @@ public class VideoResampler implements PacketConverter<DrawPacket> {
                                               dst.mHeight,
                                               dst.mPixelFormat,
                                               mConversionFlags );
+
+        if( mAlloc == null ) {
+            mAlloc = OneFormatAllocator.createPacketLimited( 8 );
+        }
     }
 
 
