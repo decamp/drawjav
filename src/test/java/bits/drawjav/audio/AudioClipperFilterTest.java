@@ -28,7 +28,7 @@ public class AudioClipperFilterTest {
     @Test
     public void testNonEmpty() throws IOException {
         File file = TEST_FILE;
-        MemoryManager mem    = new PoolPerFormatMemoryManager( 128, -1, 0, 0 );
+        MemoryManager mem    = new PoolPerFormatMemoryManager( 128, 0 );
         FormatReader  reader = FormatReader.openFile( file );
         Stream stream = reader.stream( Jav.AVMEDIA_TYPE_AUDIO, 0 );
         reader.openStream( stream );
@@ -115,7 +115,6 @@ public class AudioClipperFilterTest {
         clipper.clockSeek( 0, 10000L );
         DrawPacket clipped;
         DrawPacket[] arr = { null };
-        int err;
 
         assertEquals( Pad.OKAY, clipper.input( 0 ).offer( p ) );
         assertTrue( clipper.output( 0 ).status() == Pad.OKAY );
@@ -164,7 +163,6 @@ public class AudioClipperFilterTest {
         clipper.clockRate( 0, new Frac( -1, 1 ) );
         DrawPacket clipped;
         DrawPacket[] arr = { null };
-        int err;
 
         assertEquals( Pad.OKAY, clipper.input( 0 ).offer( p ) );
         assertTrue( clipper.output( 0 ).status() == Pad.OKAY );

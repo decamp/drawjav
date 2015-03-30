@@ -12,22 +12,14 @@ public class PoolMemoryManager implements MemoryManager {
     private MultiFormatAllocator mAudioMem;
 
 
-    public PoolMemoryManager( int audioItemCap,
-                              int audioByteCap,
-                              int videoItemCap,
-                              int videoByteCap )
-    {
-        if( videoItemCap > 0 || videoByteCap < 0 ) {
-            mVideoMem = MultiFormatAllocator.createPacketLimited( videoItemCap );
-        } else {
-            mVideoMem = MultiFormatAllocator.createByteLimited( videoByteCap );
-        }
+    public PoolMemoryManager() {
+        this( 32, 16 );
+    }
 
-        if( audioItemCap > 0 || audioByteCap < 0 ) {
-            mAudioMem = MultiFormatAllocator.createPacketLimited( audioItemCap );
-        } else {
-            mAudioMem = MultiFormatAllocator.createByteLimited( audioByteCap );
-        }
+
+    public PoolMemoryManager( int audioItemCap, int videoItemCap ) {
+        mVideoMem = MultiFormatAllocator.createPacketLimited( videoItemCap );
+        mAudioMem = MultiFormatAllocator.createPacketLimited( audioItemCap );
     }
 
     @Override

@@ -552,6 +552,11 @@ public class StreamFormat {
     }
 
     @Override
+    public int hashCode() {
+        return mHash;
+    }
+
+    @Override
     public boolean equals( Object o ) {
         if( o == this ) {
             return true;

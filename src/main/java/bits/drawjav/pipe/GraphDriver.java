@@ -31,9 +31,13 @@ public final class GraphDriver implements Channel, Ticker {
 
 
     public GraphDriver( PlayClock optClock, AvGraph graph ) {
+        if( graph == null ) {
+            throw new NullPointerException();
+        }
+
         mLock   = graph;
         vGraph  = graph;
-        mEvents = new ClockEventQueue( mLock, optClock, 1024 );
+        mEvents = new ClockEventQueue( graph, optClock, 1024 );
     }
 
 

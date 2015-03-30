@@ -28,7 +28,7 @@ public class MultiCostPool<T extends Refable> implements Channel {
 
     private long    vPoolCostTotal  = 0;  // Current cost of items in pool.
     private long    vAllocatedTotal = 0;  // Current cost of items outside pool.
-    //private long    vAllocatedMax = 0;    // For debugging.
+//    private long    vAllocatedMax = 0;    // For debugging.
 
     private int     vDisposing = 0;
     private boolean vOpen      = true;
@@ -74,7 +74,7 @@ public class MultiCostPool<T extends Refable> implements Channel {
                 return null;
             }
             vPools.put( key, pool );
-            return pool.sPoll();
+            return pool.vPoll();
         }
     }
 
@@ -123,10 +123,10 @@ public class MultiCostPool<T extends Refable> implements Channel {
 
             while( spaceCleared < spaceNeeded && iter.hasNext() ) {
                 Pool p = iter.next();
-                spaceCleared += p.sPollMultiple( spaceNeeded - spaceCleared, derefList );
+                spaceCleared += p.vPollMultiple( spaceNeeded - spaceCleared, derefList );
 
                 // If a pool lies empty for too long, remove it.
-                if( p.sUpdateEmptyAge() > mMaxEmptyAge ) {
+                if( p.vUpdateEmptyAge() > mMaxEmptyAge ) {
                     iter.remove();
                 }
             }
@@ -245,7 +245,7 @@ public class MultiCostPool<T extends Refable> implements Channel {
     long poolCost( Object key ) {
         synchronized( mLock ) {
             Pool pool = vPools.get( key );
-            return pool == null ? 0 : pool.sPoolCost;
+            return pool == null ? 0 : pool.vPoolCost;
         }
     }
 
@@ -277,7 +277,7 @@ public class MultiCostPool<T extends Refable> implements Channel {
 
             for( Pool pool: pools ) {
                 synchronized( mLock ) {
-                    pool.sClear( list );
+                    pool.vClear( list );
                 }
 
                 for( T item: list ) {
@@ -300,62 +300,62 @@ public class MultiCostPool<T extends Refable> implements Channel {
 
     private class Pool {
 
-        private Stack<T> sPool     = new Stack<T>();
-        private long     sPoolCost = 0;
+        private Stack<T> vPool     = new Stack<T>();
+        private long     vPoolCost = 0;
         private int      sEmptyAge = 0;
 
         void sPush( T item, long cost ) {
-            sPool.push( item );
-            sPoolCost += cost;
+            vPool.push( item );
+            vPoolCost += cost;
             vPoolCostTotal += cost;
         }
 
 
-        T sPoll() {
-            switch( sPool.size() ) {
+        T vPoll() {
+            switch( vPool.size() ) {
             case 0:
                 return null;
 
             case 1:
-                vPoolCostTotal -= sPoolCost;
-                sPoolCost = 0;
-                return sPool.pop();
+                vPoolCostTotal -= vPoolCost;
+                vPoolCost = 0;
+                return vPool.pop();
 
             default:
-                T item = sPool.pop();
+                T item = vPool.pop();
                 long cost = mMetric.costOf( item );
-                sPoolCost -= cost;
+                vPoolCost -= cost;
                 vPoolCostTotal -= cost;
                 return item;
             }
         }
 
 
-        long sPollMultiple( long cost, List<T> out ) {
+        long vPollMultiple( long cost, List<T> out ) {
             long ret = 0;
-            while( ret < cost && !sPool.isEmpty() ) {
-                T item = sPool.pop();
+            while( ret < cost && !vPool.isEmpty() ) {
+                T item = vPool.pop();
                 ret += mMetric.costOf( item );
                 out.add( item );
             }
 
-            ret = Math.min( ret, sPoolCost );
-            sPoolCost -= ret;
+            ret = Math.min( ret, vPoolCost );
+            vPoolCost -= ret;
             vPoolCostTotal -= ret;
             return ret;
         }
 
 
-        void sClear( List<T> derefList ) {
-            derefList.addAll( sPool );
-            sPool.clear();
-            vPoolCostTotal -= sPoolCost;
-            sPoolCost = 0;
+        void vClear( List<T> derefList ) {
+            derefList.addAll( vPool );
+            vPool.clear();
+            vPoolCostTotal -= vPoolCost;
+            vPoolCost = 0;
         }
 
 
-        int sUpdateEmptyAge() {
-            if( sPool.isEmpty() ) {
+        int vUpdateEmptyAge() {
+            if( vPool.isEmpty() ) {
                 return ++sEmptyAge;
             } else {
                 sEmptyAge = 0;

@@ -98,8 +98,6 @@ public class DrawPacket extends JavFrame implements Packet {
             return 0;
         }
 
-        int len;
-
         switch( format.mType ) {
         case Jav.AVMEDIA_TYPE_VIDEO:
             return nComputeVideoBufferSize( format.mWidth,

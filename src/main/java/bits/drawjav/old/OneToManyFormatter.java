@@ -305,6 +305,6 @@ public class OneToManyFormatter implements Sink<Packet> {
                                            int audioPoolCap )
     {
         mStream = source;
-        mMem    = new PoolPerFormatMemoryManager( audioPoolCap, -1, videoPoolCap, -1 );
+        mMem    = new PoolPerFormatMemoryManager( audioPoolCap, videoPoolCap );
     }
 }

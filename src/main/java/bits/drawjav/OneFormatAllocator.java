@@ -35,10 +35,12 @@ public class OneFormatAllocator extends AbstractRefable implements PacketAllocat
     }
 
 
-    public static OneFormatAllocator createByteLimited( long maxBytes ) {
-        CostPool<DrawPacket> pool = new CostPool<DrawPacket>( maxBytes, maxBytes * 100, BYTE_COST );
-        return new OneFormatAllocator( pool );
-    }
+// TODO: Fix memory allocation. Because it's nearly impossible to prevent FFMPEG from reallocating buffers
+// it's really hard to manage memory that way.
+//    public static OneFormatAllocator createByteLimited( long maxBytes ) {
+//        CostPool<DrawPacket> pool = new CostPool<DrawPacket>( maxBytes, maxBytes * 100, BYTE_COST );
+//        return new OneFormatAllocator( pool );
+//    }
 
 
     private final CostPool<DrawPacket> mPool;
@@ -64,7 +66,8 @@ public class OneFormatAllocator extends AbstractRefable implements PacketAllocat
         DrawPacket ret = mPool.poll();
 
         if( ret != null ) {
-            if( format == null || size < 0 ) {
+            // TODO: Figure out what the fuck ffmpeg is doing with data buffer pointers.
+            if( format == null || size <= 0 ) {
                 return ret;
             }
 

@@ -28,7 +28,7 @@ public class VideoPlayerTest {
     static void testRealtime() throws Exception {
         File file = TEST_FILE;
 
-        final MemoryManager mem       = new PoolMemoryManager( -1, 1024 * 1024 * 16, -1, 1024 * 1024 * 256 );
+        final MemoryManager mem       = new PoolMemoryManager( -1, -1 );
         final PlayController playCont = PlayController.createRealtime();
         final ClockControl clock      = playCont.clock();
         final FormatReader reader     = FormatReader.openFile( TEST_FILE, true, 0, mem );
@@ -69,7 +69,7 @@ public class VideoPlayerTest {
 
 
     static void testStepping() throws Exception {
-        final MemoryManager mem       = new PoolMemoryManager( -1, 1024 * 1024 * 16, -1, 1024 * 1024 * 256 );
+        final MemoryManager mem       = new PoolMemoryManager( -1, -1 );
         final PlayController playCont = PlayController.createStepping( 0, 1000000L / 30L );
         final ClockControl clock      = playCont.clock();
         final FormatReader reader     = FormatReader.openFile( TEST_FILE, true, 0, mem );
@@ -113,7 +113,7 @@ public class VideoPlayerTest {
 
 
     static void testSteppingSeek() throws Exception {
-        final MemoryManager mem       = new PoolMemoryManager( -1, 1024 * 1024 * 16, -1, 1024 * 1024 * 256 );
+        final MemoryManager mem       = new PoolMemoryManager( -1, -1 );
         final PlayController playCont = PlayController.createStepping( 0, 1000000L / 30L );
         final ClockControl clock      = playCont.clock();
         final FormatReader reader     = FormatReader.openFile( TEST_FILE, true, 0, mem );

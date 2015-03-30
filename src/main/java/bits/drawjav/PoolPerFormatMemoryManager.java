@@ -16,38 +16,21 @@ import bits.jav.Jav;
 public class PoolPerFormatMemoryManager implements MemoryManager {
 
     private final int mAudioItemCap;
-    private final int mAudioByteCap;
     private final int mVideoItemCap;
-    private final int mVideoByteCap;
 
-    public PoolPerFormatMemoryManager( int audioItemCap,
-                                       int audioByteCap,
-                                       int videoItemCap,
-                                       int videoByteCap )
-    {
+    public PoolPerFormatMemoryManager( int audioItemCap, int videoItemCap ) {
         mAudioItemCap = audioItemCap;
-        mAudioByteCap = audioByteCap;
         mVideoItemCap = videoItemCap;
-        mVideoByteCap = videoByteCap;
     }
-
 
     @Override
     public PacketAllocator<DrawPacket> allocator( StreamFormat stream ) {
         switch( stream.mType ) {
         case Jav.AVMEDIA_TYPE_AUDIO:
-            if( mAudioItemCap > 0 || mAudioByteCap <= 0 ) {
-                return OneFormatAllocator.createPacketLimited( mAudioItemCap );
-            } else {
-                return OneFormatAllocator.createByteLimited( mAudioByteCap );
-            }
+            return OneFormatAllocator.createPacketLimited( mAudioItemCap );
 
         case Jav.AVMEDIA_TYPE_VIDEO:
-            if( mVideoItemCap > 0 || mVideoByteCap <= 0 ) {
-                return OneFormatAllocator.createPacketLimited( mVideoItemCap );
-            } else {
-                return OneFormatAllocator.createByteLimited( mVideoByteCap );
-            }
+            return OneFormatAllocator.createPacketLimited( mVideoItemCap );
         }
 
         return null;

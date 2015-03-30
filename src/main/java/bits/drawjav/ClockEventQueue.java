@@ -17,6 +17,10 @@ public class ClockEventQueue implements SyncClockControl {
 
 
     public ClockEventQueue( Object lock, PlayClock clock, int maxCap ) {
+        if( lock == null ) {
+            throw new NullPointerException();
+        }
+
         mLock  = lock;
         mClock = clock;
 

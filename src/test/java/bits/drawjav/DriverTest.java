@@ -37,7 +37,7 @@ public class DriverTest {
     static void testRealtime() throws Exception {
         File file = TEST_FILE;
 
-        final MemoryManager mem       = new PoolMemoryManager( -1, 1024 * 1024 * 16, -1, 1024 * 1024 * 256 );
+        final MemoryManager mem       = new PoolMemoryManager();
         final PlayController playCont = PlayController.createAuto();
         final FormatReader decoder    = FormatReader.openFile( file, true, 0L, mem );
         final RealtimeDriver driver   = new RealtimeDriver( playCont.clock(), decoder, mem, null );
@@ -81,7 +81,7 @@ public class DriverTest {
     static void testSynced() throws Exception {
         File file = TEST_FILE;
 
-        final MemoryManager mem       = new PoolMemoryManager( -1, 1024 * 1024 * 16, -1, 1024 * 1024 * 256 );
+        final MemoryManager mem       = new PoolMemoryManager();
         final PlayController playCont = PlayController.createStepping( 0, 1000000 / 30 );
         final FormatReader decoder    = FormatReader.openFile( file, true, 0L, mem );
         final SyncedDriver driver     = new SyncedDriver( mem, playCont.clock(), decoder );
@@ -132,7 +132,7 @@ public class DriverTest {
         System.out.println( new File( "." ).getAbsolutePath() );
         System.out.println( file1.getAbsolutePath() );
 
-        final MemoryManager mem           = new PoolMemoryManager( -1, 1024 * 1024 * 16, -1, 1024 * 1024 * 256 );
+        final MemoryManager mem           = new PoolMemoryManager();
         final PlayController playCont     = PlayController.createAuto();
         final FormatReader decoder1       = FormatReader.openFile( file1, true, 0L, mem );
         final FormatReader decoder2       = FormatReader.openFile( file2, true, 0L, mem );
@@ -181,7 +181,7 @@ public class DriverTest {
         File file1 = new File( "../../ext/video.mp4" );
         File file2 = new File( "../../ext/video.ts" );
 
-        final MemoryManager mem        = new PoolMemoryManager( -1, 1024 * 1024 * 16, -1, 1024 * 1024 * 256 );
+        final MemoryManager mem        = new PoolMemoryManager();
         final PlayController playCont  = PlayController.createStepping( 0L, 1000000L / 30L );
         final FormatReader decoder1    = FormatReader.openFile( file1, true, 0L, mem );
         final FormatReader decoder2    = FormatReader.openFile( file2, true, 0L, mem );

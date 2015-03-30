@@ -88,10 +88,8 @@ public final class PacketReaderUnit implements AvUnit, SyncClockControl {
     public void clear() {}
 
 
-
     @Subscribe
     public void processClockEvent( ClockEvent event ) {
-        System.out.println( event + "\t" + event.mSource );
         event.apply( this );
     }
 

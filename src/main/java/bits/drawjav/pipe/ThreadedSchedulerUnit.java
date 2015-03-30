@@ -35,6 +35,11 @@ public final class ThreadedSchedulerUnit implements SchedulerUnit {
 
 
     public int addStream( PlayClock clock, int queueCap ) {
+        return addStream( clock, queueCap, false );
+    }
+
+
+    public int addStream( PlayClock clock, int queueCap, boolean rushAfterClear ) {
         synchronized( mLock ) {
             ClockNode node = vClocks.get( clock );
             if( node == null ) {
@@ -42,12 +47,11 @@ public final class ThreadedSchedulerUnit implements SchedulerUnit {
                 vClocks.put( clock, node );
             }
             vClockHeap.offer( node );
-            StreamNode stream = new StreamNode( node, queueCap );
+            StreamNode stream = new StreamNode( node, queueCap, rushAfterClear );
             vStreams.add( stream );
             return vStreams.size() - 1;
         }
     }
-
 
     @Override
     public void open( EventBus bus ) {
@@ -252,7 +256,8 @@ public final class ThreadedSchedulerUnit implements SchedulerUnit {
 
 
         long vComputeWaitMillis() {
-            return ( vNextExec - mClock.masterMicros() ) / 1000L;
+            long now = mClock.masterMicros();
+            return vNextExec < now ? 0 : ( vNextExec - now ) / 1000L;
         }
 
 
@@ -315,16 +320,19 @@ public final class ThreadedSchedulerUnit implements SchedulerUnit {
         final InPadReadyEvent  mInReady  = new InPadReadyEvent( mIn );
         final OutPadReadyEvent mOutReady = new OutPadReadyEvent( mOut );
 
+        final boolean mRushAfterClear;
         final int mStreamCap;
         int vStreamSize;
+        boolean mClear = true;
 
         Command vReadyHead = null;
         Command vReadyTail = null;
 
 
-        StreamNode( ClockNode node, int queueCap ) {
+        StreamNode( ClockNode node, int queueCap, boolean rushAfterClear ) {
             mNode = node;
             mStreamCap = queueCap;
+            mRushAfterClear = rushAfterClear;
         }
 
 
@@ -384,6 +392,18 @@ public final class ThreadedSchedulerUnit implements SchedulerUnit {
 
                     Command c = vCommandPoolGet();
                     c.vInit( StreamNode.this, packet, mNode.vForward );
+
+                    if( mClear ) {
+                        mClear = false;
+                        if( mRushAfterClear ) {
+                            // If we haven't sent any packets, send first packet immediately.
+                            c.mDts = mNode.mClock.micros();
+                            if( !mNode.vForward && c.mDts < Long.MAX_VALUE ) {
+                                c.mDts++;
+                            }
+                        }
+                    }
+
                     mNode.vOffer( c );
                     return OKAY;
                 }

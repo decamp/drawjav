@@ -2,6 +2,7 @@ package bits.drawjav;
 
 import bits.jav.Jav;
 import bits.jav.codec.JavFrame;
+import bits.jav.util.JavBufferRef;
 import bits.util.ref.AbstractRefable;
 import bits.util.ref.ObjectPool;
 
@@ -27,11 +28,12 @@ public class MultiFormatAllocator extends AbstractRefable implements PacketAlloc
         return new MultiFormatAllocator( pool );
     }
 
-
-    public static MultiFormatAllocator createByteLimited( long maxBytes ) {
-        MultiCostPool<DrawPacket> pool = new MultiCostPool<DrawPacket>( maxBytes, maxBytes * 5, BYTE_COST );
-        return new MultiFormatAllocator( pool );
-    }
+// TODO: Fix memory allocation. Because it's nearly impossible to prevent FFMPEG from reallocating buffers
+// it's really hard to manage memory that way.
+//    public static MultiFormatAllocator createByteLimited( long maxBytes ) {
+//        MultiCostPool<DrawPacket> pool = new MultiCostPool<DrawPacket>( maxBytes, maxBytes * 5, BYTE_COST );
+//        return new MultiFormatAllocator( pool );
+//    }
 
 
 
@@ -46,25 +48,26 @@ public class MultiFormatAllocator extends AbstractRefable implements PacketAlloc
 
     @Override
     public synchronized DrawPacket alloc( StreamFormat format, int size ) {
-        DrawPacket packet = mPool.poll( format );
-        if( packet != null ) {
-            if( format == null || size < 0 ) {
-                return packet;
+        DrawPacket ret = mPool.poll( format );
+        if( ret != null ) {
+            // TODO: Figure out what the ffmpeg is doing with data buffer pointers.
+            if( format == null || size <= 0 ) {
+                return ret;
             }
 
-            int minSize = DrawPacket.computeBufferSize( format, size );
-            if( packet.useableBufElemSize( 0 ) >= minSize ) {
+            int minSize = Jav.encodingBufferSize( DrawPacket.computeBufferSize( format, size ) );
+            if( ret.useableBufElemSize( 0 ) >= minSize ) {
                 if( format.mType == Jav.AVMEDIA_TYPE_AUDIO ) {
-                    packet.nbSamples( size );
+                    ret.nbSamples( size );
                 }
-                return packet;
+                return ret;
             }
-            mPool.dispose( packet );
+            mPool.dispose( ret );
         }
 
-        packet = DrawPacket.create( mPool.pool( format ), format, size );
-        mPool.allocated( packet );
-        return packet;
+        ret = DrawPacket.create( mPool.pool( format ), format, size );
+        mPool.allocated( ret );
+        return ret;
     }
 
 
@@ -75,7 +78,6 @@ public class MultiFormatAllocator extends AbstractRefable implements PacketAlloc
 
 
     private final class AutoPool implements ObjectPool<DrawPacket> {
-
         @Override
         public DrawPacket poll() {
             return null;
@@ -85,7 +87,22 @@ public class MultiFormatAllocator extends AbstractRefable implements PacketAlloc
         public boolean offer( DrawPacket obj ) {
             return mPool.offer( StreamFormat.fromAudioPacket( obj ), obj );
         }
+    }
 
+
+    public static String formatBufData( DrawPacket packet ) {
+        StringBuilder s = new StringBuilder();
+        s.append( packet.dataElem( 0 ) );
+
+        JavBufferRef ref = packet.bufElem( 0 );
+        if( ref == null ) {
+            s.append( "  <null>" );
+        } else {
+            s.append( "  " + ref.data() + "  " + ref.size() );
+            ref.unref();
+        }
+
+        return s.toString();
     }
 
 }

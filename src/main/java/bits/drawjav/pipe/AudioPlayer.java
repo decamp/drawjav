@@ -30,7 +30,7 @@ public class AudioPlayer implements Channel {
                         throws IOException
     {
         if( optMem == null ) {
-            optMem = new PoolPerFormatMemoryManager( 128, 64 * 1024 * 1024, -1, -1 );
+            optMem = new PoolPerFormatMemoryManager( 128, -1 );
         }
         mMem = optMem;
         if( optClock == null ) {
