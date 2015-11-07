@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.util.*;
-import static javax.media.opengl.GL3.*;
+import static com.jogamp.opengl.GL3.*;
 
 import bits.draw3d.*;
 import bits.drawjav.*;

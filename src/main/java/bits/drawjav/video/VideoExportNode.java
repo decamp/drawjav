@@ -11,7 +11,7 @@ import java.nio.*;
 import java.nio.channels.FileChannel;
 import java.util.*;
 
-import static javax.media.opengl.GL3.*;
+import static com.jogamp.opengl.GL3.*;
 
 import bits.collect.RingList;
 

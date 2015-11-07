@@ -4,12 +4,12 @@ import bits.draw3d.*;
 import bits.draw3d.util.LimitAnimator;
 import bits.microtime.Ticker;
 
-import javax.media.opengl.*;
-import javax.media.opengl.awt.GLCanvas;
+import com.jogamp.opengl.*;
+import com.jogamp.opengl.awt.GLCanvas;
 import javax.swing.*;
 
-import static javax.media.opengl.GL.GL_COLOR_BUFFER_BIT;
-import static javax.media.opengl.GL.GL_TEXTURE0;
+import static com.jogamp.opengl.GL.GL_COLOR_BUFFER_BIT;
+import static com.jogamp.opengl.GL.GL_TEXTURE0;
 
 
 /**

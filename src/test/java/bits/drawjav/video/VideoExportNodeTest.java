@@ -9,8 +9,8 @@ package bits.drawjav.video;
 import java.io.*;
 import java.util.Random;
 
-import javax.media.opengl.*;
-import javax.media.opengl.awt.GLCanvas;
+import com.jogamp.opengl.*;
+import com.jogamp.opengl.awt.GLCanvas;
 import javax.swing.JFrame;
 
 import bits.draw3d.DrawEnv;
@@ -19,7 +19,7 @@ import bits.draw3d.util.Animator;
 import bits.draw3d.util.LimitAnimator;
 import bits.microtime.*;
 
-import static javax.media.opengl.GL.*;
+import static com.jogamp.opengl.GL.*;
 
 /**
 * @author decamp

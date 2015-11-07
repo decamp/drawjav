@@ -7,7 +7,7 @@
 package bits.drawjav.old;
 
 import java.nio.*;
-import static javax.media.opengl.GL2ES3.*;
+import static com.jogamp.opengl.GL2ES3.*;
 
 import bits.draw3d.*;
 import bits.drawjav.video.IntFrame;
