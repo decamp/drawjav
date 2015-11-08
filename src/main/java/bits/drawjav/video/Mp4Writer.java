@@ -10,6 +10,7 @@ import java.io.*;
 import java.nio.ByteBuffer;
 
 import bits.jav.Jav;
+import bits.jav.JavException;
 import bits.jav.codec.*;
 import bits.jav.format.*;
 import bits.jav.swscale.SwsContext;
@@ -144,7 +145,11 @@ public class Mp4Writer {
 
         }
         
-        mCc.open( codec );
+        int err = mCc.open( codec );
+        if( err < 0 ) {
+            throw new JavException( err, "Opening codec" );
+        }
+
         if( mMetadata != null ) {
             mFormat.metadata( mMetadata );
             mMetadata = null;
@@ -154,9 +159,11 @@ public class Mp4Writer {
         mStreamRate = stream.timeBase();
         
         mDstFrame = JavFrame.allocVideo( mWidth, mHeight, Jav.AV_PIX_FMT_YUV420P, null );
-        mSws = SwsContext.allocAndInit( mWidth, mHeight, Jav.AV_PIX_FMT_BGR24, 
-                                        mWidth, mHeight, Jav.AV_PIX_FMT_YUV420P, 
-                                        Jav.SWS_POINT );
+        mSws = SwsContext.allocAndInit(
+                mWidth, mHeight, Jav.AV_PIX_FMT_BGR24,
+                mWidth, mHeight, Jav.AV_PIX_FMT_YUV420P,
+                Jav.SWS_POINT
+        );
     }
     
     
@@ -167,16 +174,22 @@ public class Mp4Writer {
         long ptr = JavMem.nativeAddress( buf ) + buf.position();
         mSrcFrame.dataElem( 0, ptr );
 
-        mSws.conv( mSrcFrame, mDstFrame );
+        int err = mSws.conv( mSrcFrame, mDstFrame );
+        if( err < 0 ) {
+            throw new JavException( "Image Conversion: " + err );
+        }
+
         long pts = Rational.rescaleQ( mFrameCount++, mTimeBase, mStreamRate );
         mDstFrame.pts( pts );
         
         mPacket.init();
         mPacket.freeData();
-        int err = mCc.encodeVideo( mDstFrame, mPacket, mGotPacket ); 
+
+        err = mCc.encodeVideo( mDstFrame, mPacket, mGotPacket );
         if( err < 0 ) {
             throw new IOException( "Encode failed: " + err );
         }
+
         if( mGotPacket[0] == 0 ) {
             return;
         }

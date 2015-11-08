@@ -13,8 +13,6 @@ import java.util.*;
 
 import static com.jogamp.opengl.GL3.*;
 
-import bits.collect.RingList;
-
 import bits.draw3d.*;
 import bits.glui.GPanel;
 import bits.jav.util.Rational;
@@ -61,7 +59,7 @@ public class VideoExportNode extends GPanel implements DrawNode, ReshapeListener
     private final List<Stream> mStreams = new ArrayList<Stream>();
     private final FlushThread mFlusher  = new FlushThread();
     
-    private Integer mReadTarget     = null;
+    private int     mReadTarget     = GL_COLOR_ATTACHMENT0;
     private boolean mDoubleBuffered = false;
 
     
@@ -71,8 +69,8 @@ public class VideoExportNode extends GPanel implements DrawNode, ReshapeListener
     
     
     /**
-     * @param readTarget Specifies buffer to read data from. Must be GL_FRONT, GL_BACK, {@code stopMicros}.
-     *                   If {@code stopMicros}, a buffer will be selected automatically.
+     * @param readTarget Specifies buffer to read data from. Must be GL_COLOR_ATTACHMENT* or GL_COLOR_BACK.
+     *                   Default is GL_COLOR_ATTACHMENT0.
      */
     public void readTarget( Integer readTarget ) {
         mReadTarget = readTarget;
@@ -127,7 +125,7 @@ public class VideoExportNode extends GPanel implements DrawNode, ReshapeListener
         }
         
         ObjectPool<ByteBuffer> pool = new HardPool<ByteBuffer>( MAX_QUEUE_SIZE + 1 );
-        BgrReader reader = new BgrReader( pool );
+        BgrReader reader   = new BgrReader( pool );
         ColorWriter writer = new ColorWriter( outFile, quality, bitrate, 24, null, pool, mFlusher );
         Stream stream      = new Stream( startMicros, stopMicros, reader, writer );
         mNewStreams.offer( stream );
@@ -237,24 +235,25 @@ public class VideoExportNode extends GPanel implements DrawNode, ReshapeListener
     
 
 
-    public static interface Job extends Closeable, TimeRanged {
-        public void addCompletionCallback( Runnable r );
+    public interface Job extends Closeable, TimeRanged {
+        void addCompletionCallback( Runnable r );
     }
     
     
-    private static interface Joinable extends Closeable {
-        public void join() throws InterruptedException;
+    private interface Joinable extends Closeable {
+        void join() throws InterruptedException;
     }
     
     
-    private static interface FrameReader {
-        public ByteBuffer readFrame( DrawEnv d, int w, int h );
+    private interface FrameReader {
+        ByteBuffer readFrame( DrawEnv d, int w, int h );
     }
     
     
-    private static interface FrameWriter extends Joinable {
-        public boolean offer( ByteBuffer src, int w, int h ) throws IOException;
-        public void close() throws IOException;
+    private interface FrameWriter extends Joinable {
+        boolean offer( ByteBuffer src, int w, int h ) throws IOException;
+
+        void close() throws IOException;
     }
 
     
@@ -279,12 +278,7 @@ public class VideoExportNode extends GPanel implements DrawNode, ReshapeListener
             
             buf.order( ByteOrder.nativeOrder() );
             
-            if( mReadTarget != null ) {
-                d.mGl.glReadBuffer( mReadTarget );
-            } else {
-                d.mGl.glReadBuffer( mDoubleBuffered ? GL_BACK : GL_FRONT );
-            }
-            
+            d.mGl.glReadBuffer( mReadTarget );
             d.mGl.glPixelStorei( GL_PACK_ALIGNMENT, ROW_ALIGN );
             d.mGl.glReadPixels( 0, 0, w, h, GL_BGR, GL_UNSIGNED_BYTE, buf );
             buf.position( 0 ).limit( rowBytes * h );
@@ -314,12 +308,7 @@ public class VideoExportNode extends GPanel implements DrawNode, ReshapeListener
 
             buf.order( ByteOrder.nativeOrder() );
 
-            if( mReadTarget != null ) {
-                d.mGl.glReadBuffer( mReadTarget );
-            } else {
-                d.mGl.glReadBuffer( mDoubleBuffered ? GL_BACK : GL_FRONT );
-            }
-
+            d.mGl.glReadBuffer( mReadTarget );
             d.mGl.glPixelStorei( GL_PACK_ALIGNMENT, ROW_ALIGN );
             d.mGl.glReadPixels( 0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, buf );
             buf.position( 0 ).limit( rowBytes * h );
@@ -333,7 +322,7 @@ public class VideoExportNode extends GPanel implements DrawNode, ReshapeListener
         
         private final File mOutFile;
         private final Mp4Writer mOut = new Mp4Writer();
-        private final Queue<ByteBuffer> mQueue = new RingList<ByteBuffer>( 4 );
+        private final Queue<ByteBuffer> mQueue = new ArrayDeque<ByteBuffer>( 4 );
         private final ObjectPool<ByteBuffer> mPool;
         private final FlushThread mFlusher;
         
@@ -352,7 +341,7 @@ public class VideoExportNode extends GPanel implements DrawNode, ReshapeListener
                             ObjectPool<ByteBuffer> pool,
                             FlushThread flusher )
         {
-            mOutFile    = outFile;
+            mOutFile = outFile;
             if( quality >= 0 ) {
                 mOut.quality( quality );
             } else if( bitrate >= 0 ) {
@@ -469,7 +458,8 @@ public class VideoExportNode extends GPanel implements DrawNode, ReshapeListener
                     flip.position( ( h - y - 1 ) * stride );
                     flip.put( buf );
                 }
-                
+
+                flip.position( 0 );
                 mOut.write( flip, stride );
                 if( mPool != null ) {
                     mPool.offer( buf );
@@ -494,7 +484,7 @@ public class VideoExportNode extends GPanel implements DrawNode, ReshapeListener
         private Thread mThread = null;
         private boolean mClosed = false;
 
-        private final Queue<ByteBuffer> mQueue = new RingList<ByteBuffer>( 4 );
+        private final Queue<ByteBuffer> mQueue = new ArrayDeque<ByteBuffer>( 4 );
         private int mWidth;
         private int mRowSize;
         private int mHeight;
@@ -577,6 +567,7 @@ public class VideoExportNode extends GPanel implements DrawNode, ReshapeListener
                 mFlusher.remove( this );
             }
         }
+
 
         private boolean process() throws IOException {
             ByteBuffer buf = null;

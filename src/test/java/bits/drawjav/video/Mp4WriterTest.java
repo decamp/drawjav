@@ -8,7 +8,6 @@ package bits.drawjav.video;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.util.List;
 import java.util.Random;
 
 import bits.jav.Jav;
@@ -52,8 +51,9 @@ public class Mp4WriterTest {
         out.bitrate( 1024 * 1024 * 8 / 10 );
         out.open( file );
 
-        for( int i = 0; i < 25; i++ ) {
-            System.out.println( i + "/255" );
+        final int frameMax = 25;
+        for( int i = 0; i < frameMax; i++ ) {
+            System.out.println( i + "/" + frameMax );
 
             byte v = (byte)i;
             buf.clear();

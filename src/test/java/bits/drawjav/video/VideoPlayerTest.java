@@ -20,8 +20,8 @@ public class VideoPlayerTest {
 
     public static void main( String[] args ) throws Exception {
 //        testRealtime();
-        testStepping();
-//        testSteppingSeek();
+//        testStepping();
+        testSteppingSeek();
     }
 
 

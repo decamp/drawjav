@@ -67,11 +67,11 @@ public class VideoExportNodeTest {
             try {
                 mExporter.addVideoWriter( new File( "/tmp/testA.mp4" ), 20, -1, mStartMicros, Long.MAX_VALUE );
                 //mExporter.addVideoWriter( new File( "/tmp/testB.mp4" ), -1, 10*1024*1024, 2000000L, 4000000L );
-                mExporter.addPngWriter( new File( "/tmp/testC" ),
-                                        "cc",
-                                        VideoExportNode.PNG_COMPRESSION_BEST_SPEED,
-                                        mStartMicros,
-                                        mStartMicros + 30000000L );
+//                mExporter.addPngWriter( new File( "/tmp/testC" ),
+//                                        "cc",
+//                                        VideoExportNode.PNG_COMPRESSION_BEST_SPEED,
+//                                        mStartMicros,
+//                                        mStartMicros + 30000000L );
             } catch( IOException ex ) {
                 ex.printStackTrace();
             }
@@ -122,6 +122,7 @@ public class VideoExportNodeTest {
         @Override
         public void reshape( GLAutoDrawable glad, int x, int y, int w, int h ) {
             mEnv.init( glad, null );
+            mEnv.mViewport.apply( x, y, w, h );
             mExporter.reshape( mEnv );
         }
 
