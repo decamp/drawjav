@@ -299,9 +299,18 @@ public final class ThreadedSchedulerUnit implements SchedulerUnit {
 
 
         private void vExecNext() {
-            Command c = mHeap.remove();
-            vUpdate();
-            c.mStream.vQueueOutput( c );
+            // TODO: Determine race condition that was generating exceptions at here.
+            // Command c = mHeap.remove();
+            Command c = mHeap.poll();
+            if( c != null ) {
+                vUpdate();
+                c.mStream.vQueueOutput( c );
+                return;
+            }
+
+            vNextExec = Long.MAX_VALUE;
+            vClockHeap.reschedule( this );
+            mLock.notify();
         }
 
 
